@@ -90,7 +90,7 @@ builder.Services.AddScoped<UsuarioService>();
 
 // Database configuration
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddDbContextPool<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
 // AutoMapper configuration
