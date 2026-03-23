@@ -5,7 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using BackEnd.Models.Responses;
-using BackEnd.Models.Constants;
+using BackEnd.Models.Constants.Errors;
 using BackEnd.Services;
 
 /*************************************************************************************************************/
@@ -71,7 +71,7 @@ builder.Services.AddControllers()
             var response = new ApiResponseDto<object>
             {
                 Success = false,
-                Message = ApplicationError.ValidationError.ValidationFailed,
+                Message = ApplicationError.ValidationFailed,
                 Data = null,
                 Errors = errors // Here go messages like "Name is required", etc.
             };

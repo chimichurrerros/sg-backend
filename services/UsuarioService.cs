@@ -1,7 +1,8 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using BackEnd.Context;
-using BackEnd.Models.Constants;
+using BackEnd.Models.Constants.Errors;
+using BackEnd.Models.Constants.Messages;
 using BackEnd.Models.Responses;
 using BackEnd.Models.Responses.User;
 using Microsoft.EntityFrameworkCore;
@@ -24,8 +25,8 @@ public class UsuarioService(AppDbContext context, IMapper mapper)
 		{
 			Success = profile != null,
 			Message = profile != null
-				? ApplicationMessages.Success.UserProfileRetrieved
-				: ApplicationError.NotFoundError.UserNotFound,
+				? UserMessage.UserProfileRetrieved
+				: AuthError.UserNotFound,
 			Data = profile
 		};
 	}

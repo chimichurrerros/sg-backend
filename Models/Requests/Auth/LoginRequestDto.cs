@@ -1,13 +1,13 @@
 using System.ComponentModel.DataAnnotations;
-using BackEnd.Models.Constants;
+using BackEnd.Models.Constants.Errors;
 
 namespace BackEnd.Models.Requests.Auth;
 
 public class LoginRequestDto
 {
-    [Required(ErrorMessage = ApplicationError.RequiredField.EmailRequired)]
-    [EmailAddress(ErrorMessage = ApplicationError.ValidationError.InvalidEmail)]
+    [Required(ErrorMessage = EmailError.EmailRequired)]
+    [EmailAddress(ErrorMessage = EmailError.InvalidEmail)]
     public string Email { get; set; } = null!;
-    [Required(ErrorMessage = ApplicationError.RequiredField.PasswordRequired)]
+    [Required(ErrorMessage = UserError.PasswordRequired)]
     public string Password { get; set; } = null!;
 }

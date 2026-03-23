@@ -1,18 +1,18 @@
 using System.ComponentModel.DataAnnotations;
-using BackEnd.Models.Constants;
+using BackEnd.Models.Constants.Errors;
 
 namespace BackEnd.Models.Requests.Auth;
 
 public class RegisterRequestDto
 {
-    [Required(ErrorMessage = ApplicationError.RequiredField.NameRequired)]
+    [Required(ErrorMessage = UserError.NameRequired)]
     public string Name { get; set; } = null!;
-    [Required(ErrorMessage = ApplicationError.RequiredField.LastNameRequired)]
+    [Required(ErrorMessage = UserError.LastNameRequired)]
     public string LastName { get; set; } = null!;
-    [Required(ErrorMessage = ApplicationError.RequiredField.EmailRequired)]
-    [EmailAddress(ErrorMessage = ApplicationError.ValidationError.InvalidEmail)]
+    [Required(ErrorMessage = EmailError.EmailRequired)]
+    [EmailAddress(ErrorMessage = EmailError.InvalidEmail)]
     public string Email { get; set; } = null!;
-    [Required(ErrorMessage = ApplicationError.RequiredField.PasswordRequired)]
-    [MinLength(8, ErrorMessage = ApplicationError.LengthError.PasswordLength)]
+    [Required(ErrorMessage = UserError.PasswordRequired)]
+    [MinLength(8, ErrorMessage = UserError.PasswordLength)]
     public string Password { get; set; } = null!;
 }

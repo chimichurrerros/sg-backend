@@ -4,7 +4,8 @@ using System.Text;
 using AutoMapper;
 using BackEnd.Context;
 using BackEnd.Entities;
-using BackEnd.Models.Constants;
+using BackEnd.Models.Constants.Errors;
+using BackEnd.Models.Constants.Messages;
 using BackEnd.Models.Requests.Auth;
 using BackEnd.Models.Responses;
 using BackEnd.Models.Responses.User;
@@ -28,8 +29,8 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
             return new ApiResponseDto<object>
             {
                 Success = false,
-                Message = ApplicationError.ValidationError.ValidationFailed,
-                Errors = new { Email = new[] { ApplicationError.EmailError.EmailAlreadyExists } }
+                Message = AuthError.InvalidCredentials,
+                Errors = new { Email = new[] { EmailError.EmailAlreadyExists } }
             };
         }
 
@@ -47,7 +48,7 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
         return new ApiResponseDto<object>
         {
             Success = true,
-            Message = ApplicationMessages.Authentication.UserRegistered
+            Message = AuthMessage.UserRegistered
         };
     }
 
@@ -64,8 +65,8 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
             return new ApiResponseDto<object>
             {
                 Success = false,
-                Message = ApplicationError.ValidationError.InvalidCredentials,
-                Errors = new { Authentication = new[] { ApplicationError.ValidationError.InvalidCredentials } }
+                Message = AuthError.InvalidCredentials,
+                Errors = new { Authentication = new[] { AuthError.InvalidCredentials } }
             };
         }
 
@@ -75,7 +76,7 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
         return new ApiResponseDto<object>
         {
             Success = true,
-            Message = ApplicationMessages.Authentication.LoginSuccessful,
+            Message = AuthMessage.LoginSuccessful,
             Data = _mapper.Map<UserResponseDto>(user)
         };
     }
@@ -86,7 +87,7 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
         return new ApiResponseDto<object>
         {
             Success = true,
-            Message = ApplicationMessages.Authentication.UserLoggedOut
+            Message = AuthMessage.UserLoggedOut
         };
     }
 
