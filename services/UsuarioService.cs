@@ -1,8 +1,8 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using BackEnd.Context;
-using BackEnd.Models.Constants.Errors;
-using BackEnd.Models.Constants.Messages;
+using BackEnd.Constants.Errors;
+using BackEnd.Constants.Messages;
 using BackEnd.Models.Responses;
 using BackEnd.Models.Responses.User;
 using Microsoft.EntityFrameworkCore;

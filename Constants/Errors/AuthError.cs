@@ -1,4 +1,4 @@
-namespace BackEnd.Models.Constants.Errors;
+namespace BackEnd.Constants.Errors;
 
 public static class AuthError
 {

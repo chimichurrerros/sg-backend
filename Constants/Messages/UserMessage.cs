@@ -1,4 +1,4 @@
-namespace BackEnd.Models.Constants.Messages;
+namespace BackEnd.Constants.Messages;
 
 public static class UserMessage
 {

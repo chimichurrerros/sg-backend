@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using BackEnd.Models.Constants.Errors;
+using BackEnd.Constants.Errors;
 
 namespace BackEnd.Models.Requests.Auth;
 

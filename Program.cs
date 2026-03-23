@@ -5,7 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using BackEnd.Models.Responses;
-using BackEnd.Models.Constants.Errors;
+using BackEnd.Constants.Errors;
 using BackEnd.Services;
 
 /*************************************************************************************************************/
