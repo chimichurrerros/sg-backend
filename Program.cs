@@ -8,9 +8,13 @@ using BackEnd.Models.Responses;
 using BackEnd.Models.Constants;
 using BackEnd.Services;
 
-// Nota aleatoria: Si el codigo http es 401 a 403 redirigir al login
+/*************************************************************************************************************/
+
+// Nota para decirle al front: Si el codigo http es 401 o 403 redirigir al login, si es 500 decile 
+// front que se arregle el solo xd
 
 /*************************************************************************************************************/
+
 var builder = WebApplication.CreateBuilder(args);
 
 // JWT configuration
@@ -37,12 +41,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// CORS configuracion (So ​​that it accepts requests from anywhere)
+// CORS configuracion
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("FreePolicy", policy =>
+    options.AddPolicy("DevPolicy", policy =>
     {
-        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader().AllowCredentials();
+        policy.WithOrigins("http://localhost:5173")
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
     });
 });
 
@@ -52,7 +59,7 @@ builder.Services.AddControllers()
     {
         options.InvalidModelStateResponseFactory = context =>
         {
-            // 1. Extraemos los errores de forma limpia
+            // 1. We extract the errors cleanly
             var errors = context.ModelState
                 .Where(e => e.Value?.Errors.Count > 0)
                 .ToDictionary(
@@ -60,22 +67,26 @@ builder.Services.AddControllers()
                     kvp => kvp.Value?.Errors.Select(er => er.ErrorMessage).ToArray()
                 );
 
-            // 2. Creamos tu DTO consistente
-            var response = new ApiResponseDto
+            // 2. We create your consistent DTO
+            var response = new ApiResponseDto<object>
             {
                 Success = false,
                 Message = ApplicationError.ValidationError.ValidationFailed,
                 Data = null,
-                Errors = errors // Aquí van los mensajes como "Name is required", etc.
+                Errors = errors // Here go messages like "Name is required", etc.
             };
 
-            // 3. Devolvemos el BadRequest con tu objeto
+            // 3. We return the BadRequest with your object
             return new BadRequestObjectResult(response);
         };
     });
 
-// Aqui deberian estar los servicios de la aplicacion
-builder.Services.AddScoped<IUsuarioService, UsuarioService>();
+// This is usually outside the scope of the services, use it sparingly.
+builder.Services.AddHttpContextAccessor(); // I need this to set cookies in AuthService.
+
+// The application services should be here <-------------------------------------------------------------
+builder.Services.AddScoped<AuthService, AuthService>();
+builder.Services.AddScoped<UsuarioService>();
 
 // Database configuration
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -97,6 +108,7 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
+    app.UseCors("DevPolicy");
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
@@ -113,3 +125,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+/*************************************************************************************************************/
