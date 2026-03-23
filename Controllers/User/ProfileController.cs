@@ -1,47 +1,26 @@
 using Microsoft.AspNetCore.Mvc;
-using BackEnd.Models.Responses;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
-using BackEnd.Models.Constants;
 using BackEnd.Services;
+using BackEnd.Models.Responses;
+using BackEnd.Models.Responses.User;
 
-namespace BackEnd.Controllers.User1;
+namespace BackEnd.Controllers.User;
 
 [Route("api/profile")]
 [ApiController]
 [Authorize]
-
-// ESTO ES SOLO PARA PRUEBAS DEBERIAMOS DE CREAR UN SERVICES PARA SERPARAR 
-// LA FUNCIONALIDAD
-// Los controladores solo deberian de servir para enviar y recibir datos, 
-// la logica de negocio deberia de estar en los services
-
-public class ProfileController(IUsuarioService usuarioService) : ControllerBase
+// Use this if you want this controller to be accessible only by admins. 
+// [Authorize(Roles = "Admin")]
+public class ProfileController(UsuarioService usuarioService) : ControllerBase
 {
-    private readonly IUsuarioService _usuarioService = usuarioService;
+    private readonly UsuarioService _usuarioService = usuarioService;
 
     [HttpGet()]
-    public async Task<IActionResult> GetProfile()
+    public async Task<ActionResult<ApiResponseDto<UserResponseDto?>>> GetProfile()
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // Get user ID from JWT claims
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // Get user ID from token
         var profile = await _usuarioService.GetProfileAsync(userId);
-
-        if (profile == null)
-        {
-            string errorMessage = ApplicationError.NotFoundError.UserNotFound;
-            return NotFound(new ApiResponseDto
-            {
-                Success = false,
-                Message = errorMessage,
-                Errors = new { User = new[] { errorMessage } }
-            });
-        }
-
-        return Ok(new ApiResponseDto
-        {
-            Success = true,
-            Message = ApplicationMessages.Success.UserProfileRetrieved,
-            Data = profile
-        });
+        return profile.Success ? Ok(profile) : NotFound(profile);
     }
 }
