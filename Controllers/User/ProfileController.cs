@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using BackEnd.Services;
-using BackEnd.Models.Responses;
+using BackEnd.Models.Responses.Application;
 using BackEnd.Models.Responses.User;
 
 namespace BackEnd.Controllers.User;

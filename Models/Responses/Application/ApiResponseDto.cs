@@ -1,4 +1,4 @@
-namespace BackEnd.Models.Responses;
+namespace BackEnd.Models.Responses.Application;
 
 public class ApiResponseDto<Type>
 {

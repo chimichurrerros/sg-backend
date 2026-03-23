@@ -7,7 +7,7 @@ using BackEnd.Entities;
 using BackEnd.Constants.Errors;
 using BackEnd.Constants.Messages;
 using BackEnd.Models.Requests.Auth;
-using BackEnd.Models.Responses;
+using BackEnd.Models.Responses.Application;
 using BackEnd.Models.Responses.User;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
