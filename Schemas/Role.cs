@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-namespace BackEnd.Entities;
+namespace BackEnd.Schemas;
 
 public class Role
 {

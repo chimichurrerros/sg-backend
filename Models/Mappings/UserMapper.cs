@@ -1,5 +1,5 @@
 using BackEnd.Models.Responses.User;
-using BackEnd.Entities;
+using BackEnd.Schemas;
 
 namespace BackEnd.Models.Mappings;
 

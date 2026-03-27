@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using BackEnd.Entities;
+using BackEnd.Schemas;
 
 namespace BackEnd.Context;
 

@@ -3,7 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using AutoMapper;
 using BackEnd.Context;
-using BackEnd.Entities;
+using BackEnd.Schemas; 
 using BackEnd.Constants.Errors;
 using BackEnd.Constants.Messages;
 using BackEnd.Models.Requests.Auth;
