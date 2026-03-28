@@ -44,7 +44,7 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
         return Result.Success();
     }
 
-    public async Task<Result<UserResponseDto>> LoginAsync(LoginRequestDto request)
+    public async Task<Result<UserWrapperDto>> LoginAsync(LoginRequestDto request)
     {
         var user = await _context.Users
             .AsNoTracking()
@@ -56,7 +56,7 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
         // User not found or password does not match
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
-            return Result<UserResponseDto>.Failure(AuthError.InvalidCredentials, new Dictionary<string, string[]> { 
+            return Result<UserWrapperDto>.Failure(AuthError.InvalidCredentials, new Dictionary<string, string[]> { 
                 { "Authentication", new[] { AuthError.InvalidCredentials } } 
             }, ErrorType.Validation );
         }
@@ -64,7 +64,7 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
         var token = CreateToken(user);
         SetAuthCookie(token);
 
-        return Result<UserResponseDto>.Success(_mapper.Map<UserResponseDto>(user));
+        return Result<UserWrapperDto>.Success(_mapper.Map<UserWrapperDto>(user));
     }
 
     public async Task<Result> Logout()

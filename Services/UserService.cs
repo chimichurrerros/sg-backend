@@ -23,6 +23,6 @@ public class UserService(AppDbContext context, IMapper mapper)
 		if (profile == null)
             return Result<UserWrapperDto>.Failure(AuthError.UserNotFound, ErrorType.NotFound);
 
-        return Result<UserWrapperDto>.Success(new UserWrapperDto { User = profile }	);
+        return Result<UserWrapperDto>.Success(_mapper.Map<UserWrapperDto>(profile));
 	}
 }

@@ -14,5 +14,9 @@ public class UserMapper : AutoMapper.Profile
                        opt => opt.MapFrom(src => src.Role!.Name))
             .ForMember(dest => dest.PhoneNumbers,
                        opt => opt.MapFrom(src => src.PhoneNumbers!.Select(p => p.Number)));
+
+        CreateMap<User, UserWrapperDto>()
+            .ForMember(dest => dest.User,
+                       opt => opt.MapFrom(src => src)); 
     }
 }
