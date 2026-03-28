@@ -6,6 +6,7 @@ using BackEnd.Infrastructure.Context;
 using BackEnd.Constants.Errors;
 using BackEnd.DTOs.Requests.Auth;
 using BackEnd.Models;
+using BackEnd.Utils; 
 using BackEnd.DTOs.Responses.User;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -26,7 +27,7 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
         {
             return Result.Failure(AuthError.InvalidCredentials, new Dictionary<string, string[]> {
                 {"Email", new[] {EmailError.EmailAlreadyExists}}
-            });
+            }, ErrorType.Validation);
         }
 
         var user = new User
@@ -57,7 +58,7 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
         {
             return Result<UserResponseDto>.Failure(AuthError.InvalidCredentials, new Dictionary<string, string[]> { 
                 { "Authentication", new[] { AuthError.InvalidCredentials } } 
-            });
+            }, ErrorType.Validation );
         }
 
         var token = CreateToken(user);

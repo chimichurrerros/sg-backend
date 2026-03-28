@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace BackEnd.DTOs.Responses.Application
+namespace BackEnd.Utils
 {
-    public class PaginationResponseDto(int currentPage, int pageSize, int totalElements)
+    public class Pagination(int currentPage, int pageSize, int totalElements)
     {
         [Range(1, int.MaxValue, ErrorMessage = "PageSize must be greater than 0.")]
         public int CurrentPage { get; } = currentPage;
@@ -10,10 +10,5 @@ namespace BackEnd.DTOs.Responses.Application
         public int PageSize { get; } = pageSize;
         public int TotalElements { get; } = totalElements;
         public int TotalPages { get; } = pageSize > 0 ? (int)Math.Ceiling(totalElements / (double)pageSize) : 0;
-    }
-
-    public class PaginationWrapperDto
-    {
-        public PaginationResponseDto Pagination { get; set; } = null!;
     }
 }

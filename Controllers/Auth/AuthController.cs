@@ -17,10 +17,10 @@ public class AuthController(AuthService authService) : ControllerBase
     {
         var result = await _authService.RegisterAsync(request);
         
-        if (!result.IsSuccess)
-            return this.HandleValidationProblem(result);
+        if (result.IsSuccess)
+            return Ok();
 
-        return Ok();
+        return this.HandleValidationProblem(result);
     }
 
     [HttpPost("login")]
@@ -28,10 +28,10 @@ public class AuthController(AuthService authService) : ControllerBase
     {
         var result = await _authService.LoginAsync(request);
         
-        if (!result.IsSuccess)
-            return this.HandleValidationProblem(result);
+        if (result.IsSuccess)
+            return Ok(result.Value);
 
-        return Ok(result.Value);
+        return this.HandleValidationProblem(result);
     }
 
     [HttpPost("logout")]
@@ -39,9 +39,9 @@ public class AuthController(AuthService authService) : ControllerBase
     {
         var result = await _authService.Logout();
         
-        if (!result.IsSuccess)
-            return this.HandleValidationProblem(result);
+        if (result.IsSuccess)
+            return Ok();
 
-        return Ok();
+        return this.HandleValidationProblem(result);
     }
 }

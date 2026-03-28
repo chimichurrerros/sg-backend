@@ -2,8 +2,7 @@ using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using BackEnd.Infrastructure.Context;
 using BackEnd.Constants.Errors;
-using BackEnd.Constants.Messages;
-using BackEnd.Models;
+using BackEnd.Utils;
 using BackEnd.DTOs.Responses.User;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,7 +21,7 @@ public class UserService(AppDbContext context, IMapper mapper)
 			.FirstOrDefaultAsync();
 
 		if (profile == null)
-            return Result<UserWrapperDto>.Failure(AuthError.UserNotFound);
+            return Result<UserWrapperDto>.Failure(AuthError.UserNotFound, ErrorType.NotFound);
 
         return Result<UserWrapperDto>.Success(new UserWrapperDto { User = profile }	);
 	}

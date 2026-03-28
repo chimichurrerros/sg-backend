@@ -4,6 +4,7 @@ using BackEnd.DTOs.Responses.User;
 using System.Security.Claims;
 using BackEnd.Services;
 using BackEnd.Extensions;
+using BackEnd.Utils;
 
 namespace BackEnd.Controllers.User;
 
@@ -22,9 +23,13 @@ public class ProfileController(UserService usuarioService) : ControllerBase
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // Get user ID from token
         var result = await _usuarioService.GetProfileAsync(userId);
         
-        if (!result.IsSuccess)
-            return this.HandleNotFoundProblem(result);
+        if (result.IsSuccess)
+            return Ok(result.Value);
             
-        return Ok(result.Value);
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        // This is only a example xd
+        return StatusCode(500);
     }
 }
