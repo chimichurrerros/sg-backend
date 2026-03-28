@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 
-namespace BackEnd.Schemas;
+namespace BackEnd.Models;
 
 [Index(nameof(Number), IsUnique = true)]
 public class PhoneNumber

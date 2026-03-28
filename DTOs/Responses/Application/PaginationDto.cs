@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace BackEnd.Models.Responses.Application
+namespace BackEnd.DTOs.Responses.Application
 {
     public class PaginationResponseDto(int currentPage, int pageSize, int totalElements)
     {

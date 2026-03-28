@@ -1,6 +1,8 @@
-using BackEnd.Models.Requests.Auth;
+using BackEnd.DTOs.Requests.Auth;
+using BackEnd.DTOs.Responses.User;
 using BackEnd.Services;
 using Microsoft.AspNetCore.Mvc;
+using BackEnd.Extensions;
 
 namespace BackEnd.Controllers.Auth;
 
@@ -13,21 +15,33 @@ public class AuthController(AuthService authService) : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterRequestDto request)
     {
-        var response = await _authService.RegisterAsync(request);
-        return response.Success ? Ok(response) : BadRequest(response);
+        var result = await _authService.RegisterAsync(request);
+        
+        if (!result.IsSuccess)
+            return this.HandleValidationProblem(result);
+
+        return Ok();
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login(LoginRequestDto request)
+    public async Task<ActionResult<UserResponseDto>> Login(LoginRequestDto request)
     {
-        var response = await _authService.LoginAsync(request);
-        return response.Success ? Ok(response) : BadRequest(response);
+        var result = await _authService.LoginAsync(request);
+        
+        if (!result.IsSuccess)
+            return this.HandleValidationProblem(result);
+
+        return Ok(result.Value);
     }
 
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
-        var response = await _authService.Logout();
-        return response.Success ? Ok(response) : BadRequest(response);
+        var result = await _authService.Logout();
+        
+        if (!result.IsSuccess)
+            return this.HandleValidationProblem(result);
+
+        return Ok();
     }
 }

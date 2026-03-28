@@ -2,13 +2,11 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using AutoMapper;
-using BackEnd.Context;
-using BackEnd.Schemas; 
+using BackEnd.Infrastructure.Context;
 using BackEnd.Constants.Errors;
-using BackEnd.Constants.Messages;
-using BackEnd.Models.Requests.Auth;
-using BackEnd.Models.Responses.Application;
-using BackEnd.Models.Responses.User;
+using BackEnd.DTOs.Requests.Auth;
+using BackEnd.Models;
+using BackEnd.DTOs.Responses.User;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -22,16 +20,13 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
     private const int _tokenExpirationDays = 30;
 
-    public async Task<ApiResponseDto<object>> RegisterAsync(RegisterRequestDto request)
+    public async Task<Result> RegisterAsync(RegisterRequestDto request)
     {
         if (await _context.Users.AnyAsync(u => u.Email == request.Email))
         {
-            return new ApiResponseDto<object>
-            {
-                Success = false,
-                Message = AuthError.InvalidCredentials,
-                Errors = new { Email = new[] { EmailError.EmailAlreadyExists } }
-            };
+            return Result.Failure(AuthError.InvalidCredentials, new Dictionary<string, string[]> {
+                {"Email", new[] {EmailError.EmailAlreadyExists}}
+            });
         }
 
         var user = new User
@@ -45,56 +40,47 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        return new ApiResponseDto<object>
-        {
-            Success = true,
-            Message = AuthMessage.UserRegistered
-        };
+        return Result.Success();
     }
 
-    public async Task<ApiResponseDto<object>> LoginAsync(LoginRequestDto request)
+    public async Task<Result<UserResponseDto>> LoginAsync(LoginRequestDto request)
     {
         var user = await _context.Users
+            .AsNoTracking()
             .Include(u => u.PhoneNumbers)
             .Include(u => u.Role)
+                .ThenInclude(r => r!.Permissions)
             .FirstOrDefaultAsync(u => u.Email == request.Email);
 
         // User not found or password does not match
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
-            return new ApiResponseDto<object>
-            {
-                Success = false,
-                Message = AuthError.InvalidCredentials,
-                Errors = new { Authentication = new[] { AuthError.InvalidCredentials } }
-            };
+            return Result<UserResponseDto>.Failure(AuthError.InvalidCredentials, new Dictionary<string, string[]> { 
+                { "Authentication", new[] { AuthError.InvalidCredentials } } 
+            });
         }
 
         var token = CreateToken(user);
         SetAuthCookie(token);
 
-        return new ApiResponseDto<object>
-        {
-            Success = true,
-            Message = AuthMessage.LoginSuccessful,
-            Data = _mapper.Map<UserResponseDto>(user)
-        };
+        return Result<UserResponseDto>.Success(_mapper.Map<UserResponseDto>(user));
     }
 
-    public async Task<ApiResponseDto<object>> Logout()
+    public async Task<Result> Logout()
     {
         DeleteAuthCookie();
-        return new ApiResponseDto<object>
-        {
-            Success = true,
-            Message = AuthMessage.UserLoggedOut
-        };
+        return Result.Success();
     }
 
     // ╭────────────────────────────────────────────────────────╮
     // │                      AUX FUNTIONS                      │
     // ╰────────────────────────────────────────────────────────╯
 
+    /**
+     * Create a JWT token for the given user
+     * @param user The user to create the token for
+     * @return The JWT token
+     */
     private string CreateToken(User user)
     {
         var claims = new List<Claim>
@@ -105,6 +91,14 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
             new(ClaimTypes.Surname, user.LastName),
             new(ClaimTypes.Role, user.Role!.Name)
         };
+
+        if (user.Role!.Permissions is { } permissions) // I need this to suppress a warning
+        {
+            foreach (var permission in permissions)
+            {
+                claims.Add(new Claim("Permission", permission.Name));
+            }
+        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config.GetSection("Jwt:Key").Value!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);

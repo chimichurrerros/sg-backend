@@ -1,21 +1,58 @@
-using BackEnd.Context;
+using BackEnd.Infrastructure.Context;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
-using BackEnd.Models.Responses.Application;
 using BackEnd.Constants.Errors;
 using BackEnd.Services;
-
-/*************************************************************************************************************/
-
-// Nota para decirle al front: Si el codigo http es 401 o 403 redirigir al login, si es 500 decile 
-// front que se arregle el solo xd
-
-/*************************************************************************************************************/
+using BackEnd.Infrastructure.Authorization;
+using Microsoft.AspNetCore.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+//*******************************************************************************************************
+//*                 ╭─────────────────────────────────────────────────────────╮
+//*                 │ Usually this is the only thing they will have to modify │
+//*                 ╰─────────────────────────────────────────────────────────╯
+//*******************************************************************************************************
+
+//-------------------------------------------------------------------------------------------------------
+// This is usually outside the scope of the services, use it sparingly.
+// I need this to set cookies in AuthService.
+builder.Services.AddHttpContextAccessor(); 
+//-------------------------------------------------------------------------------------------------------
+// The application services should be here 
+builder.Services.AddSingleton<IAuthorizationHandler, PermissionHandler>();
+builder.Services.AddScoped<AuthService, AuthService>();
+builder.Services.AddScoped<UserService>();
+// ------------------------------------------------------------------------------------------------------
+// Authorization configuration
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+builder.Services.AddAuthorization();
+// ------------------------------------------------------------------------------------------------------
+// CORS configuracion
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("DevPolicy", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
+// ------------------------------------------------------------------------------------------------------
+
+//*******************************************END-END-END*************************************************
+
+// Database configuration
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContextPool<AppDbContext>(options =>
+    options.UseNpgsql(connectionString));
+
+// AutoMapper configuration
+builder.Services.AddAutoMapper(typeof(Program).Assembly);
 
 // JWT configuration
 var jwtKey = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!);
@@ -41,68 +78,22 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// CORS configuracion
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("DevPolicy", policy =>
-    {
-        policy.WithOrigins("http://localhost:5173")
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials();
-    });
-});
-
-// Custom validation error response
+// Controller configuration
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
         {
-            // 1. We extract the errors cleanly
-            var errors = context.ModelState
-                .Where(e => e.Value?.Errors.Count > 0)
-                .ToDictionary(
-                    kvp => kvp.Key,
-                    kvp => kvp.Value?.Errors.Select(er => er.ErrorMessage).ToArray()
-                );
-
-            // 2. We create your consistent DTO
-            var response = new ApiResponseDto<object>
+            var problemDetails = new ValidationProblemDetails(context.ModelState)
             {
-                Success = false,
-                Message = ApplicationError.ValidationFailed,
-                Data = null,
-                Errors = errors // Here go messages like "Name is required", etc.
+                Title = ApplicationError.ValidationFailed
             };
-
-            // 3. We return the BadRequest with your object
-            return new BadRequestObjectResult(response);
+            return new BadRequestObjectResult(problemDetails);
         };
     });
 
-// This is usually outside the scope of the services, use it sparingly.
-builder.Services.AddHttpContextAccessor(); // I need this to set cookies in AuthService.
-
-// The application services should be here <-------------------------------------------------------------
-builder.Services.AddScoped<AuthService, AuthService>();
-builder.Services.AddScoped<UsuarioService>();
-
-// Database configuration
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContextPool<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
-
-// AutoMapper configuration
-builder.Services.AddAutoMapper(typeof(Program).Assembly);
-
-// Controller configuration
-builder.Services.AddControllers();
-
 // Swagger configuration
 builder.Services.AddSwaggerGen();
-
-/*************************************************************************************************************/
 
 var app = builder.Build();
 
@@ -125,5 +116,3 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
-
-/*************************************************************************************************************/

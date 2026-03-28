@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using BackEnd.DTOs.Responses.User;
 using System.Security.Claims;
 using BackEnd.Services;
-using BackEnd.Models.Responses.Application;
-using BackEnd.Models.Responses.User;
+using BackEnd.Extensions;
 
 namespace BackEnd.Controllers.User;
 
@@ -12,15 +12,19 @@ namespace BackEnd.Controllers.User;
 [Authorize]
 // Use this if you want this controller to be accessible only by admins. 
 // [Authorize(Roles = "Admin")]
-public class ProfileController(UsuarioService usuarioService) : ControllerBase
+public class ProfileController(UserService usuarioService) : ControllerBase
 {
-    private readonly UsuarioService _usuarioService = usuarioService;
+    private readonly UserService _usuarioService = usuarioService;
 
     [HttpGet()]
-    public async Task<ActionResult<ApiResponseDto<UserResponseDto?>>> GetProfile()
+    public async Task<ActionResult<UserResponseDto>> GetProfile()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // Get user ID from token
-        var profile = await _usuarioService.GetProfileAsync(userId);
-        return profile.Success ? Ok(profile) : NotFound(profile);
+        var result = await _usuarioService.GetProfileAsync(userId);
+        
+        if (!result.IsSuccess)
+            return this.HandleNotFoundProblem(result);
+            
+        return Ok(result.Value);
     }
 }

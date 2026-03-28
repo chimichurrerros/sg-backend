@@ -1,7 +1,7 @@
-using BackEnd.Models.Responses.User;
-using BackEnd.Schemas;
+using BackEnd.DTOs.Responses.User;
+using BackEnd.Models;
 
-namespace BackEnd.Models.Mappings;
+namespace BackEnd.DTOs.Mappings;
 
 public class UserMapper : AutoMapper.Profile
 {

@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using BackEnd.Constants.Errors;
 
-namespace BackEnd.Models.Requests.User;
+namespace BackEnd.DTOs.Requests.User;
 
 public class PhoneNumberRequestDto
 {

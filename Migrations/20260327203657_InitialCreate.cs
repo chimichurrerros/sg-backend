@@ -26,6 +26,25 @@ namespace BackEnd.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Permissions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    RoleId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Permissions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Permissions_Roles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "Roles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
                 {
@@ -67,6 +86,11 @@ namespace BackEnd.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Permissions_RoleId",
+                table: "Permissions",
+                column: "RoleId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PhoneNumbers_Number",
                 table: "PhoneNumbers",
                 column: "Number",
@@ -92,6 +116,9 @@ namespace BackEnd.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "Permissions");
+
             migrationBuilder.DropTable(
                 name: "PhoneNumbers");
 
