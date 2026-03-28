@@ -11,4 +11,9 @@ namespace BackEnd.DTOs.Responses.Application
         public int TotalElements { get; } = totalElements;
         public int TotalPages { get; } = pageSize > 0 ? (int)Math.Ceiling(totalElements / (double)pageSize) : 0;
     }
+
+    public class PaginationWrapperDto
+    {
+        public PaginationResponseDto Pagination { get; set; } = null!;
+    }
 }

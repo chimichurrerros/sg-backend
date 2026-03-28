@@ -14,7 +14,7 @@ public class UserService(AppDbContext context, IMapper mapper)
 	private readonly AppDbContext _context = context;
 	private readonly IMapper _mapper = mapper;
 
-	public async Task<Result<UserResponseDto>> GetProfileAsync(string? userId)
+	public async Task<Result<UserWrapperDto>> GetProfileAsync(string? userId)
 	{
 		var profile = await _context.Users
 			.Where(u => u.Id.ToString() == userId)
@@ -22,8 +22,8 @@ public class UserService(AppDbContext context, IMapper mapper)
 			.FirstOrDefaultAsync();
 
 		if (profile == null)
-            return Result<UserResponseDto>.Failure(AuthError.UserNotFound);
+            return Result<UserWrapperDto>.Failure(AuthError.UserNotFound);
 
-        return Result<UserResponseDto>.Success(profile);
+        return Result<UserWrapperDto>.Success(new UserWrapperDto { User = profile }	);
 	}
 }

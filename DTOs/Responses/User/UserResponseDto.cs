@@ -1,5 +1,6 @@
 namespace BackEnd.DTOs.Responses.User;
 
+
 public class UserResponseDto
 {
     public Guid Id { get; set; }
@@ -10,3 +11,12 @@ public class UserResponseDto
     public string RoleName { get; set; } = null!;
 }
 
+public class UserWrapperDto
+{
+    public UserResponseDto User { get; set; } = null!;
+}
+
+public class ListUserWrapperDto
+{
+    public List<UserResponseDto> Users { get; set; } = [];
+}

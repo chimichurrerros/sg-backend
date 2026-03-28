@@ -8,17 +8,16 @@ public static class ControllerExtensions
 {
     public static ActionResult HandleValidationProblem(this ControllerBase controller, Result result)
     {
-        return controller.BadRequest(new ValidationProblemDetails(result.Errors ?? new Dictionary<string, string[]>())
-        {
-            Title = string.IsNullOrWhiteSpace(result.ErrorMessage) ? ApplicationError.ValidationFailed : result.ErrorMessage
-        });
+        return controller.BadRequest(new ValidationProblemDetails(result.Errors!));
     }
 
     public static ActionResult HandleNotFoundProblem(this ControllerBase controller, Result result)
     {
-        return controller.NotFound(new ValidationProblemDetails(result.Errors ?? new Dictionary<string, string[]>())
+        return controller.NotFound(new ProblemDetails
         {
-            Title = string.IsNullOrWhiteSpace(result.ErrorMessage) ? ApplicationError.NotFound : result.ErrorMessage
+            Title = ApplicationError.NotFound,
+            Status = StatusCodes.Status404NotFound,
+            Detail = result.ErrorMessage
         });
     }
 } 

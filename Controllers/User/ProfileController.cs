@@ -17,7 +17,7 @@ public class ProfileController(UserService usuarioService) : ControllerBase
     private readonly UserService _usuarioService = usuarioService;
 
     [HttpGet()]
-    public async Task<ActionResult<UserResponseDto>> GetProfile()
+    public async Task<ActionResult<UserWrapperDto>> GetProfile()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // Get user ID from token
         var result = await _usuarioService.GetProfileAsync(userId);
