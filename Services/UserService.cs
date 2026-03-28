@@ -17,12 +17,12 @@ public class UserService(AppDbContext context, IMapper mapper)
 	{
 		var profile = await _context.Users
 			.Where(u => u.Id.ToString() == userId)
-			.ProjectTo<UserResponseDto>(_mapper.ConfigurationProvider)
+			.ProjectTo<UserWrapperDto>(_mapper.ConfigurationProvider)
 			.FirstOrDefaultAsync();
 
 		if (profile == null)
             return Result<UserWrapperDto>.Failure(AuthError.UserNotFound, ErrorType.NotFound);
 
-        return Result<UserWrapperDto>.Success(_mapper.Map<UserWrapperDto>(profile));
+        return Result<UserWrapperDto>.Success(profile);
 	}
 }
