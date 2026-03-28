@@ -1,5 +1,5 @@
 using BackEnd.Constants.Errors;
-using BackEnd.Models;
+using BackEnd.Utils;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BackEnd.Extensions;
