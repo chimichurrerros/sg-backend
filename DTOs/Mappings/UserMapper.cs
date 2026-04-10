@@ -17,6 +17,14 @@ public class UserMapper : AutoMapper.Profile
 
         CreateMap<User, UserWrapperDto>()
             .ForMember(dest => dest.User,
-                       opt => opt.MapFrom(src => src)); 
+                       opt => opt.MapFrom(src => src));
+
+        // This mapping is not needed because we are projecting 
+        // the users to the UserResponseDto and then wrapping them 
+        // in the ListUsersWrapperDto
+
+        // CreateMap<List<User>, ListUsersWrapperDto>()
+        //     .ForMember(dest => dest.Users,
+        //                opt => opt.MapFrom(src => src));
     }
 }

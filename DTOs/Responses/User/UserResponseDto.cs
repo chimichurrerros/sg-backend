@@ -16,7 +16,7 @@ public class UserWrapperDto
     public UserResponseDto User { get; set; } = null!;
 }
 
-public class ListUserWrapperDto
+public class ListUsersWrapperDto
 {
     public List<UserResponseDto> Users { get; set; } = [];
 }
