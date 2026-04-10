@@ -13,19 +13,6 @@ public class UserService(AppDbContext context, IMapper mapper)
 	private readonly AppDbContext _context = context;
 	private readonly IMapper _mapper = mapper;
 
-	public async Task<Result<UserWrapperDto>> GetProfileAsync(string? userId)
-	{
-		var profile = await _context.Users
-			.Where(u => u.Id.ToString() == userId)
-			.ProjectTo<UserWrapperDto>(_mapper.ConfigurationProvider)
-			.FirstOrDefaultAsync();
-
-		if (profile == null)
-			return Result<UserWrapperDto>.Failure(AuthError.UserNotFound, ErrorType.NotFound);
-
-		return Result<UserWrapperDto>.Success(profile);
-	}
-
 	public async Task<Result<ListUsersWrapperDto>> GetListAsync()
 	{
 		// !NOTE: Projecto dont work with nested 
