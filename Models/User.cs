@@ -1,19 +1,35 @@
-using System.ComponentModel.DataAnnotations;
-using Microsoft.EntityFrameworkCore;
+﻿using System;
+using System.Collections.Generic;
+
 namespace BackEnd.Models;
 
-[Index(nameof(Email), IsUnique = true)]
-public class User
+public partial class User
 {
-    [Key]
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public string Name { get; set; } = null!;
-    public string LastName { get; set; } = null!;
-    // Unique
-    public string Email { get; set; } = null!;
+    public int Id { get; set; }
+
+    public int EntityId { get; set; }
+
+    public int RoleId { get; set; }
+
+    public string Username { get; set; } = null!;
+
     public string PasswordHash { get; set; } = null!;
-    public int RoleId { get; set; } = 1;
-    // Relationships 
-    public virtual List<PhoneNumber>? PhoneNumbers { get; set; }
-    public virtual Role? Role { get; set; }
+
+    public string Email { get; set; } = null!;
+
+    public bool IsActive { get; set; }
+
+    public virtual ICollection<CustomerQuote> CustomerQuotes { get; set; } = new List<CustomerQuote>();
+
+    public virtual PhysicalPerson Entity { get; set; } = null!;
+
+    public virtual ICollection<PurchaseRequest> PurchaseRequests { get; set; } = new List<PurchaseRequest>();
+
+    public virtual Role Role { get; set; } = null!;
+
+    public virtual ICollection<SalesOrder> SalesOrders { get; set; } = new List<SalesOrder>();
+
+    public virtual ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
+
+    public virtual ICollection<Transfer> Transfers { get; set; } = new List<Transfer>();
 }
