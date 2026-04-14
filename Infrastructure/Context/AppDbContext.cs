@@ -16,6 +16,7 @@ public partial class AppDbContext : DbContext
     {
     }
 
+    public virtual DbSet<Permission> Permissions { get; set; }
     public virtual DbSet<Account> Accounts { get; set; }
 
     public virtual DbSet<AccountPlan> AccountPlans { get; set; }
@@ -165,7 +166,12 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Warehouse> Warehouses { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseNpgsql("Name=ConnectionStrings:DefaultConnection");
+    {
+        if (!optionsBuilder.IsConfigured)
+        {
+            optionsBuilder.UseNpgsql("Name=ConnectionStrings:DefaultConnection");
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -1284,12 +1290,9 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.Email, "Users_Email_key").IsUnique();
 
-            entity.HasIndex(e => e.Username, "Users_Username_key").IsUnique();
-
             entity.Property(e => e.Email).HasMaxLength(150);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.PasswordHash).HasMaxLength(255);
-            entity.Property(e => e.Username).HasMaxLength(50);
 
             entity.HasOne(d => d.Entity).WithMany(p => p.Users)
                 .HasForeignKey(d => d.EntityId)
