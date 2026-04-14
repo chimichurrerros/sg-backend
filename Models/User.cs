@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace BackEnd.Models;
@@ -6,7 +6,7 @@ namespace BackEnd.Models;
 public partial class User
 {
     public int Id { get; set; }
-    public int EntityId { get; set; }
+    public int? EntityId { get; set; }
     public int RoleId { get; set; }
     public string Name { get; set; } = null!;
     public string LastName { get; set; } = null!;
@@ -16,7 +16,7 @@ public partial class User
 
     public virtual ICollection<CustomerQuote> CustomerQuotes { get; set; } = new List<CustomerQuote>();
 
-    public virtual PhysicalPerson Entity { get; set; } = null!;
+    public virtual PhysicalPerson? Entity { get; set; }
 
     public virtual ICollection<PurchaseRequest> PurchaseRequests { get; set; } = new List<PurchaseRequest>();
 

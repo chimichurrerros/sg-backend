@@ -30,12 +30,15 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
             }, ErrorType.Validation);
         }
 
+        var defaultRole = 1;
+
         var user = new User
         {
             Name = request.Name,
             LastName = request.LastName,
             Email = request.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            RoleId = defaultRole
         };
 
         _context.Users.Add(user);
