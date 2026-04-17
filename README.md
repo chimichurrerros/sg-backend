@@ -1,7 +1,3 @@
 # backend
 
-Para ejecutar el proyecto con docker
-
-```bash
-docker compose up
-```
+ASPNETCORE_ENVIRONMENT=Development dotnet ef database update

@@ -1,16 +1,14 @@
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.Collections.Generic;
+
 namespace BackEnd.Models;
 
-public class Role
+public partial class Role
 {
-    [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.None)]
-    //  0 -> Admin
-    //  1 -> User
     public int Id { get; set; }
+
     public string Name { get; set; } = null!;
-    // Relationships 
-    public virtual List<User>? Users { get; set; }
-    public virtual List<Permission>? Permissions { get; set; }
+
+    public virtual ICollection<User> Users { get; set; } = new List<User>();
+    public virtual ICollection<Permission> Permissions { get; set; } = new List<Permission>();
 }

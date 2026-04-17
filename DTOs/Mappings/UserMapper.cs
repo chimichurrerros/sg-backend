@@ -11,9 +11,7 @@ public class UserMapper : AutoMapper.Profile
         // Advanced case: Map Role.Name to DTO RoleName
         CreateMap<User, UserResponseDto>()
             .ForMember(dest => dest.RoleName,
-                       opt => opt.MapFrom(src => src.Role!.Name))
-            .ForMember(dest => dest.PhoneNumbers,
-                       opt => opt.MapFrom(src => src.PhoneNumbers!.Select(p => p.Number)));
+                       opt => opt.MapFrom(src => src.Role!.Name));
 
         CreateMap<User, UserWrapperDto>()
             .ForMember(dest => dest.User,

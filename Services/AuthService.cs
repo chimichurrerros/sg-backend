@@ -6,7 +6,7 @@ using BackEnd.Infrastructure.Context;
 using BackEnd.Constants.Errors;
 using BackEnd.DTOs.Requests.Auth;
 using BackEnd.Models;
-using BackEnd.Utils; 
+using BackEnd.Utils;
 using BackEnd.DTOs.Responses.User;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -30,12 +30,15 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
             }, ErrorType.Validation);
         }
 
+        var defaultRole = 1;
+
         var user = new User
         {
             Name = request.Name,
             LastName = request.LastName,
             Email = request.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            RoleId = defaultRole
         };
 
         _context.Users.Add(user);
@@ -48,7 +51,6 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
     {
         var user = await _context.Users
             .AsNoTracking()
-            .Include(u => u.PhoneNumbers)
             .Include(u => u.Role)
                 .ThenInclude(r => r!.Permissions)
             .FirstOrDefaultAsync(u => u.Email == request.Email);
@@ -56,9 +58,9 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
         // User not found or password does not match
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
-            return Result<UserWrapperDto>.Failure(AuthError.InvalidCredentials, new Dictionary<string, string[]> { 
-                { "Authentication", new[] { AuthError.InvalidCredentials } } 
-            }, ErrorType.Validation );
+            return Result<UserWrapperDto>.Failure(AuthError.InvalidCredentials, new Dictionary<string, string[]> {
+                { "Authentication", new[] { AuthError.InvalidCredentials } }
+            }, ErrorType.Validation);
         }
 
         var token = CreateToken(user);
