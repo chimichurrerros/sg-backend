@@ -147,7 +147,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<SupplierQuoteDetail> SupplierQuoteDetails { get; set; }
 
-    public virtual DbSet<TaxCondition> TaxConditions { get; set; }
 
     public virtual DbSet<Transaction> Transactions { get; set; }
 
@@ -406,17 +405,10 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("Customers_pkey");
 
-            entity.Property(e => e.CreditLimit).HasPrecision(15, 2);
-
             entity.HasOne(d => d.Entity).WithMany(p => p.Customers)
                 .HasForeignKey(d => d.EntityId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("Customers_EntityId_fkey");
-
-            entity.HasOne(d => d.TaxCondition).WithMany(p => p.Customers)
-                .HasForeignKey(d => d.TaxConditionId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Customers_TaxConditionId_fkey");
         });
 
         modelBuilder.Entity<CustomerQuote>(entity =>
@@ -1071,10 +1063,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("Suppliers_pkey");
 
-            // Legacy columns kept as shadow properties for backward compatibility.
-            entity.Property<decimal>("CreditLimit").HasPrecision(15, 2);
-            entity.Property<int>("TaxConditionId");
-
             entity.HasOne(d => d.Entity).WithMany(p => p.Suppliers)
                 .HasForeignKey(d => d.EntityId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1138,13 +1126,6 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.SupplierQuoteId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("SupplierQuoteDetails_SupplierQuoteId_fkey");
-        });
-
-        modelBuilder.Entity<TaxCondition>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("TaxConditions_pkey");
-
-            entity.Property(e => e.Name).HasMaxLength(100);
         });
 
         modelBuilder.Entity<Transaction>(entity =>
