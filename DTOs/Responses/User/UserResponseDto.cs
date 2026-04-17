@@ -6,11 +6,13 @@ namespace BackEnd.DTOs.Responses.User;
 public class UserResponseDto
 {
     public int Id { get; set; }
+    public int? EntityId { get; set; }
+    public int RoleId { get; set; }
     public string Name { get; set; } = null!;
     public string LastName { get; set; } = null!;
     public string Email { get; set; } = null!;
-    public string RoleName { get; set; } = null!;
-    public DateTime CreatedAt { get; set; } 
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
 
 public class UserWrapperDto
