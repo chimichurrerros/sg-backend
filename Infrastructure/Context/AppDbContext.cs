@@ -1071,17 +1071,14 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("Suppliers_pkey");
 
-            entity.Property(e => e.CreditLimit).HasPrecision(15, 2);
+            // Legacy columns kept as shadow properties for backward compatibility.
+            entity.Property<decimal>("CreditLimit").HasPrecision(15, 2);
+            entity.Property<int>("TaxConditionId");
 
             entity.HasOne(d => d.Entity).WithMany(p => p.Suppliers)
                 .HasForeignKey(d => d.EntityId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("Suppliers_EntityId_fkey");
-
-            entity.HasOne(d => d.TaxCondition).WithMany(p => p.Suppliers)
-                .HasForeignKey(d => d.TaxConditionId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Suppliers_TaxConditionId_fkey");
         });
 
         modelBuilder.Entity<SupplierCategory>(entity =>

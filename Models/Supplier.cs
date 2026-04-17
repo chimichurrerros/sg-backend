@@ -9,10 +9,6 @@ public partial class Supplier
 
     public int EntityId { get; set; }
 
-    public int TaxConditionId { get; set; }
-
-    public decimal CreditLimit { get; set; }
-
     public virtual Entity Entity { get; set; } = null!;
 
     public virtual ICollection<PaymentOrder> PaymentOrders { get; set; } = new List<PaymentOrder>();
@@ -22,6 +18,4 @@ public partial class Supplier
     public virtual ICollection<SupplierCategory> SupplierCategories { get; set; } = new List<SupplierCategory>();
 
     public virtual ICollection<SupplierQuote> SupplierQuotes { get; set; } = new List<SupplierQuote>();
-
-    public virtual TaxCondition TaxCondition { get; set; } = null!;
 }
