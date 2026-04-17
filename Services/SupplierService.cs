@@ -11,30 +11,45 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BackEnd.Services;
 
+/// <summary>
+/// Service responsible for all supplier management business logic.
+/// All validation and data manipulation occurs at this layer.
+/// Suppliers are always created as LegalPerson entities (not PhysicalPerson).
+/// </summary>
 public class SupplierService(AppDbContext context, IMapper mapper)
 {
     private readonly AppDbContext _context = context;
     private readonly IMapper _mapper = mapper;
-    private const int LegacyDefaultTaxConditionId = 1;
-    private const decimal LegacyDefaultCreditLimit = 0m;
 
+    /// <summary>
+    /// Retrieves a paginated list of all suppliers.
+    /// </summary>
+    /// <param name="pagination">Pagination parameters (Page and PageSize)</param>
+    /// <returns>Wrapped result containing paginated suppliers and pagination metadata</returns>
     public async Task<Result<ListSuppliersWrapperDto>> GetListAsync(PaginationRequestDto pagination)
     {
+        // Normalize pagination parameters: default to page 1 and pagesize 10
         var page = pagination.Page < 1 ? 1 : pagination.Page;
         var pageSize = pagination.PageSize < 1 ? 10 : pagination.PageSize;
 
+        // Query suppliers without tracking (read-only operation)
         var suppliersQuery = _context.Suppliers.AsNoTracking();
+
+        // Count total suppliers before applying skip/take for accurate total pages calculation
         var totalElements = await suppliersQuery.CountAsync();
 
+        // Fetch the page of suppliers and project to DTO
         var suppliers = await suppliersQuery
-            .OrderBy(v => v.Id)
+            .OrderBy(s => s.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ProjectTo<SupplierResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
+        // Create pagination metadata
         var paginationData = new Pagination(page, pageSize, totalElements);
 
+        // Wrap results with pagination info
         var result = new ListSuppliersWrapperDto
         {
             Suppliers = suppliers,
@@ -44,369 +59,308 @@ public class SupplierService(AppDbContext context, IMapper mapper)
         return Result<ListSuppliersWrapperDto>.Success(result);
     }
 
+    /// <summary>
+    /// Retrieves a single supplier by ID.
+    /// </summary>
+    /// <param name="id">The supplier ID</param>
+    /// <returns>Wrapped result containing the supplier data or NotFound error</returns>
     public async Task<Result<SupplierWrapperDto>> GetByIdAsync(int id)
     {
+        // Query supplier without tracking (read-only operation)
         var supplier = await _context.Suppliers
             .AsNoTracking()
-            .Where(s => s.Id == id)
-            .FirstOrDefaultAsync();
+            .Include(s => s.Entity)
+                .ThenInclude(e => e.LegalPerson)
+            .Include(s => s.SupplierCategories)
+            .FirstOrDefaultAsync(s => s.Id == id);
 
+        // Return error if supplier not found
         if (supplier == null)
             return Result<SupplierWrapperDto>.Failure(SupplierError.SupplierNotFound, ErrorType.NotFound);
 
+        // Map and wrap the result
         return Result<SupplierWrapperDto>.Success(_mapper.Map<SupplierWrapperDto>(supplier));
     }
 
+    /// <summary>
+    /// Creates a new supplier with automatic Entity and LegalPerson creation.
+    /// Process: 1) Validate input, 2) Create Entity (LegalPerson type), 3) Create Supplier, 
+    /// 4) Associate Entity to Supplier, 5) Create LegalPerson, 6) Add product categories.
+    /// All operations occur within a single database transaction.
+    /// </summary>
+    /// <param name="request">Create supplier request DTO containing legal entity data</param>
+    /// <returns>Wrapped result containing the created supplier with Entity data</returns>
     public async Task<Result<SupplierWrapperDto>> CreateAsync(CreateSupplierRequestDto request)
     {
-        var validationResult = await ValidateCreateOrUpdateRequestAsync(request);
+        // Step 1: Validate all input data
+        var validationResult = await ValidateCreateRequestAsync(request);
         if (!validationResult.IsSuccess)
-            return Result<SupplierWrapperDto>.Failure(validationResult.ErrorMessage!, validationResult.Errors!, ErrorType.Validation);
+            return Result<SupplierWrapperDto>.Failure(
+                validationResult.ErrorMessage!,
+                validationResult.Errors!,
+                ErrorType.Validation);
 
+        // Step 2: Begin database transaction to ensure atomicity
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
-        var entity = new Entity
+        try
         {
-            EntityTypeId = (int)request.EntityType!.Value,
-            DocumentNumber = request.DocumentNumber,
-            Phone = request.Phone,
-            Address = request.Address,
-            Email = request.Email,
-            IsActive = request.IsActive
-        };
+            // Step 3: Create Entity with LegalPerson type (EntityPersonType.Legal = 2)
+            var entity = new Entity
+            {
+                EntityTypeId = (int)EntityPersonType.Legal, // Always LegalPerson for suppliers
+                DocumentNumber = request.DocumentNumber,
+                Phone = request.Phone,
+                Address = request.Address,
+                Email = request.Email,
+                IsActive = request.IsActive
+            };
 
-        _context.Entities.Add(entity);
-        await _context.SaveChangesAsync();
+            // Add entity to context and persist
+            _context.Entities.Add(entity);
+            await _context.SaveChangesAsync();
 
-        await SyncEntitySpecificDataAsync(entity.Id, request);
+            // Step 4: Create Supplier and associate to the newly created Entity
+            var supplier = new Supplier
+            {
+                EntityId = entity.Id // Link to the created entity
+            };
 
-        var supplier = new Supplier
+            // Add supplier to context and persist
+            _context.Suppliers.Add(supplier);
+            await _context.SaveChangesAsync();
+
+            // Step 5: Create LegalPerson data for the Entity
+            var legalPerson = new LegalPerson
+            {
+                EntityId = entity.Id,
+                BussinessName = request.BusinessName,
+                FantasyName = request.FantasyName
+            };
+
+            // Add legal person data to context and persist
+            _context.LegalPersons.Add(legalPerson);
+            await _context.SaveChangesAsync();
+
+            // Step 6: Add product categories if provided
+            if (request.ProductCategoryIds.Count > 0)
+            {
+                await AddSupplierCategoriesAsync(supplier.Id, request.ProductCategoryIds);
+                await _context.SaveChangesAsync();
+            }
+
+            // Commit transaction - all operations succeeded
+            await transaction.CommitAsync();
+
+            // Fetch the created supplier with all related data for response
+            var createdSupplier = await _context.Suppliers
+                .Include(s => s.Entity)
+                    .ThenInclude(e => e.LegalPerson)
+                .Include(s => s.SupplierCategories)
+                .FirstOrDefaultAsync(s => s.Id == supplier.Id);
+
+            // Map to DTO and return success
+            return Result<SupplierWrapperDto>.Success(_mapper.Map<SupplierWrapperDto>(createdSupplier));
+        }
+        catch (Exception)
         {
-            EntityId = entity.Id
-        };
-
-        _context.Suppliers.Add(supplier);
-        _context.Entry(supplier).Property("TaxConditionId").CurrentValue = LegacyDefaultTaxConditionId;
-        _context.Entry(supplier).Property("CreditLimit").CurrentValue = LegacyDefaultCreditLimit;
-        await _context.SaveChangesAsync();
-
-        await ReplaceSupplierCategoriesAsync(supplier.Id, request.ProductCategoryIds);
-        await _context.SaveChangesAsync();
-        await transaction.CommitAsync();
-
-        return Result<SupplierWrapperDto>.Success(_mapper.Map<SupplierWrapperDto>(supplier));
+            // Rollback transaction on any exception
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
+    /// <summary>
+    /// Updates an existing supplier completely (replaces all fields).
+    /// Process: 1) Load supplier and entity, 2) Validate, 3) Update Entity fields,
+    /// 4) Update LegalPerson data, 5) Replace product categories.
+    /// </summary>
+    /// <param name="id">The supplier ID to update</param>
+    /// <param name="request">Update supplier request DTO with new data</param>
+    /// <returns>Wrapped result containing the updated supplier or error</returns>
     public async Task<Result<SupplierWrapperDto>> UpdateAsync(int id, UpdateSupplierRequestDto request)
     {
+        // Step 1: Load supplier with related Entity and LegalPerson data
         var supplier = await _context.Suppliers
             .Include(s => s.Entity)
                 .ThenInclude(e => e.LegalPerson)
-            .Include(s => s.Entity)
-                .ThenInclude(e => e.PhysicalPerson)
             .Include(s => s.SupplierCategories)
             .FirstOrDefaultAsync(s => s.Id == id);
 
+        // Return error if supplier not found
         if (supplier == null)
             return Result<SupplierWrapperDto>.Failure(SupplierError.SupplierNotFound, ErrorType.NotFound);
 
-        var validationResult = await ValidateCreateOrUpdateRequestAsync(request, supplier.EntityId);
+        // Step 2: Validate all input data
+        var validationResult = await ValidateUpdateRequestAsync(request, supplier.EntityId);
         if (!validationResult.IsSuccess)
-            return Result<SupplierWrapperDto>.Failure(validationResult.ErrorMessage!, validationResult.Errors!, ErrorType.Validation);
+            return Result<SupplierWrapperDto>.Failure(
+                validationResult.ErrorMessage!,
+                validationResult.Errors!,
+                ErrorType.Validation);
 
+        // Step 3: Begin database transaction
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
-        supplier.Entity.EntityTypeId = (int)request.EntityType!.Value;
-        supplier.Entity.DocumentNumber = request.DocumentNumber;
-        supplier.Entity.Phone = request.Phone;
-        supplier.Entity.Address = request.Address;
-        supplier.Entity.Email = request.Email;
-        supplier.Entity.IsActive = request.IsActive;
-
-        await SyncEntitySpecificDataAsync(supplier.EntityId, request);
-        await ReplaceSupplierCategoriesAsync(supplier.Id, request.ProductCategoryIds);
-        await _context.SaveChangesAsync();
-        await transaction.CommitAsync();
-
-        return Result<SupplierWrapperDto>.Success(_mapper.Map<SupplierWrapperDto>(supplier));
-    }
-
-    public async Task<Result<SupplierWrapperDto>> PatchAsync(int id, PatchSupplierRequestDto request)
-    {
-        var supplier = await _context.Suppliers
-            .Include(s => s.Entity)
-                .ThenInclude(e => e.LegalPerson)
-            .Include(s => s.Entity)
-                .ThenInclude(e => e.PhysicalPerson)
-            .Include(s => s.SupplierCategories)
-            .FirstOrDefaultAsync(s => s.Id == id);
-
-        if (supplier == null)
-            return Result<SupplierWrapperDto>.Failure(SupplierError.SupplierNotFound, ErrorType.NotFound);
-
-        var targetEntityTypeId = request.EntityType is null
-            ? supplier.Entity.EntityTypeId
-            : (int)request.EntityType.Value;
-
-        if (!IsSupportedEntityType(targetEntityTypeId))
+        try
         {
-            return Result<SupplierWrapperDto>.Failure(
-                SupplierError.InvalidEntityType,
-                new Dictionary<string, string[]> { { "EntityType", [SupplierError.InvalidEntityType] } },
-                ErrorType.Validation);
-        }
-
-        if (!await _context.EntityTypes.AnyAsync(et => et.Id == targetEntityTypeId))
-        {
-            return Result<SupplierWrapperDto>.Failure(
-                SupplierError.EntityTypeNotConfigured,
-                new Dictionary<string, string[]> { { "EntityType", [SupplierError.EntityTypeNotConfigured] } },
-                ErrorType.Validation);
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.DocumentNumber))
-        {
-            var exists = await _context.Entities.AnyAsync(e =>
-                e.DocumentNumber == request.DocumentNumber &&
-                e.Id != supplier.EntityId);
-
-            if (exists)
-            {
-                return Result<SupplierWrapperDto>.Failure(
-                    SupplierError.DocumentNumberAlreadyExists,
-                    new Dictionary<string, string[]> { { "DocumentNumber", [SupplierError.DocumentNumberAlreadyExists] } },
-                    ErrorType.Validation);
-            }
-
+            // Step 4: Update Entity fields (document, contact info, etc.)
             supplier.Entity.DocumentNumber = request.DocumentNumber;
-        }
-
-        await using var transaction = await _context.Database.BeginTransactionAsync();
-
-        supplier.Entity.EntityTypeId = targetEntityTypeId;
-        if (request.Phone is not null)
             supplier.Entity.Phone = request.Phone;
-        if (request.Address is not null)
             supplier.Entity.Address = request.Address;
-        if (request.Email is not null)
             supplier.Entity.Email = request.Email;
-        if (request.IsActive.HasValue)
-            supplier.Entity.IsActive = request.IsActive.Value;
+            supplier.Entity.IsActive = request.IsActive;
 
-        var patchValidationResult = ValidatePatchSpecificData(supplier, request, targetEntityTypeId);
-        if (!patchValidationResult.IsSuccess)
-            return Result<SupplierWrapperDto>.Failure(patchValidationResult.ErrorMessage!, patchValidationResult.Errors!, ErrorType.Validation);
+            // Step 5: Update or create LegalPerson data
+            if (supplier.Entity.LegalPerson == null)
+            {
+                // Create LegalPerson if it doesn't exist (shouldn't happen, but handle it)
+                supplier.Entity.LegalPerson = new LegalPerson
+                {
+                    EntityId = supplier.Entity.Id,
+                    BussinessName = request.BusinessName,
+                    FantasyName = request.FantasyName
+                };
+                _context.LegalPersons.Add(supplier.Entity.LegalPerson);
+            }
+            else
+            {
+                // Update existing LegalPerson
+                supplier.Entity.LegalPerson.BussinessName = request.BusinessName;
+                supplier.Entity.LegalPerson.FantasyName = request.FantasyName;
+            }
 
-        await SyncEntitySpecificDataAsync(supplier.EntityId, request, targetEntityTypeId);
-
-        if (request.ProductCategoryIds is not null)
-        {
-            var categoriesValidation = await ValidateProductCategoriesAsync(request.ProductCategoryIds);
-            if (!categoriesValidation.IsSuccess)
-                return Result<SupplierWrapperDto>.Failure(categoriesValidation.ErrorMessage!, categoriesValidation.Errors!, ErrorType.Validation);
-
+            // Step 6: Replace product categories with new ones
             await ReplaceSupplierCategoriesAsync(supplier.Id, request.ProductCategoryIds);
+
+            // Persist all changes
+            await _context.SaveChangesAsync();
+
+            // Commit transaction
+            await transaction.CommitAsync();
+
+            // Map to DTO and return success
+            return Result<SupplierWrapperDto>.Success(_mapper.Map<SupplierWrapperDto>(supplier));
         }
-
-        await _context.SaveChangesAsync();
-        await transaction.CommitAsync();
-
-        return Result<SupplierWrapperDto>.Success(_mapper.Map<SupplierWrapperDto>(supplier));
+        catch (Exception)
+        {
+            // Rollback transaction on any exception
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
-    private async Task<Result> ValidateCreateOrUpdateRequestAsync(CreateSupplierRequestDto request, int? currentEntityId = null)
+    /// <summary>
+    /// Validates the Create request. Checks:
+    /// 1) Document number is not empty
+    /// 2) Business name is not empty (LegalPerson requirement)
+    /// 3) Document number is unique
+    /// 4) All product categories exist in database
+    /// </summary>
+    /// <param name="request">Create supplier request to validate</param>
+    /// <returns>Success result or validation error with details</returns>
+    private async Task<Result> ValidateCreateRequestAsync(CreateSupplierRequestDto request)
     {
-        if (request.EntityType is null || !IsSupportedEntityType((int)request.EntityType.Value))
+        var errors = new Dictionary<string, string[]>();
+
+        // Validate document number (required and not empty)
+        if (string.IsNullOrWhiteSpace(request.DocumentNumber))
         {
-            return Result.Failure(
-                SupplierError.InvalidEntityType,
-                new Dictionary<string, string[]> { { "EntityType", [SupplierError.InvalidEntityType] } },
-                ErrorType.Validation);
+            errors["DocumentNumber"] = [SupplierError.DocumentNumberRequired];
+        }
+        else
+        {
+            // Check if document already exists (must be unique)
+            var documentExists = await _context.Entities.AnyAsync(e =>
+                e.DocumentNumber == request.DocumentNumber);
+
+            if (documentExists)
+                errors["DocumentNumber"] = [SupplierError.DocumentNumberAlreadyExists];
         }
 
-        if (!await _context.EntityTypes.AnyAsync(et => et.Id == (int)request.EntityType.Value))
+        // Validate business name (required for LegalPerson)
+        if (string.IsNullOrWhiteSpace(request.BusinessName))
+            errors["BusinessName"] = [SupplierError.BusinessNameRequired];
+
+        // If we have basic validation errors, return them immediately
+        if (errors.Count > 0)
         {
-            return Result.Failure(
-                SupplierError.EntityTypeNotConfigured,
-                new Dictionary<string, string[]> { { "EntityType", [SupplierError.EntityTypeNotConfigured] } },
-                ErrorType.Validation);
+            var errorMessage = string.Join("; ", errors.Values.SelectMany(v => v));
+            return Result.Failure(errorMessage, errors, ErrorType.Validation);
         }
 
-        var documentExists = await _context.Entities.AnyAsync(e =>
-            e.DocumentNumber == request.DocumentNumber &&
-            (!currentEntityId.HasValue || e.Id != currentEntityId.Value));
-
-        if (documentExists)
-        {
-            return Result.Failure(
-                SupplierError.DocumentNumberAlreadyExists,
-                new Dictionary<string, string[]> { { "DocumentNumber", [SupplierError.DocumentNumberAlreadyExists] } },
-                ErrorType.Validation);
-        }
-
-        var personValidationResult = ValidatePersonSpecificData(request, (int)request.EntityType.Value);
-        if (!personValidationResult.IsSuccess)
-            return personValidationResult;
-
-        return await ValidateProductCategoriesAsync(request.ProductCategoryIds);
-    }
-
-    private async Task<Result> ValidateCreateOrUpdateRequestAsync(UpdateSupplierRequestDto request, int? currentEntityId = null)
-    {
-        var createLikeRequest = new CreateSupplierRequestDto
-        {
-            EntityType = request.EntityType,
-            DocumentNumber = request.DocumentNumber,
-            Phone = request.Phone,
-            Address = request.Address,
-            Email = request.Email,
-            BusinessName = request.BusinessName,
-            FantasyName = request.FantasyName,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            GenderId = request.GenderId,
-            MaritalStatusId = request.MaritalStatusId,
-            BirthDate = request.BirthDate,
-            IsActive = request.IsActive,
-            ProductCategoryIds = request.ProductCategoryIds
-        };
-
-        return await ValidateCreateOrUpdateRequestAsync(createLikeRequest, currentEntityId);
-    }
-
-    private Result ValidatePersonSpecificData(CreateSupplierRequestDto request, int entityTypeId)
-    {
-        if (entityTypeId == (int)EntityPersonType.Legal)
-        {
-            if (string.IsNullOrWhiteSpace(request.BusinessName))
-            {
-                return Result.Failure(
-                    SupplierError.BusinessNameRequired,
-                    new Dictionary<string, string[]> { { "BusinessName", [SupplierError.BusinessNameRequired] } },
-                    ErrorType.Validation);
-            }
-
-            return Result.Success();
-        }
-
-        if (string.IsNullOrWhiteSpace(request.FirstName))
-        {
-            return Result.Failure(
-                SupplierError.FirstNameRequired,
-                new Dictionary<string, string[]> { { "FirstName", [SupplierError.FirstNameRequired] } },
-                ErrorType.Validation);
-        }
-
-        if (string.IsNullOrWhiteSpace(request.LastName))
-        {
-            return Result.Failure(
-                SupplierError.LastNameRequired,
-                new Dictionary<string, string[]> { { "LastName", [SupplierError.LastNameRequired] } },
-                ErrorType.Validation);
-        }
-
-        if (!request.GenderId.HasValue)
-        {
-            return Result.Failure(
-                SupplierError.GenderRequired,
-                new Dictionary<string, string[]> { { "GenderId", [SupplierError.GenderRequired] } },
-                ErrorType.Validation);
-        }
-
-        if (!request.MaritalStatusId.HasValue)
-        {
-            return Result.Failure(
-                SupplierError.MaritalStatusRequired,
-                new Dictionary<string, string[]> { { "MaritalStatusId", [SupplierError.MaritalStatusRequired] } },
-                ErrorType.Validation);
-        }
-
-        if (!request.BirthDate.HasValue)
-        {
-            return Result.Failure(
-                SupplierError.BirthDateRequired,
-                new Dictionary<string, string[]> { { "BirthDate", [SupplierError.BirthDateRequired] } },
-                ErrorType.Validation);
-        }
+        // Validate product categories if provided
+        var categoriesValidation = await ValidateProductCategoriesAsync(request.ProductCategoryIds);
+        if (!categoriesValidation.IsSuccess)
+            return categoriesValidation;
 
         return Result.Success();
     }
 
-    private Result ValidatePatchSpecificData(Supplier supplier, PatchSupplierRequestDto request, int targetEntityTypeId)
+    /// <summary>
+    /// Validates the Update request (same validations as Create).
+    /// </summary>
+    /// <param name="request">Update supplier request to validate</param>
+    /// <param name="currentEntityId">The current entity ID (for uniqueness check exclusion)</param>
+    /// <returns>Success result or validation error with details</returns>
+    private async Task<Result> ValidateUpdateRequestAsync(UpdateSupplierRequestDto request, int currentEntityId)
     {
-        if (targetEntityTypeId == (int)EntityPersonType.Legal)
-        {
-            var businessName = request.BusinessName ?? supplier.Entity.LegalPerson?.BussinessName;
-            if (string.IsNullOrWhiteSpace(businessName))
-            {
-                return Result.Failure(
-                    SupplierError.BusinessNameRequired,
-                    new Dictionary<string, string[]> { { "BusinessName", [SupplierError.BusinessNameRequired] } },
-                    ErrorType.Validation);
-            }
+        var errors = new Dictionary<string, string[]>();
 
-            return Result.Success();
+        // Validate document number
+        if (string.IsNullOrWhiteSpace(request.DocumentNumber))
+        {
+            errors["DocumentNumber"] = [SupplierError.DocumentNumberRequired];
+        }
+        else
+        {
+            // Check if document already exists (excluding current entity)
+            var documentExists = await _context.Entities.AnyAsync(e =>
+                e.DocumentNumber == request.DocumentNumber && e.Id != currentEntityId);
+
+            if (documentExists)
+                errors["DocumentNumber"] = [SupplierError.DocumentNumberAlreadyExists];
         }
 
-        var firstName = request.FirstName ?? supplier.Entity.PhysicalPerson?.Name;
-        var lastName = request.LastName ?? supplier.Entity.PhysicalPerson?.Lastname;
-        var genderId = request.GenderId ?? supplier.Entity.PhysicalPerson?.GenderId;
-        var maritalStatusId = request.MaritalStatusId ?? supplier.Entity.PhysicalPerson?.MaritalStatusId;
-        var birthDate = request.BirthDate ?? supplier.Entity.PhysicalPerson?.BirthDate;
+        // Validate business name
+        if (string.IsNullOrWhiteSpace(request.BusinessName))
+            errors["BusinessName"] = [SupplierError.BusinessNameRequired];
 
-        if (string.IsNullOrWhiteSpace(firstName))
+        // Return errors if validation failed
+        if (errors.Count > 0)
         {
-            return Result.Failure(
-                SupplierError.FirstNameRequired,
-                new Dictionary<string, string[]> { { "FirstName", [SupplierError.FirstNameRequired] } },
-                ErrorType.Validation);
+            var errorMessage = string.Join("; ", errors.Values.SelectMany(v => v));
+            return Result.Failure(errorMessage, errors, ErrorType.Validation);
         }
 
-        if (string.IsNullOrWhiteSpace(lastName))
-        {
-            return Result.Failure(
-                SupplierError.LastNameRequired,
-                new Dictionary<string, string[]> { { "LastName", [SupplierError.LastNameRequired] } },
-                ErrorType.Validation);
-        }
-
-        if (!genderId.HasValue)
-        {
-            return Result.Failure(
-                SupplierError.GenderRequired,
-                new Dictionary<string, string[]> { { "GenderId", [SupplierError.GenderRequired] } },
-                ErrorType.Validation);
-        }
-
-        if (!maritalStatusId.HasValue)
-        {
-            return Result.Failure(
-                SupplierError.MaritalStatusRequired,
-                new Dictionary<string, string[]> { { "MaritalStatusId", [SupplierError.MaritalStatusRequired] } },
-                ErrorType.Validation);
-        }
-
-        if (!birthDate.HasValue)
-        {
-            return Result.Failure(
-                SupplierError.BirthDateRequired,
-                new Dictionary<string, string[]> { { "BirthDate", [SupplierError.BirthDateRequired] } },
-                ErrorType.Validation);
-        }
+        // Validate product categories
+        var categoriesValidation = await ValidateProductCategoriesAsync(request.ProductCategoryIds);
+        if (!categoriesValidation.IsSuccess)
+            return categoriesValidation;
 
         return Result.Success();
     }
 
+    /// <summary>
+    /// Validates that all provided product category IDs exist in the database.
+    /// </summary>
+    /// <param name="productCategoryIds">List of category IDs to validate</param>
+    /// <returns>Success result or validation error if any category doesn't exist</returns>
     private async Task<Result> ValidateProductCategoriesAsync(List<int> productCategoryIds)
     {
-        var categoryIds = productCategoryIds.Distinct().ToList();
-        if (categoryIds.Count == 0)
+        // If no categories provided, validation passes
+        if (productCategoryIds.Count == 0)
             return Result.Success();
 
-        var existingCount = await _context.ProductCategories
-            .CountAsync(pc => categoryIds.Contains(pc.Id));
+        // Get distinct category IDs (remove duplicates)
+        var distinctCategoryIds = productCategoryIds.Distinct().ToList();
 
-        if (existingCount != categoryIds.Count)
+        // Count how many of the provided categories exist in database
+        var existingCount = await _context.ProductCategories
+            .CountAsync(pc => distinctCategoryIds.Contains(pc.Id));
+
+        // If counts don't match, some categories don't exist
+        if (existingCount != distinctCategoryIds.Count)
         {
             return Result.Failure(
                 SupplierError.InvalidProductCategories,
@@ -417,14 +371,22 @@ public class SupplierService(AppDbContext context, IMapper mapper)
         return Result.Success();
     }
 
+    /// <summary>
+    /// Replaces all product categories for a supplier with the provided list.
+    /// Process: 1) Remove all existing categories, 2) Add new categories from list.
+    /// </summary>
+    /// <param name="supplierId">The supplier ID</param>
+    /// <param name="productCategoryIds">New list of product category IDs</param>
     private async Task ReplaceSupplierCategoriesAsync(int supplierId, List<int> productCategoryIds)
     {
-        var existing = await _context.SupplierCategories
+        // Step 1: Remove all existing SupplierCategory associations
+        var existingCategories = await _context.SupplierCategories
             .Where(sc => sc.SupplierId == supplierId)
             .ToListAsync();
 
-        _context.SupplierCategories.RemoveRange(existing);
+        _context.SupplierCategories.RemoveRange(existingCategories);
 
+        // Step 2: Add new SupplierCategory associations for distinct category IDs
         var distinctCategoryIds = productCategoryIds.Distinct().ToList();
         foreach (var categoryId in distinctCategoryIds)
         {
@@ -436,155 +398,24 @@ public class SupplierService(AppDbContext context, IMapper mapper)
         }
     }
 
-    private async Task SyncEntitySpecificDataAsync(int entityId, CreateSupplierRequestDto request)
+    /// <summary>
+    /// Adds product categories for a supplier (without removing existing ones).
+    /// </summary>
+    /// <param name="supplierId">The supplier ID</param>
+    /// <param name="productCategoryIds">List of product category IDs to add</param>
+    private async Task AddSupplierCategoriesAsync(int supplierId, List<int> productCategoryIds)
     {
-        await SyncEntitySpecificDataAsync(entityId, request, (int)request.EntityType!.Value);
-    }
+        // Get distinct category IDs to avoid duplicates
+        var distinctCategoryIds = productCategoryIds.Distinct().ToList();
 
-    private async Task SyncEntitySpecificDataAsync(int entityId, UpdateSupplierRequestDto request)
-    {
-        await SyncEntitySpecificDataAsync(entityId, request, (int)request.EntityType!.Value);
-    }
-
-    private async Task SyncEntitySpecificDataAsync(int entityId, PatchSupplierRequestDto request, int targetEntityTypeId)
-    {
-        if (targetEntityTypeId == (int)EntityPersonType.Legal)
+        // Add new SupplierCategory associations
+        foreach (var categoryId in distinctCategoryIds)
         {
-            var physical = await _context.PhysicalPersons.FirstOrDefaultAsync(pp => pp.EntityId == entityId);
-            if (physical is not null)
-                _context.PhysicalPersons.Remove(physical);
-
-            var legal = await _context.LegalPersons.FirstOrDefaultAsync(lp => lp.EntityId == entityId);
-            if (legal is null)
+            _context.SupplierCategories.Add(new SupplierCategory
             {
-                legal = new LegalPerson
-                {
-                    EntityId = entityId,
-                    BussinessName = request.BusinessName!,
-                    FantasyName = request.FantasyName
-                };
-                _context.LegalPersons.Add(legal);
-            }
-            else
-            {
-                legal.BussinessName = request.BusinessName ?? legal.BussinessName;
-                legal.FantasyName = request.FantasyName ?? legal.FantasyName;
-            }
-
-            return;
+                SupplierId = supplierId,
+                ProductCategoryId = categoryId
+            });
         }
-
-        var legalPerson = await _context.LegalPersons.FirstOrDefaultAsync(lp => lp.EntityId == entityId);
-        if (legalPerson is not null)
-            _context.LegalPersons.Remove(legalPerson);
-
-        var physicalPerson = await _context.PhysicalPersons.FirstOrDefaultAsync(pp => pp.EntityId == entityId);
-        if (physicalPerson is null)
-        {
-            physicalPerson = new PhysicalPerson
-            {
-                EntityId = entityId,
-                Name = request.FirstName!,
-                Lastname = request.LastName!,
-                GenderId = request.GenderId!.Value,
-                MaritalStatusId = request.MaritalStatusId!.Value,
-                BirthDate = request.BirthDate!.Value
-            };
-
-            _context.PhysicalPersons.Add(physicalPerson);
-        }
-        else
-        {
-            physicalPerson.Name = request.FirstName ?? physicalPerson.Name;
-            physicalPerson.Lastname = request.LastName ?? physicalPerson.Lastname;
-            physicalPerson.GenderId = request.GenderId ?? physicalPerson.GenderId;
-            physicalPerson.MaritalStatusId = request.MaritalStatusId ?? physicalPerson.MaritalStatusId;
-            physicalPerson.BirthDate = request.BirthDate ?? physicalPerson.BirthDate;
-        }
-    }
-
-    private async Task SyncEntitySpecificDataAsync(int entityId, CreateSupplierRequestDto request, int targetEntityTypeId)
-    {
-        if (targetEntityTypeId == (int)EntityPersonType.Legal)
-        {
-            var physical = await _context.PhysicalPersons.FirstOrDefaultAsync(pp => pp.EntityId == entityId);
-            if (physical is not null)
-                _context.PhysicalPersons.Remove(physical);
-
-            var legal = await _context.LegalPersons.FirstOrDefaultAsync(lp => lp.EntityId == entityId);
-            if (legal is null)
-            {
-                legal = new LegalPerson
-                {
-                    EntityId = entityId,
-                    BussinessName = request.BusinessName!,
-                    FantasyName = request.FantasyName
-                };
-                _context.LegalPersons.Add(legal);
-            }
-            else
-            {
-                legal.BussinessName = request.BusinessName!;
-                legal.FantasyName = request.FantasyName;
-            }
-
-            return;
-        }
-
-        var legalPerson = await _context.LegalPersons.FirstOrDefaultAsync(lp => lp.EntityId == entityId);
-        if (legalPerson is not null)
-            _context.LegalPersons.Remove(legalPerson);
-
-        var physicalPerson = await _context.PhysicalPersons.FirstOrDefaultAsync(pp => pp.EntityId == entityId);
-        if (physicalPerson is null)
-        {
-            physicalPerson = new PhysicalPerson
-            {
-                EntityId = entityId,
-                Name = request.FirstName!,
-                Lastname = request.LastName!,
-                GenderId = request.GenderId!.Value,
-                MaritalStatusId = request.MaritalStatusId!.Value,
-                BirthDate = request.BirthDate!.Value
-            };
-
-            _context.PhysicalPersons.Add(physicalPerson);
-        }
-        else
-        {
-            physicalPerson.Name = request.FirstName!;
-            physicalPerson.Lastname = request.LastName!;
-            physicalPerson.GenderId = request.GenderId!.Value;
-            physicalPerson.MaritalStatusId = request.MaritalStatusId!.Value;
-            physicalPerson.BirthDate = request.BirthDate!.Value;
-        }
-    }
-
-    private async Task SyncEntitySpecificDataAsync(int entityId, UpdateSupplierRequestDto request, int targetEntityTypeId)
-    {
-        var createLikeRequest = new CreateSupplierRequestDto
-        {
-            EntityType = request.EntityType,
-            DocumentNumber = request.DocumentNumber,
-            Phone = request.Phone,
-            Address = request.Address,
-            Email = request.Email,
-            BusinessName = request.BusinessName,
-            FantasyName = request.FantasyName,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            GenderId = request.GenderId,
-            MaritalStatusId = request.MaritalStatusId,
-            BirthDate = request.BirthDate,
-            IsActive = request.IsActive,
-            ProductCategoryIds = request.ProductCategoryIds
-        };
-
-        await SyncEntitySpecificDataAsync(entityId, createLikeRequest, targetEntityTypeId);
-    }
-
-    private static bool IsSupportedEntityType(int entityTypeId)
-    {
-        return entityTypeId is (int)EntityPersonType.Physical or (int)EntityPersonType.Legal;
     }
 }
