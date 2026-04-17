@@ -10,9 +10,7 @@ public partial class Product
     public int ProductCategoryId { get; set; }
 
     public int ProductBrandId { get; set; }
-
-    public int UnitOfMeasurementId { get; set; }
-
+    
     public string Name { get; set; } = null!;
 
     public decimal Price { get; set; }
