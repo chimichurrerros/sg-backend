@@ -25,7 +25,7 @@ public partial class Product
 
     public virtual ICollection<CustomerQuoteDetail> CustomerQuoteDetails { get; set; } = new List<CustomerQuoteDetail>();
 
-    public virtual ICollection<Lote> Lotes { get; set; } = new List<Lote>();
+    //public virtual ICollection<Lote> Lotes { get; set; } = new List<Lote>();
 
     public virtual ProductBrand ProductBrand { get; set; } = null!;
 
@@ -41,9 +41,4 @@ public partial class Product
 
     public virtual ICollection<SupplierQuoteDetail> SupplierQuoteDetails { get; set; } = new List<SupplierQuoteDetail>();
 
-    public virtual ICollection<TransactionDetail> TransactionDetails { get; set; } = new List<TransactionDetail>();
-
-    public virtual ICollection<TransferDetail> TransferDetails { get; set; } = new List<TransferDetail>();
-
-    public virtual UnitsOfMeasurement UnitOfMeasurement { get; set; } = null!;
 }

@@ -79,7 +79,7 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<LegalPerson> LegalPersons { get; set; }
 
-    public virtual DbSet<Lote> Lotes { get; set; }
+    // public virtual DbSet<Lote> Lotes { get; set; }
 
     public virtual DbSet<MaritalStatus> MaritalStatuses { get; set; }
 
@@ -148,21 +148,21 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<SupplierQuoteDetail> SupplierQuoteDetails { get; set; }
 
 
-    public virtual DbSet<Transaction> Transactions { get; set; }
+    // public virtual DbSet<Transaction> Transactions { get; set; }
 
-    public virtual DbSet<TransactionDetail> TransactionDetails { get; set; }
+    // public virtual DbSet<TransactionDetail> TransactionDetails { get; set; }
 
-    public virtual DbSet<TransactionType> TransactionTypes { get; set; }
+    // public virtual DbSet<TransactionType> TransactionTypes { get; set; }
 
-    public virtual DbSet<Transfer> Transfers { get; set; }
+   // public virtual DbSet<Transfer> Transfers { get; set; }
 
-    public virtual DbSet<TransferDetail> TransferDetails { get; set; }
+   // public virtual DbSet<TransferDetail> TransferDetails { get; set; }
 
-    public virtual DbSet<UnitsOfMeasurement> UnitsOfMeasurements { get; set; }
+  //  public virtual DbSet<UnitsOfMeasurement> UnitsOfMeasurements { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 
-    public virtual DbSet<Warehouse> Warehouses { get; set; }
+    // public virtual DbSet<Warehouse> Warehouses { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -611,17 +611,17 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("LegalPersons_EntityId_fkey");
         });
 
-        modelBuilder.Entity<Lote>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("Lotes_pkey");
+        // modelBuilder.Entity<Lote>(entity =>
+        // {
+        //     entity.HasKey(e => e.Id).HasName("Lotes_pkey");
 
-            entity.Property(e => e.LoteNumber).HasMaxLength(100);
+        //     entity.Property(e => e.LoteNumber).HasMaxLength(100);
 
-            entity.HasOne(d => d.Product).WithMany(p => p.Lotes)
-                .HasForeignKey(d => d.ProductId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Lotes_ProductId_fkey");
-        });
+        //     entity.HasOne(d => d.Product).WithMany(p => p.Lotes)
+        //         .HasForeignKey(d => d.ProductId)
+        //         .OnDelete(DeleteBehavior.ClientSetNull)
+        //         .HasConstraintName("Lotes_ProductId_fkey");
+        // });
 
         modelBuilder.Entity<MaritalStatus>(entity =>
         {
@@ -1038,20 +1038,20 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Quantity).HasPrecision(10, 2);
 
-            entity.HasOne(d => d.Lote).WithMany(p => p.Stocks)
-                .HasForeignKey(d => d.LoteId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Stocks_LoteId_fkey");
+            // entity.HasOne(d => d.Lote).WithMany(p => p.Stocks)
+            //     .HasForeignKey(d => d.LoteId)
+            //     .OnDelete(DeleteBehavior.ClientSetNull)
+            //     .HasConstraintName("Stocks_LoteId_fkey");
 
             entity.HasOne(d => d.Product).WithMany(p => p.Stocks)
                 .HasForeignKey(d => d.ProductId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("Stocks_ProductId_fkey");
 
-            entity.HasOne(d => d.Warehouse).WithMany(p => p.Stocks)
-                .HasForeignKey(d => d.WarehouseId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Stocks_WarehouseId_fkey");
+            // entity.HasOne(d => d.Warehouse).WithMany(p => p.Stocks)
+            //     .HasForeignKey(d => d.WarehouseId)
+            //     .OnDelete(DeleteBehavior.ClientSetNull)
+            //     .HasConstraintName("Stocks_WarehouseId_fkey");
         });
 
         modelBuilder.Entity<Supplier>(entity =>
@@ -1123,120 +1123,120 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("SupplierQuoteDetails_SupplierQuoteId_fkey");
         });
 
-        modelBuilder.Entity<Transaction>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("Transactions_pkey");
+        // modelBuilder.Entity<Transaction>(entity =>
+        // {
+        //     entity.HasKey(e => e.Id).HasName("Transactions_pkey");
 
-            entity.Property(e => e.Date)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone");
+        //     entity.Property(e => e.Date)
+        //         .HasDefaultValueSql("CURRENT_TIMESTAMP")
+        //         .HasColumnType("timestamp without time zone");
 
-            entity.HasOne(d => d.State).WithMany(p => p.Transactions)
-                .HasForeignKey(d => d.StateId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Transactions_StateId_fkey");
+        //     entity.HasOne(d => d.State).WithMany(p => p.Transactions)
+        //         .HasForeignKey(d => d.StateId)
+        //         .OnDelete(DeleteBehavior.ClientSetNull)
+        //         .HasConstraintName("Transactions_StateId_fkey");
 
-            entity.HasOne(d => d.TransactionType).WithMany(p => p.Transactions)
-                .HasForeignKey(d => d.TransactionTypeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Transactions_TransactionTypeId_fkey");
+        //     entity.HasOne(d => d.TransactionType).WithMany(p => p.Transactions)
+        //         .HasForeignKey(d => d.TransactionTypeId)
+        //         .OnDelete(DeleteBehavior.ClientSetNull)
+        //         .HasConstraintName("Transactions_TransactionTypeId_fkey");
 
-            entity.HasOne(d => d.Transfer).WithMany(p => p.Transactions)
-                .HasForeignKey(d => d.TransferId)
-                .HasConstraintName("Transactions_TransferId_fkey");
+        //     // entity.HasOne(d => d.Transfer).WithMany(p => p.Transactions)
+        //     //     .HasForeignKey(d => d.TransferId)
+        //     //     .HasConstraintName("Transactions_TransferId_fkey");
 
-            entity.HasOne(d => d.User).WithMany(p => p.Transactions)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Transactions_UserId_fkey");
-        });
+        //     entity.HasOne(d => d.User).WithMany(p => p.Transactions)
+        //         .HasForeignKey(d => d.UserId)
+        //         .OnDelete(DeleteBehavior.ClientSetNull)
+        //         .HasConstraintName("Transactions_UserId_fkey");
+        // });
 
-        modelBuilder.Entity<TransactionDetail>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("TransactionDetails_pkey");
+        // modelBuilder.Entity<TransactionDetail>(entity =>
+        // {
+        //     entity.HasKey(e => e.Id).HasName("TransactionDetails_pkey");
 
-            entity.Property(e => e.Price).HasPrecision(15, 2);
-            entity.Property(e => e.Quantity).HasPrecision(10, 2);
+        //     entity.Property(e => e.Price).HasPrecision(15, 2);
+        //     entity.Property(e => e.Quantity).HasPrecision(10, 2);
 
-            entity.HasOne(d => d.Lote).WithMany(p => p.TransactionDetails)
-                .HasForeignKey(d => d.LoteId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("TransactionDetails_LoteId_fkey");
+        //     entity.HasOne(d => d.Lote).WithMany(p => p.TransactionDetails)
+        //         .HasForeignKey(d => d.LoteId)
+        //         .OnDelete(DeleteBehavior.ClientSetNull)
+        //         .HasConstraintName("TransactionDetails_LoteId_fkey");
 
-            entity.HasOne(d => d.Product).WithMany(p => p.TransactionDetails)
-                .HasForeignKey(d => d.ProductId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("TransactionDetails_ProductId_fkey");
+        //     entity.HasOne(d => d.Product).WithMany(p => p.TransactionDetails)
+        //         .HasForeignKey(d => d.ProductId)
+        //         .OnDelete(DeleteBehavior.ClientSetNull)
+        //         .HasConstraintName("TransactionDetails_ProductId_fkey");
 
-            entity.HasOne(d => d.Transaction).WithMany(p => p.TransactionDetails)
-                .HasForeignKey(d => d.TransactionId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("TransactionDetails_TransactionId_fkey");
-        });
+        //     entity.HasOne(d => d.Transaction).WithMany(p => p.TransactionDetails)
+        //         .HasForeignKey(d => d.TransactionId)
+        //         .OnDelete(DeleteBehavior.ClientSetNull)
+        //         .HasConstraintName("TransactionDetails_TransactionId_fkey");
+        // });
 
-        modelBuilder.Entity<TransactionType>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("TransactionTypes_pkey");
+        // modelBuilder.Entity<TransactionType>(entity =>
+        // {
+        //     entity.HasKey(e => e.Id).HasName("TransactionTypes_pkey");
 
-            entity.Property(e => e.Name).HasMaxLength(100);
-        });
+        //     entity.Property(e => e.Name).HasMaxLength(100);
+        // });
 
-        modelBuilder.Entity<Transfer>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("Transfers_pkey");
+        // modelBuilder.Entity<Transfer>(entity =>
+        // {
+        //     entity.HasKey(e => e.Id).HasName("Transfers_pkey");
 
-            entity.Property(e => e.ReceiptDate).HasColumnType("timestamp without time zone");
-            entity.Property(e => e.ShipmentDate).HasColumnType("timestamp without time zone");
+        //     entity.Property(e => e.ReceiptDate).HasColumnType("timestamp without time zone");
+        //     entity.Property(e => e.ShipmentDate).HasColumnType("timestamp without time zone");
 
-            entity.HasOne(d => d.DestinationWarehouse).WithMany(p => p.TransferDestinationWarehouses)
-                .HasForeignKey(d => d.DestinationWarehouseId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Transfers_DestinationWarehouseId_fkey");
+        //     entity.HasOne(d => d.DestinationWarehouse).WithMany(p => p.TransferDestinationWarehouses)
+        //         .HasForeignKey(d => d.DestinationWarehouseId)
+        //         .OnDelete(DeleteBehavior.ClientSetNull)
+        //         .HasConstraintName("Transfers_DestinationWarehouseId_fkey");
 
-            entity.HasOne(d => d.SourceWarehouse).WithMany(p => p.TransferSourceWarehouses)
-                .HasForeignKey(d => d.SourceWarehouseId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Transfers_SourceWarehouseId_fkey");
+        //     entity.HasOne(d => d.SourceWarehouse).WithMany(p => p.TransferSourceWarehouses)
+        //         .HasForeignKey(d => d.SourceWarehouseId)
+        //         .OnDelete(DeleteBehavior.ClientSetNull)
+        //         .HasConstraintName("Transfers_SourceWarehouseId_fkey");
 
-            entity.HasOne(d => d.State).WithMany(p => p.Transfers)
-                .HasForeignKey(d => d.StateId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Transfers_StateId_fkey");
+        //     entity.HasOne(d => d.State).WithMany(p => p.Transfers)
+        //         .HasForeignKey(d => d.StateId)
+        //         .OnDelete(DeleteBehavior.ClientSetNull)
+        //         .HasConstraintName("Transfers_StateId_fkey");
 
-            entity.HasOne(d => d.User).WithMany(p => p.Transfers)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Transfers_UserId_fkey");
-        });
+        //     entity.HasOne(d => d.User).WithMany(p => p.Transfers)
+        //         .HasForeignKey(d => d.UserId)
+        //         .OnDelete(DeleteBehavior.ClientSetNull)
+        //         .HasConstraintName("Transfers_UserId_fkey");
+        // });
 
-        modelBuilder.Entity<TransferDetail>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("TransferDetails_pkey");
+        // modelBuilder.Entity<TransferDetail>(entity =>
+        // {
+        //     entity.HasKey(e => e.Id).HasName("TransferDetails_pkey");
 
-            entity.Property(e => e.Quantity).HasPrecision(10, 2);
+        //     entity.Property(e => e.Quantity).HasPrecision(10, 2);
 
-            entity.HasOne(d => d.Lote).WithMany(p => p.TransferDetails)
-                .HasForeignKey(d => d.LoteId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("TransferDetails_LoteId_fkey");
+        //     entity.HasOne(d => d.Lote).WithMany(p => p.TransferDetails)
+        //         .HasForeignKey(d => d.LoteId)
+        //         .OnDelete(DeleteBehavior.ClientSetNull)
+        //         .HasConstraintName("TransferDetails_LoteId_fkey");
 
-            entity.HasOne(d => d.Product).WithMany(p => p.TransferDetails)
-                .HasForeignKey(d => d.ProductId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("TransferDetails_ProductId_fkey");
+        //     entity.HasOne(d => d.Product).WithMany(p => p.TransferDetails)
+        //         .HasForeignKey(d => d.ProductId)
+        //         .OnDelete(DeleteBehavior.ClientSetNull)
+        //         .HasConstraintName("TransferDetails_ProductId_fkey");
 
-            entity.HasOne(d => d.Transfer).WithMany(p => p.TransferDetails)
-                .HasForeignKey(d => d.TransferId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("TransferDetails_TransferId_fkey");
-        });
+        //     entity.HasOne(d => d.Transfer).WithMany(p => p.TransferDetails)
+        //         .HasForeignKey(d => d.TransferId)
+        //         .OnDelete(DeleteBehavior.ClientSetNull)
+        //         .HasConstraintName("TransferDetails_TransferId_fkey");
+        // });
 
-        modelBuilder.Entity<UnitsOfMeasurement>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("UnitsOfMeasurements_pkey");
+        // modelBuilder.Entity<UnitsOfMeasurement>(entity =>
+        // {
+        //     entity.HasKey(e => e.Id).HasName("UnitsOfMeasurements_pkey");
 
-            entity.Property(e => e.Name).HasMaxLength(50);
-        });
+        //     entity.Property(e => e.Name).HasMaxLength(50);
+        // });
 
         modelBuilder.Entity<User>(entity =>
         {
@@ -1259,17 +1259,17 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("Users_RoleId_fkey");
         });
 
-        modelBuilder.Entity<Warehouse>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("Warehouses_pkey");
+        // modelBuilder.Entity<Warehouse>(entity =>
+        // {
+        //     entity.HasKey(e => e.Id).HasName("Warehouses_pkey");
 
-            entity.Property(e => e.Name).HasMaxLength(100);
+        //     entity.Property(e => e.Name).HasMaxLength(100);
 
-            entity.HasOne(d => d.Branch).WithMany(p => p.Warehouses)
-                .HasForeignKey(d => d.BranchId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Warehouses_BranchId_fkey");
-        });
+        //     entity.HasOne(d => d.Branch).WithMany(p => p.Warehouses)
+        //         .HasForeignKey(d => d.BranchId)
+        //         .OnDelete(DeleteBehavior.ClientSetNull)
+        //         .HasConstraintName("Warehouses_BranchId_fkey");
+        // });
 
         OnModelCreatingPartial(modelBuilder);
     }

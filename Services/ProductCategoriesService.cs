@@ -16,6 +16,16 @@ public class ProductCategoriesService(AppDbContext context, IMapper mapper)
     private readonly AppDbContext _context = context;
     private readonly IMapper _mapper = mapper;
 
+    public async Task<Result<ListProductCategoriesWrapperDto>> GetAllAsync()
+    {
+        var categories = await _context.ProductCategories
+            .AsNoTracking()
+            .ProjectTo<ProductCategoryResponseDto>(_mapper.ConfigurationProvider)
+            .ToListAsync();
+
+        return Result<ListProductCategoriesWrapperDto>.Success(new ListProductCategoriesWrapperDto { ProductCategories = categories });
+    }
+
     public async Task<Result<ListProductCategoriesWrapperDto>> GetListAsync(PaginationRequestDto pagination)
     {
         var query = _context.ProductCategories.AsNoTracking();

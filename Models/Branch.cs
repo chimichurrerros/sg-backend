@@ -11,5 +11,6 @@ public partial class Branch
 
     public string? Address { get; set; }
 
-    public virtual ICollection<Warehouse> Warehouses { get; set; } = new List<Warehouse>();
+    //DEPRECATED
+    //public virtual ICollection<Warehouse> Warehouses { get; set; } = new List<Warehouse>();
 }

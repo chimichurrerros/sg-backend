@@ -7,7 +7,8 @@ public partial class Stock
 {
     public int Id { get; set; }
 
-    public int WarehouseId { get; set; }
+    //DEPRECATED
+    //public int WarehouseId { get; set; }
 
     public int LoteId { get; set; }
 
@@ -15,9 +16,9 @@ public partial class Stock
 
     public decimal Quantity { get; set; }
 
-    public virtual Lote Lote { get; set; } = null!;
+    //public virtual Lote Lote { get; set; } = null!;
 
     public virtual Product Product { get; set; } = null!;
 
-    public virtual Warehouse Warehouse { get; set; } = null!;
+    //public virtual Warehouse Warehouse { get; set; } = null!;
 }
