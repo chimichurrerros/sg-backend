@@ -1,4 +1,5 @@
 using BackEnd.DTOs.Requests.Supplier;
+using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Responses.Supplier;
 using BackEnd.Extensions;
 using BackEnd.Services;
@@ -16,9 +17,9 @@ public class SupplierController(SupplierService supplierService) : ControllerBas
     private readonly SupplierService _supplierService = supplierService;
 
     [HttpGet]
-    public async Task<ActionResult<ListSuppliersWrapperDto>> GetListSuppliers()
+    public async Task<ActionResult<ListSuppliersWrapperDto>> GetListSuppliers([FromQuery] PaginationRequestDto pagination)
     {
-        var result = await _supplierService.GetListAsync();
+        var result = await _supplierService.GetListAsync(pagination);
 
         if (result.IsSuccess)
             return Ok(result.Value);

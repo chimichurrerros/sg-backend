@@ -1,5 +1,7 @@
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using BackEnd.Constants.Errors;
+using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Requests.Supplier;
 using BackEnd.DTOs.Responses.Supplier;
 using BackEnd.Infrastructure.Context;
@@ -16,15 +18,27 @@ public class SupplierService(AppDbContext context, IMapper mapper)
     private const int LegacyDefaultTaxConditionId = 1;
     private const decimal LegacyDefaultCreditLimit = 0m;
 
-    public async Task<Result<ListSuppliersWrapperDto>> GetListAsync()
+    public async Task<Result<ListSuppliersWrapperDto>> GetListAsync(PaginationRequestDto pagination)
     {
-        var suppliers = await _context.Suppliers
-            .AsNoTracking()
+        var page = pagination.Page < 1 ? 1 : pagination.Page;
+        var pageSize = pagination.PageSize < 1 ? 10 : pagination.PageSize;
+
+        var suppliersQuery = _context.Suppliers.AsNoTracking();
+        var totalElements = await suppliersQuery.CountAsync();
+
+        var suppliers = await suppliersQuery
+            .OrderBy(v => v.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ProjectTo<SupplierResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
+
+        var paginationData = new Pagination(page, pageSize, totalElements);
 
         var result = new ListSuppliersWrapperDto
         {
-            Suppliers = _mapper.Map<List<SupplierResponseDto>>(suppliers)
+            Suppliers = suppliers,
+            Pagination = paginationData
         };
 
         return Result<ListSuppliersWrapperDto>.Success(result);
@@ -262,7 +276,7 @@ public class SupplierService(AppDbContext context, IMapper mapper)
 
     private Result ValidatePersonSpecificData(CreateSupplierRequestDto request, int entityTypeId)
     {
-        if (entityTypeId == (int)EntityPersonType.Juridica)
+        if (entityTypeId == (int)EntityPersonType.Legal)
         {
             if (string.IsNullOrWhiteSpace(request.BusinessName))
             {
@@ -320,7 +334,7 @@ public class SupplierService(AppDbContext context, IMapper mapper)
 
     private Result ValidatePatchSpecificData(Supplier supplier, PatchSupplierRequestDto request, int targetEntityTypeId)
     {
-        if (targetEntityTypeId == (int)EntityPersonType.Juridica)
+        if (targetEntityTypeId == (int)EntityPersonType.Legal)
         {
             var businessName = request.BusinessName ?? supplier.Entity.LegalPerson?.BussinessName;
             if (string.IsNullOrWhiteSpace(businessName))
@@ -434,7 +448,7 @@ public class SupplierService(AppDbContext context, IMapper mapper)
 
     private async Task SyncEntitySpecificDataAsync(int entityId, PatchSupplierRequestDto request, int targetEntityTypeId)
     {
-        if (targetEntityTypeId == (int)EntityPersonType.Juridica)
+        if (targetEntityTypeId == (int)EntityPersonType.Legal)
         {
             var physical = await _context.PhysicalPersons.FirstOrDefaultAsync(pp => pp.EntityId == entityId);
             if (physical is not null)
@@ -491,7 +505,7 @@ public class SupplierService(AppDbContext context, IMapper mapper)
 
     private async Task SyncEntitySpecificDataAsync(int entityId, CreateSupplierRequestDto request, int targetEntityTypeId)
     {
-        if (targetEntityTypeId == (int)EntityPersonType.Juridica)
+        if (targetEntityTypeId == (int)EntityPersonType.Legal)
         {
             var physical = await _context.PhysicalPersons.FirstOrDefaultAsync(pp => pp.EntityId == entityId);
             if (physical is not null)
@@ -571,6 +585,6 @@ public class SupplierService(AppDbContext context, IMapper mapper)
 
     private static bool IsSupportedEntityType(int entityTypeId)
     {
-        return entityTypeId is (int)EntityPersonType.Fisica or (int)EntityPersonType.Juridica;
+        return entityTypeId is (int)EntityPersonType.Physical or (int)EntityPersonType.Legal;
     }
 }
