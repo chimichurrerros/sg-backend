@@ -5,6 +5,7 @@ using System.Security.Claims;
 using BackEnd.Services;
 using BackEnd.Extensions;
 using BackEnd.Utils;
+using BackEnd.DTOs.Requests.Pagination;
 
 namespace BackEnd.Controllers.User;
 
@@ -18,9 +19,9 @@ public class UserController(UserService usuarioService) : ControllerBase
     private readonly UserService _usuarioService = usuarioService;
 
     [HttpGet()]
-    public async Task<ActionResult<ListUsersWrapperDto>> GetListUsers()
+    public async Task<ActionResult<ListUsersWrapperDto>> GetListUsers([FromQuery] PaginationRequestDto pagination)
     {
-        var result = await _usuarioService.GetListAsync();
+        var result = await _usuarioService.GetListAsync(pagination);
 
         if (result.IsSuccess)
             return Ok(result.Value);
