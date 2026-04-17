@@ -5,6 +5,7 @@ using BackEnd.Constants.Errors;
 using BackEnd.Utils;
 using BackEnd.DTOs.Responses.User;
 using Microsoft.EntityFrameworkCore;
+using BackEnd.DTOs.Requests.Pagination;
 
 namespace BackEnd.Services;
 
@@ -13,7 +14,7 @@ public class UserService(AppDbContext context, IMapper mapper)
 	private readonly AppDbContext _context = context;
 	private readonly IMapper _mapper = mapper;
 
-	public async Task<Result<ListUsersWrapperDto>> GetListAsync()
+	public async Task<Result<ListUsersWrapperDto>> GetListAsync(PaginationRequestDto pagination)
 	{
 		// !NOTE: Projecto dont work with nested 
 		// !collections, so we need to load the users and then map them to the DTOs
@@ -23,12 +24,15 @@ public class UserService(AppDbContext context, IMapper mapper)
 		// 	.ToListAsync();
 
 		var _users = await _context.Users
-				.ProjectTo<UserResponseDto>(_mapper.ConfigurationProvider)
-				.ToListAsync();
+			.OrderBy(v => v.Id)
+			.Skip((pagination.Page - 1) * pagination.PageSize)
+			.Take(pagination.PageSize)
+			.ProjectTo<UserResponseDto>(_mapper.ConfigurationProvider)
+			.ToListAsync();
 
-		var result = new ListUsersWrapperDto { Users = _users };
-
-		return Result<ListUsersWrapperDto>.Success(result);
+		var _pagination = new Pagination(pagination.Page, pagination.PageSize, _users.Count);
+			
+		return Result<ListUsersWrapperDto>.Success(new ListUsersWrapperDto { Users = _users, Pagination = _pagination });
 	}
 
 	public async Task<Result<UserWrapperDto>> GetByIdAsync(string id)

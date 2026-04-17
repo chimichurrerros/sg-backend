@@ -13,6 +13,7 @@ public partial class User
     public string PasswordHash { get; set; } = null!;
     public string Email { get; set; } = null!;
     public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public virtual ICollection<CustomerQuote> CustomerQuotes { get; set; } = new List<CustomerQuote>();
 
