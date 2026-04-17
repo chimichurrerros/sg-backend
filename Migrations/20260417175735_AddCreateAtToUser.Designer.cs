@@ -3,6 +3,7 @@ using System;
 using BackEnd.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260417175735_AddCreateAtToUser")]
+    partial class AddCreateAtToUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1852,6 +1855,8 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("EntityId");
 
+                    b.HasIndex("TaxConditionId");
+
                     b.ToTable("Suppliers");
                 });
 
@@ -3022,7 +3027,15 @@ namespace BackEnd.Migrations
                         .IsRequired()
                         .HasConstraintName("Suppliers_EntityId_fkey");
 
+                    b.HasOne("BackEnd.Models.TaxCondition", "TaxCondition")
+                        .WithMany("Suppliers")
+                        .HasForeignKey("TaxConditionId")
+                        .IsRequired()
+                        .HasConstraintName("Suppliers_TaxConditionId_fkey");
+
                     b.Navigation("Entity");
+
+                    b.Navigation("TaxCondition");
                 });
 
             modelBuilder.Entity("BackEnd.Models.SupplierCategory", b =>
@@ -3574,6 +3587,8 @@ namespace BackEnd.Migrations
             modelBuilder.Entity("BackEnd.Models.TaxCondition", b =>
                 {
                     b.Navigation("Customers");
+
+                    b.Navigation("Suppliers");
                 });
 
             modelBuilder.Entity("BackEnd.Models.Transaction", b =>
