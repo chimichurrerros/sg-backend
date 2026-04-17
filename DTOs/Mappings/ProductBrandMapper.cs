@@ -1,3 +1,4 @@
+using BackEnd.DTOs.Requests.ProductBrand;
 using BackEnd.DTOs.Responses.ProductBrand;
 using BackEnd.Models;
 
@@ -12,5 +13,7 @@ public class ProductBrandMapper : AutoMapper.Profile
         CreateMap<ProductBrand, ProductBrandWrapperDto>()
             .ForMember(dest => dest.ProductBrand,
                        opt => opt.MapFrom(src => src));
+
+        CreateMap<ProductBrandRequestDto, ProductBrand>();
     }
 }

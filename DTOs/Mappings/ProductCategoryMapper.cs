@@ -1,3 +1,4 @@
+using BackEnd.DTOs.Requests.ProductCategory;
 using BackEnd.DTOs.Responses.ProductCategory;
 using BackEnd.Models;
 
@@ -12,5 +13,7 @@ public class ProductCategoryMapper : AutoMapper.Profile
         CreateMap<ProductCategory, ProductCategoryWrapperDto>()
             .ForMember(dest => dest.ProductCategory,
                        opt => opt.MapFrom(src => src));
+
+        CreateMap<ProductCategoryRequestDto, ProductCategory>();
     }
 }

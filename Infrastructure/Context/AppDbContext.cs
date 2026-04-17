@@ -860,11 +860,6 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ProductCategoryId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("Products_ProductCategoryId_fkey");
-
-            entity.HasOne(d => d.UnitOfMeasurement).WithMany(p => p.Products)
-                .HasForeignKey(d => d.UnitOfMeasurementId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Products_UnitOfMeasurementId_fkey");
         });
 
         modelBuilder.Entity<ProductBrand>(entity =>

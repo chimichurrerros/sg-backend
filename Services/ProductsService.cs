@@ -1,8 +1,13 @@
 using AutoMapper;
-using BackEnd.DTOs.Requests.Product;
+using AutoMapper.QueryableExtensions;
 using BackEnd.Infrastructure.Context;
-using BackEnd.Models;
+using BackEnd.Constants.Errors;
+using BackEnd.Utils;
+using BackEnd.DTOs.Responses.Product;
 using Microsoft.EntityFrameworkCore;
+using BackEnd.DTOs.Requests.Pagination;
+using BackEnd.DTOs.Requests.Product;
+using BackEnd.Models;
 
 namespace BackEnd.Services;
 
@@ -11,34 +16,73 @@ public class ProductsService(AppDbContext context, IMapper mapper)
     private readonly AppDbContext _context = context;
     private readonly IMapper _mapper = mapper;
 
-    public async Task<List<Product>> GetListAsync()
+    public async Task<Result<ListProductsWrapperDto>> GetListAsync(PaginationRequestDto pagination)
     {
-        return await _context.Products.ToListAsync();
+        var query = _context.Products.AsNoTracking();
+        
+        var totalElements = await query.CountAsync();
+        
+        var products = await query
+            .OrderBy(v => v.Id)
+            .Skip((pagination.Page - 1) * pagination.PageSize)
+            .Take(pagination.PageSize)
+            .ProjectTo<ProductResponseDto>(_mapper.ConfigurationProvider)
+            .ToListAsync();
+
+        var _pagination = new Pagination(pagination.Page, pagination.PageSize, totalElements);
+            
+        return Result<ListProductsWrapperDto>.Success(new ListProductsWrapperDto { Products = products, Pagination = _pagination });
     }
 
-    public async Task<Product?> GetByIdAsync(int id)
+    public async Task<Result<ProductWrapperDto>> GetByIdAsync(int id)
     {
-        return await _context.Products.FindAsync(id);
+        var product = await _context.Products
+            .AsNoTracking()
+            .Where(u => u.Id == id)
+            .ProjectTo<ProductResponseDto>(_mapper.ConfigurationProvider)
+            .FirstOrDefaultAsync();
+
+        if (product == null)
+            return Result<ProductWrapperDto>.Failure(ApplicationError.NotFound, ErrorType.NotFound);
+
+        return Result<ProductWrapperDto>.Success(new ProductWrapperDto { Product = product });
     }
 
-    public async Task<Product> CreateAsync(ProductRequestDto product)
+    public async Task<Result<ProductWrapperDto>> CreateAsync(ProductRequestDto request)
     {
-        _context.Products.Add(_mapper.Map<Product>(product));
+        var product = _mapper.Map<Product>(request);
+        
+        _context.Products.Add(product);
         await _context.SaveChangesAsync();
-        return _mapper.Map<Product>(product);
+        
+        // Reload to get names for the DTO
+        return await GetByIdAsync(product.Id);
     }
 
-    public async Task<Product> UpdateAsync(ProductRequestDto product)
+    public async Task<Result<ProductWrapperDto>> UpdateAsync(int id, ProductRequestDto request)
     {
-        _context.Products.Update(_mapper.Map<Product>(product));
+        var product = await _context.Products.FindAsync(id);
+        
+        if (product == null)
+            return Result<ProductWrapperDto>.Failure(ApplicationError.NotFound, ErrorType.NotFound);
+
+        _mapper.Map(request, product);
+        _context.Products.Update(product);
         await _context.SaveChangesAsync();
-        return _mapper.Map<Product>(product);
+        
+        return await GetByIdAsync(product.Id);
     }
 
-    public async Task<Product> DeleteAsync(ProductRequestDto product)
+    public async Task<Result> DeleteAsync(int id)
     {
-        _context.Products.Remove(_mapper.Map<Product>(product));
+        var product = await _context.Products.FindAsync(id);
+        
+        if (product == null)
+            return Result.Failure(ApplicationError.NotFound, ErrorType.NotFound);
+
+        _context.Products.Remove(product);
         await _context.SaveChangesAsync();
-        return _mapper.Map<Product>(product);
+        
+        return Result.Success();
     }
 }
