@@ -1,5 +1,7 @@
 namespace BackEnd.DTOs.Responses.Supplier;
 
+using BackEnd.Utils;
+
 public class SupplierResponseDto
 {
     public int Id { get; set; }
@@ -14,4 +16,5 @@ public class SupplierWrapperDto
 public class ListSuppliersWrapperDto
 {
     public List<SupplierResponseDto> Suppliers { get; set; } = [];
+    public Pagination Pagination { get; set; } = null!;
 }
