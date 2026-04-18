@@ -5,6 +5,8 @@ namespace BackEnd.Models;
 
 public partial class Stock
 {
+    public int Id { get; set; }
+
     public int LoteId { get; set; }
 
     public int ProductId { get; set; }

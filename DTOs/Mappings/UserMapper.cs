@@ -1,3 +1,4 @@
+using BackEnd.DTOs.Requests.User;
 using BackEnd.DTOs.Responses.User;
 using BackEnd.Models;
 
@@ -16,6 +17,10 @@ public class UserMapper : AutoMapper.Profile
         CreateMap<User, UserWrapperDto>()
             .ForMember(dest => dest.User,
                        opt => opt.MapFrom(src => src));
+
+        // Recomendable poner esta condicion
+        CreateMap<UpdateUserRequestDto, User>()
+            .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
 
         // This mapping is not needed because we are projecting 
         // the users to the UserResponseDto and then wrapping them 
