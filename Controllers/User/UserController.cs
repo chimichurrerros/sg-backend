@@ -45,9 +45,6 @@ public class UserController(UserService usuarioService) : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult<UserWrapperDto>> Update(int id, UpdateUserRequestDto request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var result = await _usuarioService.UpdateAsync(id, request);
         
         if (result.IsSuccess)

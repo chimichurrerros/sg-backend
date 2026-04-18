@@ -83,10 +83,6 @@ public class SupplierController(SupplierService supplierService) : ControllerBas
     [HttpPost]
     public async Task<ActionResult<SupplierWrapperDto>> Create(CreateSupplierRequestDto request)
     {
-        // Validate model binding (data annotations are checked by framework)
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         // Delegate all business logic to service (Entity creation, LegalPerson sync, categories, etc.)
         var result = await _supplierService.CreateAsync(request);
 
@@ -114,10 +110,6 @@ public class SupplierController(SupplierService supplierService) : ControllerBas
     [HttpPut("{id}")]
     public async Task<ActionResult<SupplierWrapperDto>> Update(int id, UpdateSupplierRequestDto request)
     {
-        // Validate model binding (data annotations are checked by framework)
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         // Delegate all business logic to service (Entity/LegalPerson update, categories, etc.)
         var result = await _supplierService.UpdateAsync(id, request);
 
