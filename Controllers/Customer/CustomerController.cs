@@ -36,8 +36,6 @@ public class CustomerController(CustomerService customerService) : ControllerBas
     [HttpPost]
     public async Task<ActionResult<CustomerWrapperDto>> Create(CreateCustomerRequestDto request)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
-
         var result = await _customerService.CreateAsync(request);
         if (result.IsSuccess) return Created($"/api/customers/{result.Value!.Customer.Id}", result.Value);
         if (result.ErrorType == ErrorType.Validation) return this.HandleValidationProblem(result);
@@ -47,8 +45,6 @@ public class CustomerController(CustomerService customerService) : ControllerBas
     [HttpPut("{id}")]
     public async Task<ActionResult<CustomerWrapperDto>> Update(int id, UpdateCustomerRequestDto request)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
-
         var result = await _customerService.UpdateAsync(id, request);
         if (result.IsSuccess) return Ok(result.Value);
         if (result.ErrorType == ErrorType.NotFound) return this.HandleNotFoundProblem(result);
