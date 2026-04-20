@@ -5,9 +5,8 @@ namespace BackEnd.DTOs.Responses.Customer;
 public class CustomerResponseDto
 {
     public int Id { get; set; }
-    public int EntityId { get; set; }
-    public decimal CreditLimit { get; set; }
-    public virtual object? Entity { get; set; }
+    public string Name { get; set; } = null!;
+    public string Ruc { get; set; } = null!;
 }
 
 public class CustomerWrapperDto
