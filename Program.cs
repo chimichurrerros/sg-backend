@@ -27,6 +27,8 @@ builder.Services.AddSingleton<IAuthorizationHandler, PermissionHandler>();
 builder.Services.AddScoped<AuthService, AuthService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<SupplierService>();
+builder.Services.AddScoped<CustomerService>();
+builder.Services.AddScoped<EmployeeService>();
 builder.Services.AddScoped<ProductBrandsService>();
 builder.Services.AddScoped<ProductCategoriesService>();
 builder.Services.AddScoped<ProductsService>();

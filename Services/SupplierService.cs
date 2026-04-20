@@ -28,10 +28,6 @@ public class SupplierService(AppDbContext context, IMapper mapper)
     /// <returns>Wrapped result containing paginated suppliers and pagination metadata</returns>
     public async Task<Result<ListSuppliersWrapperDto>> GetListAsync(PaginationRequestDto pagination)
     {
-        // Normalize pagination parameters: default to page 1 and pagesize 10
-        var page = pagination.Page < 1 ? 1 : pagination.Page;
-        var pageSize = pagination.PageSize < 1 ? 10 : pagination.PageSize;
-
         // Query suppliers without tracking (read-only operation)
         var suppliersQuery = _context.Suppliers.AsNoTracking();
 
@@ -41,13 +37,13 @@ public class SupplierService(AppDbContext context, IMapper mapper)
         // Fetch the page of suppliers and project to DTO
         var suppliers = await suppliersQuery
             .OrderBy(s => s.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+            .Skip((pagination.Page - 1) * pagination.PageSize)
+            .Take(pagination.PageSize)
             .ProjectTo<SupplierResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
         // Create pagination metadata
-        var paginationData = new Pagination(page, pageSize, totalElements);
+        var paginationData = new Pagination(pagination.Page, pagination.PageSize, totalElements);
 
         // Wrap results with pagination info
         var result = new ListSuppliersWrapperDto

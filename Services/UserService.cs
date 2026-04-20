@@ -6,6 +6,7 @@ using BackEnd.Utils;
 using BackEnd.DTOs.Responses.User;
 using Microsoft.EntityFrameworkCore;
 using BackEnd.DTOs.Requests.Pagination;
+using BackEnd.DTOs.Requests.User;
 
 namespace BackEnd.Services;
 
@@ -46,5 +47,46 @@ public class UserService(AppDbContext context, IMapper mapper)
 			return Result<UserWrapperDto>.Failure(AuthError.UserNotFound, ErrorType.NotFound);
 
 		return Result<UserWrapperDto>.Success(user);
+	}
+
+	public async Task<Result<UserWrapperDto>> UpdateAsync(int id, UpdateUserRequestDto request)
+	{
+		var user = await _context.Users
+			.Include(u => u.Role)
+			.FirstOrDefaultAsync(u => u.Id == id);
+
+		if (user == null)
+			return Result<UserWrapperDto>.Failure(AuthError.UserNotFound, ErrorType.NotFound);
+
+		if (!string.IsNullOrEmpty(request.Email) && await _context.Users.AnyAsync(u => u.Email == request.Email && u.Id != id)) {
+			return 
+				Result<UserWrapperDto>.Failure(AuthError.InvalidCredentials, 
+					new Dictionary<string, string[]> {
+						{"Email", new[] {EmailError.EmailAlreadyExists}}
+					}, ErrorType.Validation);
+		}
+
+		_mapper.Map(request, user);
+
+		_context.Users.Update(user);
+		await _context.SaveChangesAsync();
+
+		var mappedUser = _mapper.Map<UserWrapperDto>(user);
+		return Result<UserWrapperDto>.Success(mappedUser);
+	}
+
+	public async Task<Result> ToggleStatusAsync(int id)
+	{
+		var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+
+		if (user == null)
+			return Result.Failure(AuthError.UserNotFound, ErrorType.NotFound);
+
+		user.IsActive = !user.IsActive;
+
+		_context.Users.Update(user);
+		await _context.SaveChangesAsync();
+
+		return Result.Success();
 	}
 }
