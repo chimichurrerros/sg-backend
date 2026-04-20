@@ -11,6 +11,7 @@ public class ProductResponseDto
     public int ProductBrandId { get; set; }
     public string ProductBrandName { get; set; } = null!;
     public string Name { get; set; } = null!;
+    public string Description { get; set; } = null!;
     public decimal Price { get; set; }
     public decimal Cost { get; set; }
     public decimal MinimumStock { get; set; }
