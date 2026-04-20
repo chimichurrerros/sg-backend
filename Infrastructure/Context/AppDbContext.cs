@@ -39,7 +39,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<BillType> BillTypes { get; set; }
 
-    public virtual DbSet<Branch> Branches { get; set; }
 
     public virtual DbSet<CheckStatus> CheckStatuses { get; set; }
 
@@ -342,13 +341,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(50);
         });
 
-        modelBuilder.Entity<Branch>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("Branches_pkey");
 
-            entity.Property(e => e.Address).HasMaxLength(255);
-            entity.Property(e => e.Name).HasMaxLength(100);
-        });
 
         modelBuilder.Entity<CheckStatus>(entity =>
         {
@@ -1048,10 +1041,6 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("Stocks_ProductId_fkey");
 
-            entity.HasOne(d => d.Branch).WithMany(p => p.Stocks)
-                .HasForeignKey(d => d.BranchId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Stocks_BranchId_fkey");
         });
 
         modelBuilder.Entity<Supplier>(entity =>
