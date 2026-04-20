@@ -1048,10 +1048,10 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("Stocks_ProductId_fkey");
 
-            // entity.HasOne(d => d.Warehouse).WithMany(p => p.Stocks)
-            //     .HasForeignKey(d => d.WarehouseId)
-            //     .OnDelete(DeleteBehavior.ClientSetNull)
-            //     .HasConstraintName("Stocks_WarehouseId_fkey");
+            entity.HasOne(d => d.Branch).WithMany(p => p.Stocks)
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("Stocks_BranchId_fkey");
         });
 
         modelBuilder.Entity<Supplier>(entity =>

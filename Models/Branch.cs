@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace BackEnd.Models;
@@ -9,8 +9,7 @@ public partial class Branch
 
     public string Name { get; set; } = null!;
 
-    public string? Address { get; set; }
-
-    //DEPRECATED
-    //public virtual ICollection<Warehouse> Warehouses { get; set; } = new List<Warehouse>();
+    public string Address { get; set; } = null!;
+    
+    public virtual ICollection<Stock> Stocks { get; set; } = new List<Stock>();
 }
