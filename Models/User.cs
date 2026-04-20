@@ -24,8 +24,4 @@ public partial class User
     public virtual Role Role { get; set; } = null!;
 
     public virtual ICollection<SalesOrder> SalesOrders { get; set; } = new List<SalesOrder>();
-
-    public virtual ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
-
-    public virtual ICollection<Transfer> Transfers { get; set; } = new List<Transfer>();
 }

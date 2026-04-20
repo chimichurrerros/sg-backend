@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using BackEnd.DTOs.Responses.User;
+using BackEnd.DTOs.Requests.User;
 using System.Security.Claims;
 using BackEnd.Services;
 using BackEnd.Extensions;
@@ -41,4 +42,34 @@ public class UserController(UserService usuarioService) : ControllerBase
         return StatusCode(500);
     }
 
+    [HttpPut("{id}")]
+    public async Task<ActionResult<UserWrapperDto>> Update(int id, UpdateUserRequestDto request)
+    {
+        var result = await _usuarioService.UpdateAsync(id, request);
+        
+        if (result.IsSuccess)
+            return Ok(result.Value);
+            
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+            
+        if (result.ErrorType == ErrorType.Validation)
+            return this.HandleValidationProblem(result);
+            
+        return StatusCode(500);
+    }
+
+    [HttpPatch("{id}/status")]
+    public async Task<ActionResult> ToggleStatus(int id)
+    {
+        var result = await _usuarioService.ToggleStatusAsync(id);
+        
+        if (result.IsSuccess)
+            return NoContent();
+            
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+            
+        return StatusCode(500);
+    }
 }

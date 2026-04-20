@@ -3,6 +3,7 @@ using System;
 using BackEnd.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260417200222_SupplierEntityCleanup")]
+    partial class SupplierEntityCleanup
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -535,15 +538,21 @@ namespace BackEnd.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("CreditLimit")
-                        .HasColumnType("numeric");
+                        .HasPrecision(15, 2)
+                        .HasColumnType("numeric(15,2)");
 
                     b.Property<int>("EntityId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TaxConditionId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id")
                         .HasName("Customers_pkey");
 
                     b.HasIndex("EntityId");
+
+                    b.HasIndex("TaxConditionId");
 
                     b.ToTable("Customers");
                 });
@@ -933,6 +942,36 @@ namespace BackEnd.Migrations
                         .HasName("LegalPersons_pkey");
 
                     b.ToTable("LegalPersons");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.Lote", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly?>("DueDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("LoteNumber")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("ReceiptDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id")
+                        .HasName("Lotes_pkey");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("Lotes");
                 });
 
             modelBuilder.Entity("BackEnd.Models.MaritalStatus", b =>
@@ -1390,12 +1429,17 @@ namespace BackEnd.Migrations
                     b.Property<int>("ProductCategoryId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("UnitOfMeasurementId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id")
                         .HasName("Products_pkey");
 
                     b.HasIndex("ProductBrandId");
 
                     b.HasIndex("ProductCategoryId");
+
+                    b.HasIndex("UnitOfMeasurementId");
 
                     b.ToTable("Products");
                 });
@@ -1773,10 +1817,17 @@ namespace BackEnd.Migrations
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
 
+                    b.Property<int>("WarehouseId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id")
                         .HasName("Stocks_pkey");
 
+                    b.HasIndex("LoteId");
+
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("WarehouseId");
 
                     b.ToTable("Stocks");
                 });
@@ -1789,7 +1840,14 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("CreditLimit")
+                        .HasPrecision(15, 2)
+                        .HasColumnType("numeric(15,2)");
+
                     b.Property<int>("EntityId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TaxConditionId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id")
@@ -1898,7 +1956,7 @@ namespace BackEnd.Migrations
                     b.ToTable("SupplierQuoteDetails");
                 });
 
-            modelBuilder.Entity("BackEnd.Models.User", b =>
+            modelBuilder.Entity("BackEnd.Models.TaxCondition", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1906,8 +1964,220 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id")
+                        .HasName("TaxConditions_pkey");
+
+                    b.ToTable("TaxConditions");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.Transaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("AddStock")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("Date")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Observation")
+                        .HasColumnType("text");
+
+                    b.Property<int>("StateId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TransactionTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TransferId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id")
+                        .HasName("Transactions_pkey");
+
+                    b.HasIndex("StateId");
+
+                    b.HasIndex("TransactionTypeId");
+
+                    b.HasIndex("TransferId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Transactions");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.TransactionDetail", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("LoteId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(15, 2)
+                        .HasColumnType("numeric(15,2)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<int>("TransactionId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id")
+                        .HasName("TransactionDetails_pkey");
+
+                    b.HasIndex("LoteId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("TransactionId");
+
+                    b.ToTable("TransactionDetails");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.TransactionType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id")
+                        .HasName("TransactionTypes_pkey");
+
+                    b.ToTable("TransactionTypes");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.Transfer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DestinationWarehouseId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Observation")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ReceiptDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("ShipmentDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("SourceWarehouseId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("StateId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id")
+                        .HasName("Transfers_pkey");
+
+                    b.HasIndex("DestinationWarehouseId");
+
+                    b.HasIndex("SourceWarehouseId");
+
+                    b.HasIndex("StateId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Transfers");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.TransferDetail", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("LoteId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<int>("TransferId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id")
+                        .HasName("TransferDetails_pkey");
+
+                    b.HasIndex("LoteId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("TransferId");
+
+                    b.ToTable("TransferDetails");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.UnitsOfMeasurement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id")
+                        .HasName("UnitsOfMeasurements_pkey");
+
+                    b.ToTable("UnitsOfMeasurements");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -1949,6 +2219,30 @@ namespace BackEnd.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.Warehouse", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id")
+                        .HasName("Warehouses_pkey");
+
+                    b.HasIndex("BranchId");
+
+                    b.ToTable("Warehouses");
                 });
 
             modelBuilder.Entity("BackEnd.Models.Account", b =>
@@ -2131,7 +2425,15 @@ namespace BackEnd.Migrations
                         .IsRequired()
                         .HasConstraintName("Customers_EntityId_fkey");
 
+                    b.HasOne("BackEnd.Models.TaxCondition", "TaxCondition")
+                        .WithMany("Customers")
+                        .HasForeignKey("TaxConditionId")
+                        .IsRequired()
+                        .HasConstraintName("Customers_TaxConditionId_fkey");
+
                     b.Navigation("Entity");
+
+                    b.Navigation("TaxCondition");
                 });
 
             modelBuilder.Entity("BackEnd.Models.CustomerQuote", b =>
@@ -2311,6 +2613,17 @@ namespace BackEnd.Migrations
                         .HasConstraintName("LegalPersons_EntityId_fkey");
 
                     b.Navigation("Entity");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.Lote", b =>
+                {
+                    b.HasOne("BackEnd.Models.Product", "Product")
+                        .WithMany("Lotes")
+                        .HasForeignKey("ProductId")
+                        .IsRequired()
+                        .HasConstraintName("Lotes_ProductId_fkey");
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("BackEnd.Models.PaymentOrder", b =>
@@ -2514,9 +2827,17 @@ namespace BackEnd.Migrations
                         .IsRequired()
                         .HasConstraintName("Products_ProductCategoryId_fkey");
 
+                    b.HasOne("BackEnd.Models.UnitsOfMeasurement", "UnitOfMeasurement")
+                        .WithMany("Products")
+                        .HasForeignKey("UnitOfMeasurementId")
+                        .IsRequired()
+                        .HasConstraintName("Products_UnitOfMeasurementId_fkey");
+
                     b.Navigation("ProductBrand");
 
                     b.Navigation("ProductCategory");
+
+                    b.Navigation("UnitOfMeasurement");
                 });
 
             modelBuilder.Entity("BackEnd.Models.PurchaseOrder", b =>
@@ -2668,13 +2989,29 @@ namespace BackEnd.Migrations
 
             modelBuilder.Entity("BackEnd.Models.Stock", b =>
                 {
+                    b.HasOne("BackEnd.Models.Lote", "Lote")
+                        .WithMany("Stocks")
+                        .HasForeignKey("LoteId")
+                        .IsRequired()
+                        .HasConstraintName("Stocks_LoteId_fkey");
+
                     b.HasOne("BackEnd.Models.Product", "Product")
                         .WithMany("Stocks")
                         .HasForeignKey("ProductId")
                         .IsRequired()
                         .HasConstraintName("Stocks_ProductId_fkey");
 
+                    b.HasOne("BackEnd.Models.Warehouse", "Warehouse")
+                        .WithMany("Stocks")
+                        .HasForeignKey("WarehouseId")
+                        .IsRequired()
+                        .HasConstraintName("Stocks_WarehouseId_fkey");
+
+                    b.Navigation("Lote");
+
                     b.Navigation("Product");
+
+                    b.Navigation("Warehouse");
                 });
 
             modelBuilder.Entity("BackEnd.Models.Supplier", b =>
@@ -2753,6 +3090,129 @@ namespace BackEnd.Migrations
                     b.Navigation("SupplierQuote");
                 });
 
+            modelBuilder.Entity("BackEnd.Models.Transaction", b =>
+                {
+                    b.HasOne("BackEnd.Models.State", "State")
+                        .WithMany("Transactions")
+                        .HasForeignKey("StateId")
+                        .IsRequired()
+                        .HasConstraintName("Transactions_StateId_fkey");
+
+                    b.HasOne("BackEnd.Models.TransactionType", "TransactionType")
+                        .WithMany("Transactions")
+                        .HasForeignKey("TransactionTypeId")
+                        .IsRequired()
+                        .HasConstraintName("Transactions_TransactionTypeId_fkey");
+
+                    b.HasOne("BackEnd.Models.Transfer", "Transfer")
+                        .WithMany("Transactions")
+                        .HasForeignKey("TransferId")
+                        .HasConstraintName("Transactions_TransferId_fkey");
+
+                    b.HasOne("BackEnd.Models.User", "User")
+                        .WithMany("Transactions")
+                        .HasForeignKey("UserId")
+                        .IsRequired()
+                        .HasConstraintName("Transactions_UserId_fkey");
+
+                    b.Navigation("State");
+
+                    b.Navigation("TransactionType");
+
+                    b.Navigation("Transfer");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.TransactionDetail", b =>
+                {
+                    b.HasOne("BackEnd.Models.Lote", "Lote")
+                        .WithMany("TransactionDetails")
+                        .HasForeignKey("LoteId")
+                        .IsRequired()
+                        .HasConstraintName("TransactionDetails_LoteId_fkey");
+
+                    b.HasOne("BackEnd.Models.Product", "Product")
+                        .WithMany("TransactionDetails")
+                        .HasForeignKey("ProductId")
+                        .IsRequired()
+                        .HasConstraintName("TransactionDetails_ProductId_fkey");
+
+                    b.HasOne("BackEnd.Models.Transaction", "Transaction")
+                        .WithMany("TransactionDetails")
+                        .HasForeignKey("TransactionId")
+                        .IsRequired()
+                        .HasConstraintName("TransactionDetails_TransactionId_fkey");
+
+                    b.Navigation("Lote");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Transaction");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.Transfer", b =>
+                {
+                    b.HasOne("BackEnd.Models.Warehouse", "DestinationWarehouse")
+                        .WithMany("TransferDestinationWarehouses")
+                        .HasForeignKey("DestinationWarehouseId")
+                        .IsRequired()
+                        .HasConstraintName("Transfers_DestinationWarehouseId_fkey");
+
+                    b.HasOne("BackEnd.Models.Warehouse", "SourceWarehouse")
+                        .WithMany("TransferSourceWarehouses")
+                        .HasForeignKey("SourceWarehouseId")
+                        .IsRequired()
+                        .HasConstraintName("Transfers_SourceWarehouseId_fkey");
+
+                    b.HasOne("BackEnd.Models.State", "State")
+                        .WithMany("Transfers")
+                        .HasForeignKey("StateId")
+                        .IsRequired()
+                        .HasConstraintName("Transfers_StateId_fkey");
+
+                    b.HasOne("BackEnd.Models.User", "User")
+                        .WithMany("Transfers")
+                        .HasForeignKey("UserId")
+                        .IsRequired()
+                        .HasConstraintName("Transfers_UserId_fkey");
+
+                    b.Navigation("DestinationWarehouse");
+
+                    b.Navigation("SourceWarehouse");
+
+                    b.Navigation("State");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.TransferDetail", b =>
+                {
+                    b.HasOne("BackEnd.Models.Lote", "Lote")
+                        .WithMany("TransferDetails")
+                        .HasForeignKey("LoteId")
+                        .IsRequired()
+                        .HasConstraintName("TransferDetails_LoteId_fkey");
+
+                    b.HasOne("BackEnd.Models.Product", "Product")
+                        .WithMany("TransferDetails")
+                        .HasForeignKey("ProductId")
+                        .IsRequired()
+                        .HasConstraintName("TransferDetails_ProductId_fkey");
+
+                    b.HasOne("BackEnd.Models.Transfer", "Transfer")
+                        .WithMany("TransferDetails")
+                        .HasForeignKey("TransferId")
+                        .IsRequired()
+                        .HasConstraintName("TransferDetails_TransferId_fkey");
+
+                    b.Navigation("Lote");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Transfer");
+                });
+
             modelBuilder.Entity("BackEnd.Models.User", b =>
                 {
                     b.HasOne("BackEnd.Models.PhysicalPerson", "Entity")
@@ -2769,6 +3229,17 @@ namespace BackEnd.Migrations
                     b.Navigation("Entity");
 
                     b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.Warehouse", b =>
+                {
+                    b.HasOne("BackEnd.Models.Branch", "Branch")
+                        .WithMany("Warehouses")
+                        .HasForeignKey("BranchId")
+                        .IsRequired()
+                        .HasConstraintName("Warehouses_BranchId_fkey");
+
+                    b.Navigation("Branch");
                 });
 
             modelBuilder.Entity("BackEnd.Models.Account", b =>
@@ -2820,6 +3291,11 @@ namespace BackEnd.Migrations
             modelBuilder.Entity("BackEnd.Models.BillType", b =>
                 {
                     b.Navigation("Bills");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.Branch", b =>
+                {
+                    b.Navigation("Warehouses");
                 });
 
             modelBuilder.Entity("BackEnd.Models.CheckStatus", b =>
@@ -2909,6 +3385,15 @@ namespace BackEnd.Migrations
                     b.Navigation("PhysicalPeople");
                 });
 
+            modelBuilder.Entity("BackEnd.Models.Lote", b =>
+                {
+                    b.Navigation("Stocks");
+
+                    b.Navigation("TransactionDetails");
+
+                    b.Navigation("TransferDetails");
+                });
+
             modelBuilder.Entity("BackEnd.Models.MaritalStatus", b =>
                 {
                     b.Navigation("PhysicalPeople");
@@ -2978,6 +3463,8 @@ namespace BackEnd.Migrations
 
                     b.Navigation("CustomerQuoteDetails");
 
+                    b.Navigation("Lotes");
+
                     b.Navigation("PurchaseOrderDetails");
 
                     b.Navigation("PurchaseRequestDetails");
@@ -2987,6 +3474,10 @@ namespace BackEnd.Migrations
                     b.Navigation("Stocks");
 
                     b.Navigation("SupplierQuoteDetails");
+
+                    b.Navigation("TransactionDetails");
+
+                    b.Navigation("TransferDetails");
                 });
 
             modelBuilder.Entity("BackEnd.Models.ProductBrand", b =>
@@ -3056,6 +3547,10 @@ namespace BackEnd.Migrations
                     b.Navigation("SalesOrders");
 
                     b.Navigation("SupplierQuotes");
+
+                    b.Navigation("Transactions");
+
+                    b.Navigation("Transfers");
                 });
 
             modelBuilder.Entity("BackEnd.Models.Supplier", b =>
@@ -3076,6 +3571,33 @@ namespace BackEnd.Migrations
                     b.Navigation("SupplierQuoteDetails");
                 });
 
+            modelBuilder.Entity("BackEnd.Models.TaxCondition", b =>
+                {
+                    b.Navigation("Customers");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.Transaction", b =>
+                {
+                    b.Navigation("TransactionDetails");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.TransactionType", b =>
+                {
+                    b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.Transfer", b =>
+                {
+                    b.Navigation("Transactions");
+
+                    b.Navigation("TransferDetails");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.UnitsOfMeasurement", b =>
+                {
+                    b.Navigation("Products");
+                });
+
             modelBuilder.Entity("BackEnd.Models.User", b =>
                 {
                     b.Navigation("CustomerQuotes");
@@ -3083,6 +3605,19 @@ namespace BackEnd.Migrations
                     b.Navigation("PurchaseRequests");
 
                     b.Navigation("SalesOrders");
+
+                    b.Navigation("Transactions");
+
+                    b.Navigation("Transfers");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.Warehouse", b =>
+                {
+                    b.Navigation("Stocks");
+
+                    b.Navigation("TransferDestinationWarehouses");
+
+                    b.Navigation("TransferSourceWarehouses");
                 });
 #pragma warning restore 612, 618
         }
