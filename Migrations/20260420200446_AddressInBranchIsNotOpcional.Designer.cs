@@ -3,6 +3,7 @@ using System;
 using BackEnd.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260420200446_AddressInBranchIsNotOpcional")]
+    partial class AddressInBranchIsNotOpcional
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1372,10 +1375,6 @@ namespace BackEnd.Migrations
                         .HasPrecision(15, 2)
                         .HasColumnType("numeric(15,2)");
 
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<decimal>("MinimumStock")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
@@ -1768,7 +1767,7 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("BranchId")
+                    b.Property<int>("LoteId")
                         .HasColumnType("integer");
 
                     b.Property<int>("ProductId")
@@ -1780,8 +1779,6 @@ namespace BackEnd.Migrations
 
                     b.HasKey("Id")
                         .HasName("Stocks_pkey");
-
-                    b.HasIndex("BranchId");
 
                     b.HasIndex("ProductId");
 
@@ -2675,19 +2672,11 @@ namespace BackEnd.Migrations
 
             modelBuilder.Entity("BackEnd.Models.Stock", b =>
                 {
-                    b.HasOne("BackEnd.Models.Branch", "Branch")
-                        .WithMany("Stocks")
-                        .HasForeignKey("BranchId")
-                        .IsRequired()
-                        .HasConstraintName("Stocks_BranchId_fkey");
-
                     b.HasOne("BackEnd.Models.Product", "Product")
                         .WithMany("Stocks")
                         .HasForeignKey("ProductId")
                         .IsRequired()
                         .HasConstraintName("Stocks_ProductId_fkey");
-
-                    b.Navigation("Branch");
 
                     b.Navigation("Product");
                 });
@@ -2835,11 +2824,6 @@ namespace BackEnd.Migrations
             modelBuilder.Entity("BackEnd.Models.BillType", b =>
                 {
                     b.Navigation("Bills");
-                });
-
-            modelBuilder.Entity("BackEnd.Models.Branch", b =>
-                {
-                    b.Navigation("Stocks");
                 });
 
             modelBuilder.Entity("BackEnd.Models.CheckStatus", b =>
