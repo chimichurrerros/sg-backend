@@ -8,6 +8,8 @@ public partial class ProductRequestDto
 
     public string Name { get; set; } = null!;
 
+    public string Description { get; set; } = null!;
+
     public decimal Price { get; set; }
 
     public decimal Cost { get; set; }
