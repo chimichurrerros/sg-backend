@@ -29,6 +29,18 @@ public class SupplierCategoryService(AppDbContext context, IMapper mapper)
 
     public async Task<Result<SupplierCategoryResponseDto>> CreateAsync(SupplierCategoryRequestDto request)
     {
+        // Validar que el proveedor y la categoría realmente existan en la BD
+        var supplierExists = await _context.Suppliers.AnyAsync(s => s.Id == request.SupplierId);
+        var categoryExists = await _context.ProductCategories.AnyAsync(c => c.Id == request.ProductCategoryId);
+
+        if (!supplierExists || !categoryExists)
+        {
+            return Result<SupplierCategoryResponseDto>.Failure(
+                "El Proveedor o la Categoría especificada no existe.", 
+                ErrorType.Validation
+            );
+        }
+        
         // Validar que no exista ya esa asociación para no tener duplicados
         var exists = await _context.SupplierCategories
             .AnyAsync(sc => sc.SupplierId == request.SupplierId && sc.ProductCategoryId == request.ProductCategoryId);

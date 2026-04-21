@@ -14,20 +14,20 @@ public class SupplierCategoriesController(SupplierCategoryService supplierCatego
     public async Task<IActionResult> GetBySupplierId(int supplierId)
     {
         var result = await _service.GetBySupplierIdAsync(supplierId);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Errors);
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(result);
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] SupplierCategoryRequestDto request)
     {
         var result = await _service.CreateAsync(request);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Errors);
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(result);
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await _service.DeleteAsync(id);
-        return result.IsSuccess ? NoContent() : NotFound(result.Errors);
+        return result.IsSuccess ? NoContent() : NotFound(result);
     }
 }
