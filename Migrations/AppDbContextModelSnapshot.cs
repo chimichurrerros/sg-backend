@@ -1348,10 +1348,6 @@ namespace BackEnd.Migrations
                         .HasPrecision(15, 2)
                         .HasColumnType("numeric(15,2)");
 
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<decimal>("MinimumStock")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
@@ -1744,6 +1740,12 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+<<<<<<< HEAD
+=======
+                    b.Property<int>("LoteId")
+                        .HasColumnType("integer");
+
+>>>>>>> parent of f880ef9 (chore: add database migration on column alter)
                     b.Property<int>("ProductId")
                         .HasColumnType("integer");
 
