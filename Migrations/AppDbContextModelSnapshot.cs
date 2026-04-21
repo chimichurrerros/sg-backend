@@ -391,6 +391,30 @@ namespace BackEnd.Migrations
                     b.ToTable("BillTypes");
                 });
 
+            modelBuilder.Entity("BackEnd.Models.Branch", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id")
+                        .HasName("Branches_pkey");
+
+                    b.ToTable("Branches");
+                });
+
             modelBuilder.Entity("BackEnd.Models.CheckStatus", b =>
                 {
                     b.Property<int>("Id")
@@ -1348,6 +1372,10 @@ namespace BackEnd.Migrations
                         .HasPrecision(15, 2)
                         .HasColumnType("numeric(15,2)");
 
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<decimal>("MinimumStock")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
@@ -1740,12 +1768,9 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-<<<<<<< HEAD
-=======
-                    b.Property<int>("LoteId")
+                    b.Property<int>("BranchId")
                         .HasColumnType("integer");
 
->>>>>>> parent of f880ef9 (chore: add database migration on column alter)
                     b.Property<int>("ProductId")
                         .HasColumnType("integer");
 
@@ -1755,6 +1780,8 @@ namespace BackEnd.Migrations
 
                     b.HasKey("Id")
                         .HasName("Stocks_pkey");
+
+                    b.HasIndex("BranchId");
 
                     b.HasIndex("ProductId");
 
@@ -2648,11 +2675,19 @@ namespace BackEnd.Migrations
 
             modelBuilder.Entity("BackEnd.Models.Stock", b =>
                 {
+                    b.HasOne("BackEnd.Models.Branch", "Branch")
+                        .WithMany("Stocks")
+                        .HasForeignKey("BranchId")
+                        .IsRequired()
+                        .HasConstraintName("Stocks_BranchId_fkey");
+
                     b.HasOne("BackEnd.Models.Product", "Product")
                         .WithMany("Stocks")
                         .HasForeignKey("ProductId")
                         .IsRequired()
                         .HasConstraintName("Stocks_ProductId_fkey");
+
+                    b.Navigation("Branch");
 
                     b.Navigation("Product");
                 });
@@ -2800,6 +2835,11 @@ namespace BackEnd.Migrations
             modelBuilder.Entity("BackEnd.Models.BillType", b =>
                 {
                     b.Navigation("Bills");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.Branch", b =>
+                {
+                    b.Navigation("Stocks");
                 });
 
             modelBuilder.Entity("BackEnd.Models.CheckStatus", b =>
