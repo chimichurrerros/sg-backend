@@ -33,6 +33,7 @@ builder.Services.AddScoped<ProductBrandsService>();
 builder.Services.AddScoped<ProductCategoriesService>();
 builder.Services.AddScoped<ProductsService>();
 builder.Services.AddScoped<BranchService>();
+builder.Services.AddScoped<SupplierCategoryService>();
 // ------------------------------------------------------------------------------------------------------
 // Authorization configuration
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
