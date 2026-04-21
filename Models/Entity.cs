@@ -21,8 +21,6 @@ public partial class Entity
 
     public virtual ICollection<Bill> Bills { get; set; } = new List<Bill>();
 
-    public virtual ICollection<Customer> Customers { get; set; } = new List<Customer>();
-
     public virtual EntityType EntityType { get; set; } = null!;
 
     public virtual LegalPerson? LegalPerson { get; set; }

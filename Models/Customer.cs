@@ -7,13 +7,11 @@ public partial class Customer
 {
     public int Id { get; set; }
 
-    public int EntityId { get; set; }
+    public string Name { get; set; } = null!;
 
-    public decimal CreditLimit { get; set; }
+    public string Ruc { get; set; } = null!;
 
     public virtual ICollection<CustomerQuote> CustomerQuotes { get; set; } = new List<CustomerQuote>();
-
-    public virtual Entity Entity { get; set; } = null!;
 
     public virtual ICollection<SalesOrder> SalesOrders { get; set; } = new List<SalesOrder>();
 }

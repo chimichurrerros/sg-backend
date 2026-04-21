@@ -405,10 +405,10 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("Customers_pkey");
 
-            entity.HasOne(d => d.Entity).WithMany(p => p.Customers)
-                .HasForeignKey(d => d.EntityId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Customers_EntityId_fkey");
+            entity.HasIndex(e => e.Ruc, "Customers_Ruc_key").IsUnique();
+
+            entity.Property(e => e.Name).HasMaxLength(150);
+            entity.Property(e => e.Ruc).HasMaxLength(20);
         });
 
         modelBuilder.Entity<CustomerQuote>(entity =>
