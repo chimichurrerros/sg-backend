@@ -425,11 +425,6 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("CustomerQuotes_CustomerId_fkey");
 
-            entity.HasOne(d => d.State).WithMany(p => p.CustomerQuotes)
-                .HasForeignKey(d => d.StateId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("CustomerQuotes_StateId_fkey");
-
             entity.HasOne(d => d.User).WithMany(p => p.CustomerQuotes)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -442,7 +437,6 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Price).HasPrecision(15, 2);
             entity.Property(e => e.Quantity).HasPrecision(10, 2);
-            entity.Property(e => e.TaxRate).HasPrecision(5, 2);
 
             entity.HasOne(d => d.CustomerQuote).WithMany(p => p.CustomerQuoteDetails)
                 .HasForeignKey(d => d.CustomerQuoteId)

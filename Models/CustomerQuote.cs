@@ -15,7 +15,7 @@ public partial class CustomerQuote
 
     public decimal Total { get; set; }
 
-    public int StateId { get; set; }
+    public QuoteStatus Status { get; set; } = QuoteStatus.Open;
 
     public virtual Customer Customer { get; set; } = null!;
 
@@ -23,7 +23,11 @@ public partial class CustomerQuote
 
     public virtual ICollection<SalesOrder> SalesOrders { get; set; } = new List<SalesOrder>();
 
-    public virtual State State { get; set; } = null!;
-
     public virtual User User { get; set; } = null!;
+
+    public enum QuoteStatus
+    {
+        Open = 0,
+        Expired = 1
+    }
 }
