@@ -41,7 +41,7 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Branch> Branches { get; set; }
 
-    public virtual DbSet<CheckStatus> CheckStatuses { get; set; }
+    public virtual DbSet<Check> Checks { get; set; }
 
     public virtual DbSet<CreditNote> CreditNotes { get; set; }
 
@@ -272,9 +272,6 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("BankMovements_AccountId_fkey");
 
-            entity.HasOne(d => d.CheckStatus).WithMany(p => p.BankMovements)
-                .HasForeignKey(d => d.CheckStatusId)
-                .HasConstraintName("BankMovements_CheckStatusId_fkey");
 
             entity.HasOne(d => d.MovementType).WithMany(p => p.BankMovements)
                 .HasForeignKey(d => d.MovementTypeId)
@@ -350,13 +347,15 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(100);
         });
 
-        modelBuilder.Entity<CheckStatus>(entity =>
+        modelBuilder.Entity<Check>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("CheckStatus_pkey");
+            entity.HasKey(e => e.Id).HasName("Checks_pkey");
 
-            entity.ToTable("CheckStatus");
-
-            entity.Property(e => e.Name).HasMaxLength(50);
+            entity.Property(e => e.Number).HasMaxLength(100);
+            entity.Property(e => e.IssuingBank).HasMaxLength(150);
+            entity.Property(e => e.Receiver).HasMaxLength(150);
+            entity.Property(e => e.Amount).HasPrecision(15, 2);
+            entity.Property(e => e.EmisionDate).HasColumnType("timestamp without time zone");
         });
 
         modelBuilder.Entity<CreditNote>(entity =>
