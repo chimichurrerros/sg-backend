@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace BackEnd.Models;
@@ -17,11 +17,7 @@ public partial class BankMovement
 
     public string? ReferenceNumber { get; set; }
 
-    public int? CheckStatusId { get; set; }
-
     public virtual Account Account { get; set; } = null!;
-
-    public virtual CheckStatus? CheckStatus { get; set; }
 
     public virtual MovementType MovementType { get; set; } = null!;
 
