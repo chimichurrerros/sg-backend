@@ -8,6 +8,7 @@ using BackEnd.Constants.Errors;
 using BackEnd.Services;
 using BackEnd.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
+using BackEnd.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +35,7 @@ builder.Services.AddScoped<ProductCategoriesService>();
 builder.Services.AddScoped<ProductsService>();
 builder.Services.AddScoped<BranchService>();
 builder.Services.AddScoped<SupplierCategoryService>();
+builder.Services.AddScoped<ICheckService, CheckService>(); 
 // ------------------------------------------------------------------------------------------------------
 // Authorization configuration
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
