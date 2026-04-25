@@ -36,6 +36,8 @@ builder.Services.AddScoped<ProductsService>();
 builder.Services.AddScoped<BranchService>();
 builder.Services.AddScoped<SupplierCategoryService>();
 builder.Services.AddScoped<ICheckService, CheckService>(); 
+builder.Services.AddScoped<BillService>();
+builder.Services.AddScoped<BillDetailService>();
 // ------------------------------------------------------------------------------------------------------
 // Authorization configuration
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();

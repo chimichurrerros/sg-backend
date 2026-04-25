@@ -3,6 +3,7 @@ using System;
 using BackEnd.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260425141806_AddBills")]
+    partial class AddBills
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -240,6 +243,9 @@ namespace BackEnd.Migrations
                         .HasPrecision(15, 2)
                         .HasColumnType("numeric(15,2)");
 
+                    b.Property<int?>("CheckStatusId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("Date")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp without time zone")
@@ -257,6 +263,8 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("AccountId");
 
+                    b.HasIndex("CheckStatusId");
+
                     b.HasIndex("MovementTypeId");
 
                     b.ToTable("BankMovements");
@@ -270,7 +278,7 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("BillType")
+                    b.Property<int>("BillTypeId")
                         .HasColumnType("integer");
 
                     b.Property<DateOnly>("Date")
@@ -317,6 +325,8 @@ namespace BackEnd.Migrations
 
                     b.HasKey("Id")
                         .HasName("Bills_pkey");
+
+                    b.HasIndex("BillTypeId");
 
                     b.HasIndex("EntityId");
 
@@ -365,31 +375,26 @@ namespace BackEnd.Migrations
                     b.ToTable("BillDetails");
                 });
 
-            modelBuilder.Entity("BackEnd.Models.Branch", b =>
+            modelBuilder.Entity("BackEnd.Models.BillType", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Address")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.HasKey("Id")
-                        .HasName("Branches_pkey");
+                        .HasName("BillTypes_pkey");
 
-                    b.ToTable("Branches");
+                    b.ToTable("BillTypes");
                 });
 
-            modelBuilder.Entity("BackEnd.Models.Check", b =>
+            modelBuilder.Entity("BackEnd.Models.CheckStatus", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -397,47 +402,15 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)");
-
-                    b.Property<DateOnly>("AvailabilityDate")
-                        .HasColumnType("date");
-
-                    b.Property<DateTime>("EmisionDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("IssuingBank")
+                    b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<DateOnly?>("MaturityDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Number")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateOnly?>("PaymentDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Receiver")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("integer");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.HasKey("Id")
-                        .HasName("Checks_pkey");
+                        .HasName("CheckStatus_pkey");
 
-                    b.ToTable("Checks");
+                    b.ToTable("CheckStatus", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.CreditNote", b =>
@@ -541,21 +514,16 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
+                    b.Property<decimal>("CreditLimit")
+                        .HasColumnType("numeric");
 
-                    b.Property<string>("Ruc")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                    b.Property<int>("EntityId")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id")
                         .HasName("Customers_pkey");
 
-                    b.HasIndex(new[] { "Ruc" }, "Customers_Ruc_key")
-                        .IsUnique();
+                    b.HasIndex("EntityId");
 
                     b.ToTable("Customers");
                 });
@@ -1779,12 +1747,6 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("BranchId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("CheckId")
-                        .HasColumnType("integer");
-
                     b.Property<int>("ProductId")
                         .HasColumnType("integer");
 
@@ -1794,10 +1756,6 @@ namespace BackEnd.Migrations
 
                     b.HasKey("Id")
                         .HasName("Stocks_pkey");
-
-                    b.HasIndex("BranchId");
-
-                    b.HasIndex("CheckId");
 
                     b.HasIndex("ProductId");
 
@@ -2038,6 +1996,11 @@ namespace BackEnd.Migrations
                         .IsRequired()
                         .HasConstraintName("BankMovements_AccountId_fkey");
 
+                    b.HasOne("BackEnd.Models.CheckStatus", "CheckStatus")
+                        .WithMany("BankMovements")
+                        .HasForeignKey("CheckStatusId")
+                        .HasConstraintName("BankMovements_CheckStatusId_fkey");
+
                     b.HasOne("BackEnd.Models.MovementType", "MovementType")
                         .WithMany("BankMovements")
                         .HasForeignKey("MovementTypeId")
@@ -2046,11 +2009,19 @@ namespace BackEnd.Migrations
 
                     b.Navigation("Account");
 
+                    b.Navigation("CheckStatus");
+
                     b.Navigation("MovementType");
                 });
 
             modelBuilder.Entity("BackEnd.Models.Bill", b =>
                 {
+                    b.HasOne("BackEnd.Models.BillType", "BillType")
+                        .WithMany("Bills")
+                        .HasForeignKey("BillTypeId")
+                        .IsRequired()
+                        .HasConstraintName("Bills_BillTypeId_fkey");
+
                     b.HasOne("BackEnd.Models.Entity", "Entity")
                         .WithMany("Bills")
                         .HasForeignKey("EntityId")
@@ -2072,6 +2043,8 @@ namespace BackEnd.Migrations
                         .HasForeignKey("StateId")
                         .IsRequired()
                         .HasConstraintName("Bills_StateId_fkey");
+
+                    b.Navigation("BillType");
 
                     b.Navigation("Entity");
 
@@ -2129,6 +2102,17 @@ namespace BackEnd.Migrations
                     b.Navigation("CreditNote");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.Customer", b =>
+                {
+                    b.HasOne("BackEnd.Models.Entity", "Entity")
+                        .WithMany("Customers")
+                        .HasForeignKey("EntityId")
+                        .IsRequired()
+                        .HasConstraintName("Customers_EntityId_fkey");
+
+                    b.Navigation("Entity");
                 });
 
             modelBuilder.Entity("BackEnd.Models.CustomerQuote", b =>
@@ -2665,23 +2649,11 @@ namespace BackEnd.Migrations
 
             modelBuilder.Entity("BackEnd.Models.Stock", b =>
                 {
-                    b.HasOne("BackEnd.Models.Branch", "Branch")
-                        .WithMany("Stocks")
-                        .HasForeignKey("BranchId")
-                        .IsRequired()
-                        .HasConstraintName("Stocks_BranchId_fkey");
-
-                    b.HasOne("BackEnd.Models.Check", null)
-                        .WithMany("Stocks")
-                        .HasForeignKey("CheckId");
-
                     b.HasOne("BackEnd.Models.Product", "Product")
                         .WithMany("Stocks")
                         .HasForeignKey("ProductId")
                         .IsRequired()
                         .HasConstraintName("Stocks_ProductId_fkey");
-
-                    b.Navigation("Branch");
 
                     b.Navigation("Product");
                 });
@@ -2826,9 +2798,14 @@ namespace BackEnd.Migrations
                     b.Navigation("PaymentOrderBills");
                 });
 
+            modelBuilder.Entity("BackEnd.Models.BillType", b =>
+                {
+                    b.Navigation("Bills");
+                });
+
             modelBuilder.Entity("BackEnd.Models.CheckStatus", b =>
                 {
-                    b.Navigation("Stocks");
+                    b.Navigation("BankMovements");
                 });
 
             modelBuilder.Entity("BackEnd.Models.CreditNote", b =>
@@ -2878,6 +2855,8 @@ namespace BackEnd.Migrations
             modelBuilder.Entity("BackEnd.Models.Entity", b =>
                 {
                     b.Navigation("Bills");
+
+                    b.Navigation("Customers");
 
                     b.Navigation("LegalPerson");
 
