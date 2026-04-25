@@ -326,17 +326,6 @@ public partial class AppDbContext : DbContext
         });
 
 
-        modelBuilder.Entity<CheckStatus>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("Checks_pkey");
-
-            entity.Property(e => e.Number).HasMaxLength(100);
-            entity.Property(e => e.IssuingBank).HasMaxLength(150);
-            entity.Property(e => e.Receiver).HasMaxLength(150);
-            entity.Property(e => e.Amount).HasPrecision(15, 2);
-            entity.Property(e => e.EmisionDate).HasColumnType("timestamp without time zone");
-        });
-
         modelBuilder.Entity<CreditNote>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("CreditNotes_pkey");
