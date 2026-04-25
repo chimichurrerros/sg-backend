@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace BackEnd.Models;
@@ -7,7 +7,7 @@ public partial class Bill
 {
     public int Id { get; set; }
 
-    public int BillTypeId { get; set; }
+    public BillTypeEnum BillType { get; set; }
 
     public int EntityId { get; set; }
 
@@ -34,8 +34,6 @@ public partial class Bill
     public bool IsCredit { get; set; }
 
     public virtual ICollection<BillDetail> BillDetails { get; set; } = new List<BillDetail>();
-
-    public virtual BillType BillType { get; set; } = null!;
 
     public virtual ICollection<CreditNote> CreditNotes { get; set; } = new List<CreditNote>();
 

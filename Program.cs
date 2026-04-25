@@ -33,7 +33,6 @@ builder.Services.AddScoped<ProductBrandsService>();
 builder.Services.AddScoped<ProductCategoriesService>();
 builder.Services.AddScoped<ProductsService>();
 builder.Services.AddScoped<BillService>();
-builder.Services.AddScoped<BillTypeService>();
 builder.Services.AddScoped<BillDetailService>();
 // ------------------------------------------------------------------------------------------------------
 // Authorization configuration

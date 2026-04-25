@@ -1,3 +1,4 @@
+using BackEnd.Models;
 using BackEnd.Utils;
 
 namespace BackEnd.DTOs.Responses.Bill;
@@ -5,7 +6,7 @@ namespace BackEnd.DTOs.Responses.Bill;
 public class BillResponseDto
 {
     public int Id { get; set; }
-    public int BillTypeId { get; set; }
+    public BillTypeEnum BillType { get; set; }
     public int EntityId { get; set; }
     public int? SalesOrderId { get; set; }
     public int? PurchaseOrderId { get; set; }

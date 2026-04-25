@@ -52,7 +52,7 @@ public class BillService(AppDbContext context, IMapper mapper)
     {
         var bill = new Bill
         {
-            BillTypeId = request.BillTypeId,
+            BillType = request.BillType,
             EntityId = request.EntityId,
             SalesOrderId = request.SalesOrderId,
             PurchaseOrderId = request.PurchaseOrderId,
@@ -80,7 +80,7 @@ public class BillService(AppDbContext context, IMapper mapper)
         if (bill == null)
             return Result<BillWrapperDto>.Failure(BillError.NotFound, ErrorType.NotFound);
 
-        bill.BillTypeId = request.BillTypeId;
+        bill.BillType = request.BillType;
         bill.EntityId = request.EntityId;
         bill.SalesOrderId = request.SalesOrderId;
         bill.PurchaseOrderId = request.PurchaseOrderId;

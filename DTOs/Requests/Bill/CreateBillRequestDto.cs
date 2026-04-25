@@ -1,8 +1,10 @@
+using BackEnd.Models;
+
 namespace BackEnd.DTOs.Requests.Bill;
 
 public partial class CreateBillRequestDto
 {
-    public int BillTypeId { get; set; }
+    public BillTypeEnum BillType { get; set; }
 
     public int EntityId { get; set; }
 
@@ -31,7 +33,7 @@ public partial class CreateBillRequestDto
 
 public partial class UpdateBillRequestDto
 {
-    public int BillTypeId { get; set; }
+    public BillTypeEnum BillType { get; set; }
 
     public int EntityId { get; set; }
 

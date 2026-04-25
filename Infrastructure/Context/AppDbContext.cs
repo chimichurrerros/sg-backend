@@ -37,8 +37,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<BillDetail> BillDetails { get; set; }
 
-    public virtual DbSet<BillType> BillTypes { get; set; }
-
 
     public virtual DbSet<CheckStatus> CheckStatuses { get; set; }
 
@@ -291,11 +289,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.TaxTotal).HasPrecision(15, 2);
             entity.Property(e => e.Total).HasPrecision(15, 2);
 
-            entity.HasOne(d => d.BillType).WithMany(p => p.Bills)
-                .HasForeignKey(d => d.BillTypeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Bills_BillTypeId_fkey");
-
             entity.HasOne(d => d.Entity).WithMany(p => p.Bills)
                 .HasForeignKey(d => d.EntityId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -333,14 +326,6 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("BillDetails_ProductId_fkey");
         });
-
-        modelBuilder.Entity<BillType>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("BillTypes_pkey");
-
-            entity.Property(e => e.Name).HasMaxLength(50);
-        });
-
 
 
         modelBuilder.Entity<CheckStatus>(entity =>
