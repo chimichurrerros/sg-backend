@@ -576,7 +576,10 @@ namespace BackEnd.Migrations
                         .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                    b.Property<int>("StateId")
+                    b.Property<int?>("StateId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
                         .HasColumnType("integer");
 
                     b.Property<decimal>("Total")
@@ -619,10 +622,6 @@ namespace BackEnd.Migrations
                     b.Property<decimal>("Quantity")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
-
-                    b.Property<decimal>("TaxRate")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)");
 
                     b.HasKey("Id")
                         .HasName("CustomerQuoteDetails_pkey");
@@ -2139,11 +2138,9 @@ namespace BackEnd.Migrations
                         .IsRequired()
                         .HasConstraintName("CustomerQuotes_CustomerId_fkey");
 
-                    b.HasOne("BackEnd.Models.State", "State")
+                    b.HasOne("BackEnd.Models.State", null)
                         .WithMany("CustomerQuotes")
-                        .HasForeignKey("StateId")
-                        .IsRequired()
-                        .HasConstraintName("CustomerQuotes_StateId_fkey");
+                        .HasForeignKey("StateId");
 
                     b.HasOne("BackEnd.Models.User", "User")
                         .WithMany("CustomerQuotes")
@@ -2152,8 +2149,6 @@ namespace BackEnd.Migrations
                         .HasConstraintName("CustomerQuotes_UserId_fkey");
 
                     b.Navigation("Customer");
-
-                    b.Navigation("State");
 
                     b.Navigation("User");
                 });

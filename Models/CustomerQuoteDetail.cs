@@ -15,8 +15,6 @@ public partial class CustomerQuoteDetail
 
     public decimal Price { get; set; }
 
-    public decimal TaxRate { get; set; }
-
     public virtual CustomerQuote CustomerQuote { get; set; } = null!;
 
     public virtual Product Product { get; set; } = null!;
