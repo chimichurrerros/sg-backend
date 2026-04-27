@@ -1,4 +1,5 @@
 using System;
+using BackEnd.Models;
 
 namespace BackEnd.DTOs.Responses.SalesOrder;
 
@@ -10,7 +11,7 @@ public class SalesOrderResponseDto
     public string Number { get; set; } = null!;
     public DateTime Date { get; set; }
     public decimal Total { get; set; }
-    public int StateId { get; set; }
+    public SalesOrderStateEnum SalesOrderState { get; set; }
 }
 
 public class SalesOrderWrapperDto

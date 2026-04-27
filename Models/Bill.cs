@@ -9,6 +9,8 @@ public partial class Bill
 
     public BillTypeEnum BillType { get; set; }
 
+    public BillStateEnum BillState { get; set; }
+
     public int CustomerId { get; set; }
 
     public int? SalesOrderId { get; set; }
@@ -29,8 +31,6 @@ public partial class Bill
 
     public decimal TaxTotal { get; set; }
 
-    public int StateId { get; set; }
-
     public bool IsCredit { get; set; }
 
     public virtual ICollection<BillDetail> BillDetails { get; set; } = new List<BillDetail>();
@@ -44,6 +44,4 @@ public partial class Bill
     public virtual PurchaseOrder? PurchaseOrder { get; set; }
 
     public virtual SalesOrder? SalesOrder { get; set; }
-
-    public virtual State State { get; set; } = null!;
 }

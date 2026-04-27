@@ -7,6 +7,7 @@ public class BillResponseDto
 {
     public int Id { get; set; }
     public BillTypeEnum BillType { get; set; }
+    public BillStateEnum BillState { get; set; }
     public int CustomerId { get; set; }
     public int? SalesOrderId { get; set; }
     public int? PurchaseOrderId { get; set; }
@@ -17,7 +18,6 @@ public class BillResponseDto
     public string? PaymentTerms { get; set; }
     public decimal Total { get; set; }
     public decimal TaxTotal { get; set; }
-    public int StateId { get; set; }
     public bool IsCredit { get; set; }
 }
 

@@ -6,6 +6,8 @@ public partial class CreateBillRequestDto
 {
     public BillTypeEnum BillType { get; set; }
 
+    public BillStateEnum BillState { get; set; }
+
     public int CustomerId { get; set; }
 
     public int? SalesOrderId { get; set; }
@@ -25,8 +27,6 @@ public partial class CreateBillRequestDto
     public decimal Total { get; set; }
 
     public decimal TaxTotal { get; set; }
-
-    public int StateId { get; set; }
 
     public bool IsCredit { get; set; }
 }
@@ -35,6 +35,8 @@ public partial class UpdateBillRequestDto
 {
     public BillTypeEnum BillType { get; set; }
 
+    public BillStateEnum BillState { get; set; }
+
     public int CustomerId { get; set; }
 
     public int? SalesOrderId { get; set; }
@@ -54,8 +56,6 @@ public partial class UpdateBillRequestDto
     public decimal Total { get; set; }
 
     public decimal TaxTotal { get; set; }
-
-    public int StateId { get; set; }
 
     public bool IsCredit { get; set; }
 }

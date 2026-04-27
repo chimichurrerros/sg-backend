@@ -19,7 +19,7 @@ public partial class SalesOrder
 
     public decimal Total { get; set; }
 
-    public int StateId { get; set; }
+    public SalesOrderStateEnum SalesOrderState { get; set; }
 
     public virtual ICollection<Bill> Bills { get; set; } = new List<Bill>();
 
@@ -28,8 +28,6 @@ public partial class SalesOrder
     public virtual CustomerQuote? CustomerQuote { get; set; }
 
     public virtual ICollection<SalesOrderDetail> SalesOrderDetails { get; set; } = new List<SalesOrderDetail>();
-
-    public virtual State State { get; set; } = null!;
 
     public virtual User User { get; set; } = null!;
 }

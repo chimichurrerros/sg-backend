@@ -21,8 +21,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<AccountPlan> AccountPlans { get; set; }
 
-    public virtual DbSet<AccountType> AccountTypes { get; set; }
-
     public virtual DbSet<AccountantProcess> AccountantProcesses { get; set; }
 
     public virtual DbSet<Attendance> Attendances { get; set; }
@@ -168,12 +166,15 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Enums section ***************************************************************************************
+        //* Enums section ***************************************************************************************
 
         modelBuilder.HasPostgresEnum<CheckTypeEnum>();
         modelBuilder.HasPostgresEnum<CheckStatusEnum>();
         modelBuilder.HasPostgresEnum<BillTypeEnum>();
+        modelBuilder.HasPostgresEnum<BillStateEnum>();
+        modelBuilder.HasPostgresEnum<SalesOrderStateEnum>();
         modelBuilder.HasPostgresEnum<BankMovementTypeEnum>();
+        modelBuilder.HasPostgresEnum<AccountTypeEnum>();
 
         // *****************************************************************************************************
 
@@ -181,14 +182,10 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("Accounts_pkey");
 
+            entity.Property(e => e.AccountType).HasColumnType("account_type_enum");
             entity.Property(e => e.AvailableBalance).HasPrecision(15, 2);
             entity.Property(e => e.CurrentBalance).HasPrecision(15, 2);
             entity.Property(e => e.Name).HasMaxLength(100);
-
-            entity.HasOne(d => d.AccountType).WithMany(p => p.Accounts)
-                .HasForeignKey(d => d.AccountTypeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Accounts_AccountTypeId_fkey");
 
             entity.HasOne(d => d.Bank).WithMany(p => p.Accounts)
                 .HasForeignKey(d => d.BankId)
@@ -204,13 +201,6 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Code).HasMaxLength(50);
             entity.Property(e => e.Name).HasMaxLength(150);
-        });
-
-        modelBuilder.Entity<AccountType>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("AccountTypes_pkey");
-
-            entity.Property(e => e.Name).HasMaxLength(100);
         });
 
         modelBuilder.Entity<AccountantProcess>(entity =>
@@ -285,6 +275,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("Bills_pkey");
 
+            entity.Property(e => e.BillState).HasColumnType("bill_state_enum");
             entity.Property(e => e.Number).HasMaxLength(50);
             entity.Property(e => e.PaymentTerms).HasMaxLength(100);
             entity.Property(e => e.Stamp).HasMaxLength(50);
@@ -303,11 +294,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.SalesOrder).WithMany(p => p.Bills)
                 .HasForeignKey(d => d.SalesOrderId)
                 .HasConstraintName("Bills_SalesOrderId_fkey");
-
-            entity.HasOne(d => d.State).WithMany(p => p.Bills)
-                .HasForeignKey(d => d.StateId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Bills_StateId_fkey");
         });
 
         modelBuilder.Entity<BillDetail>(entity =>
@@ -909,6 +895,8 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("SalesOrders_pkey");
 
+            entity.Property(e => e.SalesOrderState).HasColumnType("sales_order_state_enum");
+
             // entity.Property(e => e.Date)
             //     .HasDefaultValueSql("CURRENT_TIMESTAMP")
             //     .HasColumnType("timestamp without time zone");
@@ -923,11 +911,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.CustomerQuote).WithMany(p => p.SalesOrders)
                 .HasForeignKey(d => d.CustomerQuoteId)
                 .HasConstraintName("SalesOrders_CustomerQuoteId_fkey");
-
-            entity.HasOne(d => d.State).WithMany(p => p.SalesOrders)
-                .HasForeignKey(d => d.StateId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("SalesOrders_StateId_fkey");
 
             entity.HasOne(d => d.User).WithMany(p => p.SalesOrders)
                 .HasForeignKey(d => d.UserId)

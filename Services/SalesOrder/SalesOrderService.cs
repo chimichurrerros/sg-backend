@@ -50,7 +50,7 @@ public class SalesOrderService(
                 UserId = userId,
                 Number = request.Number,
                 Date = DateTime.UtcNow,
-                StateId = request.StateId,
+                SalesOrderState = request.SalesOrderState,
                 Total = 0 // Will compute
             };
 
@@ -110,7 +110,7 @@ public class SalesOrderService(
                 Date = DateOnly.FromDateTime(DateTime.UtcNow),
                 Total = total,
                 TaxTotal = taxTotal,
-                StateId = request.BillStateId,
+                BillState = request.BillState,
                 IsCredit = false
             });
 
@@ -183,7 +183,7 @@ public class SalesOrderService(
                 Number = salesOrder.Number,
                 Date = salesOrder.Date,
                 Total = salesOrder.Total,
-                StateId = salesOrder.StateId
+                SalesOrderState = salesOrder.SalesOrderState
             };
 
             return Result<SalesOrderWrapperDto>.Success(new SalesOrderWrapperDto { SalesOrder = responseDto });

@@ -71,11 +71,14 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContextPool<AppDbContext>(options =>
     options.UseNpgsql(connectionString, npgsqlOptions =>
     {
-        // ENUMS CONFIG <----------------------------------------------------------- SEE
+        // ENUMS CONFIG <----------------------------------------------------------- SEE------------------
         npgsqlOptions.MapEnum<BankMovementTypeEnum>("bank_movement_type_enum");
+        npgsqlOptions.MapEnum<BillStateEnum>("bill_state_enum");
         npgsqlOptions.MapEnum<BillTypeEnum>("bill_type_enum");
         npgsqlOptions.MapEnum<CheckStatusEnum>("check_status_enum");
         npgsqlOptions.MapEnum<CheckTypeEnum>("check_type_enum");
+        npgsqlOptions.MapEnum<SalesOrderStateEnum>("sales_order_state_enum");
+        npgsqlOptions.MapEnum<AccountTypeEnum>("account_type_enum");
     }));
 
 //*******************************************END-END-END*************************************************

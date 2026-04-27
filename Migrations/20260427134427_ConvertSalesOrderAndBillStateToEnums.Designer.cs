@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,16 +13,17 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260427134427_ConvertSalesOrderAndBillStateToEnums")]
+    partial class ConvertSalesOrderAndBillStateToEnums
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "10.0.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "account_type_enum", new[] { "cash", "checking", "savings" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "bank_movement_type_enum", new[] { "debit", "credit" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "bill_state_enum", new[] { "pending", "paid", "voided" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "bill_type_enum", new[] { "contado", "credito" });
@@ -38,8 +40,8 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AccountType")
-                        .HasColumnType("account_type_enum");
+                    b.Property<int>("AccountTypeId")
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("AvailableBalance")
                         .HasPrecision(15, 2)
@@ -59,6 +61,8 @@ namespace BackEnd.Migrations
 
                     b.HasKey("Id")
                         .HasName("Accounts_pkey");
+
+                    b.HasIndex("AccountTypeId");
 
                     b.HasIndex("BankId");
 
@@ -96,6 +100,25 @@ namespace BackEnd.Migrations
                         .IsUnique();
 
                     b.ToTable("AccountPlans");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.AccountType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id")
+                        .HasName("AccountTypes_pkey");
+
+                    b.ToTable("AccountTypes");
                 });
 
             modelBuilder.Entity("BackEnd.Models.AccountantProcess", b =>
@@ -1887,10 +1910,18 @@ namespace BackEnd.Migrations
 
             modelBuilder.Entity("BackEnd.Models.Account", b =>
                 {
+                    b.HasOne("BackEnd.Models.AccountType", "AccountType")
+                        .WithMany("Accounts")
+                        .HasForeignKey("AccountTypeId")
+                        .IsRequired()
+                        .HasConstraintName("Accounts_AccountTypeId_fkey");
+
                     b.HasOne("BackEnd.Models.Bank", "Bank")
                         .WithMany("Accounts")
                         .HasForeignKey("BankId")
                         .HasConstraintName("Accounts_BankId_fkey");
+
+                    b.Navigation("AccountType");
 
                     b.Navigation("Bank");
                 });
@@ -2650,6 +2681,11 @@ namespace BackEnd.Migrations
                     b.Navigation("EntryDetails");
 
                     b.Navigation("EntryModelDetails");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.AccountType", b =>
+                {
+                    b.Navigation("Accounts");
                 });
 
             modelBuilder.Entity("BackEnd.Models.AccountantProcess", b =>

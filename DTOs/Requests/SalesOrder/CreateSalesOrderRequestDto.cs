@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using BackEnd.Models;
 
 namespace BackEnd.DTOs.Requests.SalesOrder;
 
@@ -8,11 +9,11 @@ public class CreateSalesOrderRequestDto
     // SalesOrder properties
     public int CustomerId { get; set; }
     public string Number { get; set; } = null!;
-    public int StateId { get; set; }
+    public SalesOrderStateEnum SalesOrderState { get; set; }
 
     // Bill properties
     public string BillNumber { get; set; } = null!;
-    public int BillStateId { get; set; }
+    public BillStateEnum BillState { get; set; }
 
     // Payment and Stock
     public int AccountId { get; set; }

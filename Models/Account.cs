@@ -7,7 +7,7 @@ public partial class Account
 {
     public int Id { get; set; }
 
-    public int AccountTypeId { get; set; }
+    public AccountTypeEnum AccountType { get; set; }
 
     public int? BankId { get; set; }
 
@@ -16,8 +16,6 @@ public partial class Account
     public decimal CurrentBalance { get; set; }
 
     public decimal AvailableBalance { get; set; }
-
-    public virtual AccountType AccountType { get; set; } = null!;
 
     public virtual Bank? Bank { get; set; }
 

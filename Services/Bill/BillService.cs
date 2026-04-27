@@ -53,6 +53,7 @@ public class BillService(AppDbContext context, IMapper mapper)
         var bill = new Bill
         {
             BillType = request.BillType,
+            BillState = request.BillState,
             CustomerId = request.CustomerId,
             SalesOrderId = request.SalesOrderId,
             PurchaseOrderId = request.PurchaseOrderId,
@@ -63,7 +64,6 @@ public class BillService(AppDbContext context, IMapper mapper)
             PaymentTerms = request.PaymentTerms,
             Total = request.Total,
             TaxTotal = request.TaxTotal,
-            StateId = request.StateId,
             IsCredit = request.IsCredit
         };
 
@@ -91,7 +91,7 @@ public class BillService(AppDbContext context, IMapper mapper)
         bill.PaymentTerms = request.PaymentTerms;
         bill.Total = request.Total;
         bill.TaxTotal = request.TaxTotal;
-        bill.StateId = request.StateId;
+        bill.BillState = request.BillState;
         bill.IsCredit = request.IsCredit;
 
         _context.Bills.Update(bill);
