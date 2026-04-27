@@ -1,4 +1,5 @@
 using BackEnd.Infrastructure.Context;
+using BackEnd.Models;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -63,13 +64,21 @@ builder.Services.AddCors(options =>
 });
 // ------------------------------------------------------------------------------------------------------
 
-//*******************************************END-END-END*************************************************
+
 
 // Database configuration
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContextPool<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseNpgsql(connectionString, npgsqlOptions =>
+    {
+        // ENUMS CONFIG <----------------------------------------------------------- SEE
+        npgsqlOptions.MapEnum<BankMovementTypeEnum>("bank_movement_type_enum");
+        npgsqlOptions.MapEnum<BillTypeEnum>("bill_type_enum");
+        npgsqlOptions.MapEnum<CheckStatusEnum>("check_status_enum");
+        npgsqlOptions.MapEnum<CheckTypeEnum>("check_type_enum");
+    }));
 
+//*******************************************END-END-END*************************************************
 // AutoMapper configuration
 builder.Services.AddAutoMapper(typeof(Program).Assembly);
 
