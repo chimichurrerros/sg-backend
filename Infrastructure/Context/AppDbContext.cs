@@ -45,8 +45,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CreditNoteDetail> CreditNoteDetails { get; set; }
 
-    public virtual DbSet<Currency> Currencies { get; set; }
-
     public virtual DbSet<Customer> Customers { get; set; }
 
     public virtual DbSet<CustomerQuote> CustomerQuotes { get; set; }
@@ -189,10 +187,6 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.BankId)
                 .HasConstraintName("Accounts_BankId_fkey");
 
-            entity.HasOne(d => d.Currency).WithMany(p => p.Accounts)
-                .HasForeignKey(d => d.CurrencyId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Accounts_CurrencyId_fkey");
         });
 
         modelBuilder.Entity<AccountPlan>(entity =>
@@ -357,15 +351,6 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ProductId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("CreditNoteDetails_ProductId_fkey");
-        });
-
-        modelBuilder.Entity<Currency>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("Currencies_pkey");
-
-            entity.Property(e => e.Code).HasMaxLength(10);
-            entity.Property(e => e.Name).HasMaxLength(50);
-            entity.Property(e => e.Symbol).HasMaxLength(10);
         });
 
         modelBuilder.Entity<Customer>(entity =>

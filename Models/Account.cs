@@ -13,8 +13,6 @@ public partial class Account
 
     public string Name { get; set; } = null!;
 
-    public int CurrencyId { get; set; }
-
     public decimal CurrentBalance { get; set; }
 
     public decimal AvailableBalance { get; set; }
@@ -24,6 +22,4 @@ public partial class Account
     public virtual Bank? Bank { get; set; }
 
     public virtual ICollection<BankMovement> BankMovements { get; set; } = new List<BankMovement>();
-
-    public virtual Currency Currency { get; set; } = null!;
 }
