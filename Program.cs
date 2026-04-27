@@ -10,6 +10,9 @@ using BackEnd.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using BackEnd.Services.Interfaces;
 
+// NECESITO ESTO PARA GUARDAR LA EL DATE TIME SIN JODER CON EL DBCONTEXT
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 //*******************************************************************************************************

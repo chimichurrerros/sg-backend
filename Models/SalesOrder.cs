@@ -15,7 +15,7 @@ public partial class SalesOrder
 
     public string Number { get; set; } = null!;
 
-    public DateTime Date { get; set; }
+    public DateTime Date { get; set; } = DateTime.UtcNow;
 
     public decimal Total { get; set; }
 

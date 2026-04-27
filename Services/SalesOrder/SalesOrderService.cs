@@ -14,12 +14,14 @@ public class SalesOrderService(
     AppDbContext context,
     CustomerService customerService,
     StockService stockService,
+    BranchService branchService,
     BillService billService,
     BillDetailService billDetailService)
 {
     private readonly AppDbContext _context = context;
     private readonly CustomerService _customerService = customerService;
     private readonly StockService _stockService = stockService;
+    private readonly BranchService _branchService = branchService;
     private readonly BillService _billService = billService;
     private readonly BillDetailService _billDetailService = billDetailService;
     private const int TaxRate = 10;
@@ -32,6 +34,10 @@ public class SalesOrderService(
         var customerResult = await _customerService.GetByIdAsync(request.CustomerId);
         if (!customerResult.IsSuccess)
             return ToSalesOrderFailure(customerResult, SalesOrderError.CustomerNotFound);
+
+        var branchResult = await _branchService.GetByIdAsync(request.BranchId);
+        if (!branchResult.IsSuccess)
+            return ToSalesOrderFailure(branchResult, "Branch not found");
 
         using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -57,8 +63,17 @@ public class SalesOrderService(
             // 2. Process Details----------------------------------------------------------------
             foreach (var detail in request.Details)
             {
-                var lineTotal = detail.Quantity * detail.Price;
-                var lineTax = lineTotal * (TaxRate / 100);
+                var product = await _context.Products.FindAsync(detail.ProductId);
+                if (product == null)
+                {
+                    await transaction.RollbackAsync();
+                    return Result<SalesOrderWrapperDto>.Failure($"Product with ID {detail.ProductId} not found", ErrorType.Validation);
+                }
+
+                var Price = product.Price;
+
+                var lineTotal = detail.Quantity * Price;
+                var lineTax = lineTotal * (TaxRate / 100m);
 
                 total += lineTotal + lineTax;
                 taxTotal += lineTax;
@@ -70,7 +85,7 @@ public class SalesOrderService(
                     ProductId = detail.ProductId,
                     QuantityOrdered = detail.Quantity,
                     QuantityInvoiced = detail.Quantity,
-                    Price = detail.Price,
+                    Price = Price,
                     TaxRate = TaxRate
                 };
                 _context.SalesOrderDetails.Add(salesOrderDetail);
@@ -109,12 +124,20 @@ public class SalesOrderService(
 
             foreach (var detail in request.Details)
             {
+                var product = await _context.Products.FindAsync(detail.ProductId);
+                if (product == null)
+                {
+                    await transaction.RollbackAsync();
+                    return Result<SalesOrderWrapperDto>.Failure($"Product with ID {detail.ProductId} not found", ErrorType.Validation);
+                }
+               
+                var Price = product.Price;
                 var billDetailResult = await _billDetailService.CreateAsync(new CreateBillDetailRequestDto
                 {
                     BillId = billId,
                     ProductId = detail.ProductId,
                     Quantity = detail.Quantity,
-                    Price = detail.Price,
+                    Price = Price,
                     TaxRate = TaxRate
                 });
 

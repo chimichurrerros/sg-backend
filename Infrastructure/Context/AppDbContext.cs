@@ -913,11 +913,11 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("SalesOrders_pkey");
 
-            entity.Property(e => e.Date)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone");
-            entity.Property(e => e.Number).HasMaxLength(50);
-            entity.Property(e => e.Total).HasPrecision(15, 2);
+            // entity.Property(e => e.Date)
+            //     .HasDefaultValueSql("CURRENT_TIMESTAMP")
+            //     .HasColumnType("timestamp without time zone");
+            // entity.Property(e => e.Number).HasMaxLength(50);
+            // entity.Property(e => e.Total).HasPrecision(15, 2);
 
             entity.HasOne(d => d.Customer).WithMany(p => p.SalesOrders)
                 .HasForeignKey(d => d.CustomerId)
