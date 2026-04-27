@@ -26,6 +26,4 @@ public partial class PhysicalPerson
     public virtual Gender Gender { get; set; } = null!;
 
     public virtual MaritalStatus MaritalStatus { get; set; } = null!;
-
-    public virtual ICollection<User> Users { get; set; } = new List<User>();
 }
