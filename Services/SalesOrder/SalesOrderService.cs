@@ -7,6 +7,9 @@ using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using BackEnd.Utils;
 using Microsoft.EntityFrameworkCore;
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using BackEnd.DTOs.Requests.Pagination;
 
 namespace BackEnd.Services;
 
@@ -16,7 +19,8 @@ public class SalesOrderService(
     StockService stockService,
     BranchService branchService,
     BillService billService,
-    BillDetailService billDetailService)
+    BillDetailService billDetailService,
+    IMapper mapper)
 {
     private readonly AppDbContext _context = context;
     private readonly CustomerService _customerService = customerService;
@@ -24,6 +28,7 @@ public class SalesOrderService(
     private readonly BranchService _branchService = branchService;
     private readonly BillService _billService = billService;
     private readonly BillDetailService _billDetailService = billDetailService;
+    private readonly IMapper _mapper = mapper;
     private const int TaxRate = 10;
 
     public async Task<Result<SalesOrderWrapperDto>> CreateAsync(CreateSalesOrderRequestDto request, int userId)
@@ -175,24 +180,56 @@ public class SalesOrderService(
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            var responseDto = new SalesOrderResponseDto
-            {
-                Id = salesOrder.Id,
-                CustomerId = salesOrder.CustomerId,
-                UserId = salesOrder.UserId,
-                Number = salesOrder.Number,
-                Date = salesOrder.Date,
-                Total = salesOrder.Total,
-                SalesOrderState = salesOrder.SalesOrderState
-            };
-
-            return Result<SalesOrderWrapperDto>.Success(new SalesOrderWrapperDto { SalesOrder = responseDto });
+            return await GetByIdAsync(salesOrder.Id);
         }
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
             return Result<SalesOrderWrapperDto>.Failure($"{SalesOrderError.ProcessFailed}: {ex.Message}", ErrorType.Unexpected);
         }
+    }
+
+    public async Task<Result<ListSalesOrdersWrapperDto>> GetAllAsync()
+    {
+        var salesOrders = await _context.SalesOrders
+            .AsNoTracking()
+            .ProjectTo<SalesOrderResponseDto>(_mapper.ConfigurationProvider)
+            .OrderByDescending(so => so.Date)
+            .ToListAsync();
+
+        return Result<ListSalesOrdersWrapperDto>.Success(new ListSalesOrdersWrapperDto { SalesOrders = salesOrders });
+    }
+
+    public async Task<Result<ListSalesOrdersWrapperDto>> GetListAsync(PaginationRequestDto pagination)
+    {
+        var query = _context.SalesOrders.AsNoTracking();
+
+        var totalElements = await query.CountAsync();
+
+        var salesOrders = await query
+            .OrderByDescending(so => so.Date)
+            .Skip((pagination.Page - 1) * pagination.PageSize)
+            .Take(pagination.PageSize)
+            .ProjectTo<SalesOrderResponseDto>(_mapper.ConfigurationProvider)
+            .ToListAsync();
+
+        var _pagination = new Pagination(pagination.Page, pagination.PageSize, totalElements);
+
+        return Result<ListSalesOrdersWrapperDto>.Success(new ListSalesOrdersWrapperDto { SalesOrders = salesOrders, Pagination = _pagination });
+    }
+
+    public async Task<Result<SalesOrderWrapperDto>> GetByIdAsync(int id)
+    {
+        var salesOrder = await _context.SalesOrders
+            .AsNoTracking()
+            .Where(so => so.Id == id)
+            .ProjectTo<SalesOrderResponseDto>(_mapper.ConfigurationProvider)
+            .FirstOrDefaultAsync();
+
+        if (salesOrder == null)
+            return Result<SalesOrderWrapperDto>.Failure(ApplicationError.NotFound, ErrorType.NotFound);
+
+        return Result<SalesOrderWrapperDto>.Success(new SalesOrderWrapperDto { SalesOrder = salesOrder });
     }
 
     private static Result<SalesOrderWrapperDto> ToSalesOrderFailure<T>(Result<T> serviceResult, string fallbackMessage)

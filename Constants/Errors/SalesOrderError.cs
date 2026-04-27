@@ -10,4 +10,5 @@ public static class SalesOrderError
     public const string BillDetailCreateFailed = "No se pudo crear el detalle de factura.";
     public const string AccountNotFound = "No se encontró la cuenta bancaria solicitada.";
     public const string ProcessFailed = "No se pudo procesar la venta.";
+    public const string NotFound = "No se encontró el pedido de venta solicitado.";
 }
