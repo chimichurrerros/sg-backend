@@ -72,7 +72,7 @@ public class SalesOrderService(
                 if (product == null)
                 {
                     await transaction.RollbackAsync();
-                    return Result<SalesOrderWrapperDto>.Failure($"Product with ID {detail.ProductId} not found", ErrorType.Validation);
+                    return Result<SalesOrderWrapperDto>.Failure(SalesOrderError.ProductNotFound, ErrorType.Validation);
                 }
 
                 var Price = product.Price;
@@ -133,7 +133,7 @@ public class SalesOrderService(
                 if (product == null)
                 {
                     await transaction.RollbackAsync();
-                    return Result<SalesOrderWrapperDto>.Failure($"Product with ID {detail.ProductId} not found", ErrorType.Validation);
+                    return Result<SalesOrderWrapperDto>.Failure(SalesOrderError.ProductNotFound, ErrorType.Validation);
                 }
 
                 var Price = product.Price;

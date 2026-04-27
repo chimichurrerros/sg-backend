@@ -22,24 +22,18 @@ public class SalesOrderController(SalesOrderService salesOrderService) : Control
     public async Task<ActionResult<SalesOrderWrapperDto>> Create(CreateSalesOrderRequestDto request)
     {
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!int.TryParse(userIdString, out int userId))
-        {
-            return Unauthorized("User ID claim is missing or invalid.");
-        }
+        var userId = int.Parse(userIdString!);
 
         var result = await _salesOrderService.CreateAsync(request, userId);
         if (result.IsSuccess) return Created($"/api/sales-orders/{result.Value!.SalesOrder.Id}", result.Value);
 
         if (result.ErrorType == ErrorType.NotFound)
-            return this.HandleNotFoundProblem(result);
+            return this.HandleNotFoundProblem(result, null);
 
         if (result.ErrorType == ErrorType.Validation)
-            return BadRequest(result.ErrorMessage);
+            return this.HandleBadRequestProblem(result);
 
-        return Problem(
-            title: SalesOrderError.ProcessFailed,
-            detail: result.ErrorMessage,
-            statusCode: StatusCodes.Status500InternalServerError);
+        return this.HandleServerError(SalesOrderError.ProcessFailed, result);
     }
 
     [HttpGet("all")]
@@ -48,10 +42,7 @@ public class SalesOrderController(SalesOrderService salesOrderService) : Control
         var result = await _salesOrderService.GetAllAsync();
         if (result.IsSuccess) return Ok(result.Value);
 
-        return Problem(
-            title: "Error al obtener los pedidos de venta",
-            detail: result.ErrorMessage,
-            statusCode: StatusCodes.Status500InternalServerError);
+        return this.HandleServerError(SalesOrderError.ProcessFailed, result);
     }
 
     [HttpGet()]
@@ -60,10 +51,7 @@ public class SalesOrderController(SalesOrderService salesOrderService) : Control
         var result = await _salesOrderService.GetListAsync(pagination);
         if (result.IsSuccess) return Ok(result.Value);
 
-        return Problem(
-            title: "Error al obtener la lista de pedidos de venta",
-            detail: result.ErrorMessage,
-            statusCode: StatusCodes.Status500InternalServerError);
+        return this.HandleServerError(SalesOrderError.ProcessFailed, result);
     }
 
     [HttpGet("{id:int}")]
@@ -73,11 +61,8 @@ public class SalesOrderController(SalesOrderService salesOrderService) : Control
         if (result.IsSuccess) return Ok(result.Value);
 
         if (result.ErrorType == ErrorType.NotFound)
-            return this.HandleNotFoundProblem(result);
+            return this.HandleNotFoundProblem(result, id);
 
-        return Problem(
-            title: "Error al obtener el pedido de venta",
-            detail: result.ErrorMessage,
-            statusCode: StatusCodes.Status500InternalServerError);
+        return this.HandleServerError(SalesOrderError.ProcessFailed, result, id);
     }
 }
