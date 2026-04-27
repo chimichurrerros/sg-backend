@@ -42,6 +42,4 @@ public partial class Check
     public decimal Amount { get; set; }
 
     public CheckStatus Status { get; set; }
-
-    public virtual ICollection<Stock> Stocks { get; set; } = new List<Stock>();
 }
