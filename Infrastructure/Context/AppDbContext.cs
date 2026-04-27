@@ -264,12 +264,21 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Date)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone");
+            entity.Property(e => e.MovementType).HasColumnType("bank_movement_type_enum");
             entity.Property(e => e.ReferenceNumber).HasMaxLength(100);
 
             entity.HasOne(d => d.Account).WithMany(p => p.BankMovements)
                 .HasForeignKey(d => d.AccountId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("BankMovements_AccountId_fkey");
+        });
+
+        modelBuilder.Entity<Check>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("Checks_pkey");
+
+            entity.Property(e => e.Status).HasColumnType("check_status_enum");
+            entity.Property(e => e.Type).HasColumnType("check_type_enum");
         });
 
         modelBuilder.Entity<Bill>(entity =>
