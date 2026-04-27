@@ -29,9 +29,9 @@ public class StockService(AppDbContext context, IMapper mapper)
     public async Task<Result<ListStocksWrapperDto>> GetListAsync(PaginationRequestDto pagination)
     {
         var query = _context.Stocks.AsNoTracking();
-        
+
         var totalElements = await query.CountAsync();
-        
+
         var stocks = await query
             .OrderBy(v => v.Id)
             .Skip((pagination.Page - 1) * pagination.PageSize)
@@ -40,7 +40,7 @@ public class StockService(AppDbContext context, IMapper mapper)
             .ToListAsync();
 
         var _pagination = new Pagination(pagination.Page, pagination.PageSize, totalElements);
-            
+
         return Result<ListStocksWrapperDto>.Success(new ListStocksWrapperDto { Stocks = stocks, Pagination = _pagination });
     }
 
@@ -61,37 +61,65 @@ public class StockService(AppDbContext context, IMapper mapper)
     public async Task<Result<StockWrapperDto>> CreateAsync(StockRequestDto request)
     {
         var stock = _mapper.Map<Stock>(request);
-        
+
         _context.Stocks.Add(stock);
         await _context.SaveChangesAsync();
-        
+
         return await GetByIdAsync(stock.Id);
     }
 
     public async Task<Result<StockWrapperDto>> UpdateAsync(int id, StockRequestDto request)
     {
         var stock = await _context.Stocks.FindAsync(id);
-        
+
         if (stock == null)
             return Result<StockWrapperDto>.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
         _mapper.Map(request, stock);
         _context.Stocks.Update(stock);
         await _context.SaveChangesAsync();
-        
+
         return await GetByIdAsync(stock.Id);
+    }
+
+    public async Task<Result> DecreaseStockAsync(int productId, int branchId, decimal quantity)
+    {
+        if (quantity <= 0)
+            return Result.Failure(StockError.QuantityMustBeGreaterThanZero, ErrorType.Validation);
+
+        var stock = await _context.Stocks
+            .FirstOrDefaultAsync(s => s.ProductId == productId && s.BranchId == branchId);
+
+        if (stock == null)
+        {
+            stock = new Stock
+            {
+                ProductId = productId,
+                BranchId = branchId,
+                Quantity = -quantity
+            };
+            _context.Stocks.Add(stock);
+        }
+        else
+        {
+            stock.Quantity -= quantity;
+            _context.Stocks.Update(stock);
+        }
+
+        await _context.SaveChangesAsync();
+        return Result.Success();
     }
 
     public async Task<Result> DeleteAsync(int id)
     {
         var stock = await _context.Stocks.FindAsync(id);
-        
+
         if (stock == null)
             return Result.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
         _context.Stocks.Remove(stock);
         await _context.SaveChangesAsync();
-        
+
         return Result.Success();
     }
 }

@@ -287,10 +287,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.TaxTotal).HasPrecision(15, 2);
             entity.Property(e => e.Total).HasPrecision(15, 2);
 
-            entity.HasOne(d => d.Entity).WithMany(p => p.Bills)
-                .HasForeignKey(d => d.EntityId)
+            entity.HasOne(d => d.Customer).WithMany(p => p.Bills)
+                .HasForeignKey(d => d.CustomerId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Bills_EntityId_fkey");
+                .HasConstraintName("Bills_CustomerId_fkey");
 
             entity.HasOne(d => d.PurchaseOrder).WithMany(p => p.Bills)
                 .HasForeignKey(d => d.PurchaseOrderId)

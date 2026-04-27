@@ -1,6 +1,6 @@
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using BackEnd.Constants.Errors;
+using BackEnd.DTOs.Requests.Bill;
+using BackEnd.DTOs.Requests.BillDetail;
 using BackEnd.DTOs.Requests.SalesOrder;
 using BackEnd.DTOs.Responses.SalesOrder;
 using BackEnd.Infrastructure.Context;
@@ -10,21 +10,38 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BackEnd.Services;
 
-public class SalesOrderService(AppDbContext context, IMapper mapper)
+public class SalesOrderService(
+    AppDbContext context,
+    CustomerService customerService,
+    StockService stockService,
+    BillService billService,
+    BillDetailService billDetailService)
 {
     private readonly AppDbContext _context = context;
-    private readonly IMapper _mapper = mapper;
+    private readonly CustomerService _customerService = customerService;
+    private readonly StockService _stockService = stockService;
+    private readonly BillService _billService = billService;
+    private readonly BillDetailService _billDetailService = billDetailService;
+    private const int TaxRate = 10;
 
-    public async Task<Result<SalesOrderWrapperDto>> CreateAsync(CreateSalesOrderRequestDto request)
+    public async Task<Result<SalesOrderWrapperDto>> CreateAsync(CreateSalesOrderRequestDto request, int userId)
     {
+        if (request.Details.Count == 0)
+            return Result<SalesOrderWrapperDto>.Failure(SalesOrderError.DetailsRequired, ErrorType.Validation);
+
+        var customerResult = await _customerService.GetByIdAsync(request.CustomerId);
+        if (!customerResult.IsSuccess)
+            return ToSalesOrderFailure(customerResult, SalesOrderError.CustomerNotFound);
+
         using var transaction = await _context.Database.BeginTransactionAsync();
+
         try
         {
-            // 1. Create SalesOrder
+            // 1. Create SalesOrder-------------------------------------------------------------
             var salesOrder = new SalesOrder
             {
                 CustomerId = request.CustomerId,
-                UserId = request.UserId,
+                UserId = userId,
                 Number = request.Number,
                 Date = DateTime.UtcNow,
                 StateId = request.StateId,
@@ -37,11 +54,11 @@ public class SalesOrderService(AppDbContext context, IMapper mapper)
             decimal total = 0;
             decimal taxTotal = 0;
 
-            // 2. Process Details
+            // 2. Process Details----------------------------------------------------------------
             foreach (var detail in request.Details)
             {
                 var lineTotal = detail.Quantity * detail.Price;
-                var lineTax = lineTotal * (detail.TaxRate / 100);
+                var lineTax = lineTotal * (TaxRate / 100);
 
                 total += lineTotal + lineTax;
                 taxTotal += lineTax;
@@ -54,39 +71,25 @@ public class SalesOrderService(AppDbContext context, IMapper mapper)
                     QuantityOrdered = detail.Quantity,
                     QuantityInvoiced = detail.Quantity,
                     Price = detail.Price,
-                    TaxRate = detail.TaxRate
+                    TaxRate = TaxRate
                 };
                 _context.SalesOrderDetails.Add(salesOrderDetail);
 
-                // Decrease Stock
-                var stock = await _context.Stocks
-                    .FirstOrDefaultAsync(s => s.ProductId == detail.ProductId && s.BranchId == request.BranchId);
-
-                if (stock != null)
+                var stockResult = await _stockService.DecreaseStockAsync(detail.ProductId, request.BranchId, detail.Quantity);
+                if (!stockResult.IsSuccess)
                 {
-                    stock.Quantity -= detail.Quantity;
-                    _context.Stocks.Update(stock);
-                }
-                else
-                {
-                    stock = new Stock
-                    {
-                        ProductId = detail.ProductId,
-                        BranchId = request.BranchId,
-                        Quantity = -detail.Quantity
-                    };
-                    _context.Stocks.Add(stock);
+                    await transaction.RollbackAsync();
+                    return ToSalesOrderFailure(stockResult, SalesOrderError.StockUpdateFailed);
                 }
             }
 
             salesOrder.Total = total;
-            _context.SalesOrders.Update(salesOrder);
+            await _context.SaveChangesAsync();
 
-            // 3. Create Bill
-            var bill = new Bill
+            var billResult = await _billService.CreateAsync(new CreateBillRequestDto
             {
                 BillType = BillTypeEnum.CONTADO,
-                EntityId = request.EntityId,
+                CustomerId = request.CustomerId,
                 SalesOrderId = salesOrder.Id,
                 Number = request.BillNumber,
                 Date = DateOnly.FromDateTime(DateTime.UtcNow),
@@ -94,36 +97,47 @@ public class SalesOrderService(AppDbContext context, IMapper mapper)
                 TaxTotal = taxTotal,
                 StateId = request.BillStateId,
                 IsCredit = false
-            };
-            _context.Bills.Add(bill);
-            await _context.SaveChangesAsync();
+            });
 
-            // Create Bill Details
+            if (!billResult.IsSuccess)
+            {
+                await transaction.RollbackAsync();
+                return ToSalesOrderFailure(billResult, SalesOrderError.BillCreateFailed);
+            }
+
+            var billId = billResult.Value!.Bill.Id;
+
             foreach (var detail in request.Details)
             {
-                var billDetail = new BillDetail
+                var billDetailResult = await _billDetailService.CreateAsync(new CreateBillDetailRequestDto
                 {
-                    BillId = bill.Id,
+                    BillId = billId,
                     ProductId = detail.ProductId,
                     Quantity = detail.Quantity,
                     Price = detail.Price,
-                    TaxRate = detail.TaxRate
-                };
-                _context.BillDetails.Add(billDetail);
+                    TaxRate = TaxRate
+                });
+
+                if (!billDetailResult.IsSuccess)
+                {
+                    await transaction.RollbackAsync();
+                    return ToSalesOrderFailure(billDetailResult, SalesOrderError.BillDetailCreateFailed);
+                }
             }
 
-            // 4. Increase Account Balance
+            // 4. Increase Account Balance----------------------------------------------------------------
             var account = await _context.Accounts.FindAsync(request.AccountId);
             if (account == null)
             {
-                throw new Exception($"Account with ID {request.AccountId} not found.");
+                throw new Exception(SalesOrderError.AccountNotFound);
             }
 
             account.CurrentBalance += total;
             account.AvailableBalance += total;
             _context.Accounts.Update(account);
 
-            // 5. Create Bank Movement
+            // After cange with Joshua🥵 services 
+            // 5. Create Bank Movement----------------------------------------------------------------
             var bankMovement = new BankMovement
             {
                 AccountId = request.AccountId,
@@ -153,7 +167,31 @@ public class SalesOrderService(AppDbContext context, IMapper mapper)
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
-            return Result<SalesOrderWrapperDto>.Failure($"Failed to process sale: {ex.Message}", ErrorType.Validation);
+            return Result<SalesOrderWrapperDto>.Failure($"{SalesOrderError.ProcessFailed}: {ex.Message}", ErrorType.Validation);
         }
+    }
+
+    private static Result<SalesOrderWrapperDto> ToSalesOrderFailure<T>(Result<T> serviceResult, string fallbackMessage)
+    {
+        var message = string.IsNullOrWhiteSpace(serviceResult.ErrorMessage)
+            ? fallbackMessage
+            : serviceResult.ErrorMessage;
+
+        if (serviceResult.Errors != null)
+            return Result<SalesOrderWrapperDto>.Failure(message!, serviceResult.Errors, serviceResult.ErrorType);
+
+        return Result<SalesOrderWrapperDto>.Failure(message!, serviceResult.ErrorType);
+    }
+
+    private static Result<SalesOrderWrapperDto> ToSalesOrderFailure(Result serviceResult, string fallbackMessage)
+    {
+        var message = string.IsNullOrWhiteSpace(serviceResult.ErrorMessage)
+            ? fallbackMessage
+            : serviceResult.ErrorMessage;
+
+        if (serviceResult.Errors != null)
+            return Result<SalesOrderWrapperDto>.Failure(message!, serviceResult.Errors, serviceResult.ErrorType);
+
+        return Result<SalesOrderWrapperDto>.Failure(message!, serviceResult.ErrorType);
     }
 }

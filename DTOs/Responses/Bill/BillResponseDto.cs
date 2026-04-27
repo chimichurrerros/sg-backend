@@ -7,7 +7,7 @@ public class BillResponseDto
 {
     public int Id { get; set; }
     public BillTypeEnum BillType { get; set; }
-    public int EntityId { get; set; }
+    public int CustomerId { get; set; }
     public int? SalesOrderId { get; set; }
     public int? PurchaseOrderId { get; set; }
     public string? Stamp { get; set; }

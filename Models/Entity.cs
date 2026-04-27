@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace BackEnd.Models;
@@ -19,7 +19,7 @@ public partial class Entity
 
     public bool IsActive { get; set; }
 
-    public virtual ICollection<Bill> Bills { get; set; } = new List<Bill>();
+
 
     public virtual EntityType EntityType { get; set; } = null!;
 

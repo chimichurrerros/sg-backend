@@ -39,7 +39,9 @@ builder.Services.AddScoped<SupplierCategoryService>();
 builder.Services.AddScoped<ICheckService, CheckService>();
 builder.Services.AddScoped<BillService>();
 builder.Services.AddScoped<BillDetailService>();
+builder.Services.AddScoped<StockService>();
 builder.Services.AddScoped<SalesOrderService>();
+builder.Services.AddScoped<StatesService>();
 // ------------------------------------------------------------------------------------------------------
 // Authorization configuration
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();

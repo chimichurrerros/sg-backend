@@ -7,12 +7,10 @@ public class CreateSalesOrderRequestDto
 {
     // SalesOrder properties
     public int CustomerId { get; set; }
-    public int UserId { get; set; }
     public string Number { get; set; } = null!;
     public int StateId { get; set; }
 
     // Bill properties
-    public int EntityId { get; set; }
     public string BillNumber { get; set; } = null!;
     public int BillStateId { get; set; }
 
@@ -30,5 +28,5 @@ public class CreateSalesOrderDetailRequestDto
     public int ProductId { get; set; }
     public decimal Quantity { get; set; }
     public decimal Price { get; set; }
-    public decimal TaxRate { get; set; }
+    //public decimal TaxRate { get; set; }
 }

@@ -5,6 +5,7 @@ using BackEnd.Services;
 using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace BackEnd.Controllers.SalesOrder;
 
@@ -18,7 +19,13 @@ public class SalesOrderController(SalesOrderService salesOrderService) : Control
     [HttpPost]
     public async Task<ActionResult<SalesOrderWrapperDto>> Create(CreateSalesOrderRequestDto request)
     {
-        var result = await _salesOrderService.CreateAsync(request);
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(userIdString, out int userId))
+        {
+            return Unauthorized("User ID claim is missing or invalid.");
+        }
+
+        var result = await _salesOrderService.CreateAsync(request, userId);
         if (result.IsSuccess) return Created($"/api/sales-orders/{result.Value!.SalesOrder.Id}", result.Value);
         
         if (result.ErrorType == ErrorType.Validation) 
