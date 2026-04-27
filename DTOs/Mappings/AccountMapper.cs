@@ -1,6 +1,7 @@
 using AutoMapper;
 using BackEnd.Models;
 using BackEnd.DTOs.Requests.Accounts;
+using BackEnd.DTOs.Responses.Accounts;
 namespace BackEnd.Profiles;
 
 public class AccountProfile : Profile
