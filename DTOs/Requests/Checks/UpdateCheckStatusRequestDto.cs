@@ -1,8 +1,9 @@
 namespace BackEnd.DTOs.Requests.Checks;
+
 using BackEnd.Models;
 using System;
 public class UpdateCheckStatusRequestDto
 {
-    public CheckStatus Status { get; set; }
+    public CheckStatusEnum Status { get; set; }
     public DateOnly? PaymentDate { get; set; }
 }

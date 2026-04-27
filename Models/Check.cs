@@ -3,19 +3,6 @@ using System.Collections.Generic;
 
 namespace BackEnd.Models;
 
-public enum CheckType
-{
-    Day,
-    Deferred
-}
-
-public enum CheckStatus
-{
-    Pending,
-    Cashed,
-    Voided
-}
-
 public partial class Check
 {
     public int Id { get; set; }
@@ -35,11 +22,11 @@ public partial class Check
 
     public string IssuingBank { get; set; } = null!;
 
-    public CheckType Type { get; set; }
+    public CheckTypeEnum Type { get; set; }
 
     public string Receiver { get; set; } = null!;
 
     public decimal Amount { get; set; }
 
-    public CheckStatus Status { get; set; }
+    public CheckStatusEnum Status { get; set; }
 }

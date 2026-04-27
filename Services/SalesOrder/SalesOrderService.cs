@@ -37,7 +37,7 @@ public class SalesOrderService(
 
         var branchResult = await _branchService.GetByIdAsync(request.BranchId);
         if (!branchResult.IsSuccess)
-            return ToSalesOrderFailure(branchResult, "Branch not found");
+            return ToSalesOrderFailure(branchResult, BranchError.BranchNotFound);
 
         using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -130,7 +130,7 @@ public class SalesOrderService(
                     await transaction.RollbackAsync();
                     return Result<SalesOrderWrapperDto>.Failure($"Product with ID {detail.ProductId} not found", ErrorType.Validation);
                 }
-               
+
                 var Price = product.Price;
                 var billDetailResult = await _billDetailService.CreateAsync(new CreateBillDetailRequestDto
                 {
@@ -152,7 +152,8 @@ public class SalesOrderService(
             var account = await _context.Accounts.FindAsync(request.AccountId);
             if (account == null)
             {
-                throw new Exception(SalesOrderError.AccountNotFound);
+                await transaction.RollbackAsync();
+                return Result<SalesOrderWrapperDto>.Failure(SalesOrderError.AccountNotFound, ErrorType.NotFound);
             }
 
             account.CurrentBalance += total;
@@ -164,7 +165,7 @@ public class SalesOrderService(
             var bankMovement = new BankMovement
             {
                 AccountId = request.AccountId,
-                MovementTypeId = request.MovementTypeId,
+                MovementType = (BankMovementTypeEnum)request.MovementType,
                 Date = DateTime.UtcNow,
                 Amount = total,
                 ReferenceNumber = $"SALE-{salesOrder.Id}"
@@ -190,7 +191,7 @@ public class SalesOrderService(
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
-            return Result<SalesOrderWrapperDto>.Failure($"{SalesOrderError.ProcessFailed}: {ex.Message}", ErrorType.Validation);
+            return Result<SalesOrderWrapperDto>.Failure($"{SalesOrderError.ProcessFailed}: {ex.Message}", ErrorType.Unexpected);
         }
     }
 

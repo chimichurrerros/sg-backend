@@ -1,5 +1,6 @@
 using BackEnd.DTOs.Requests.SalesOrder;
 using BackEnd.DTOs.Responses.SalesOrder;
+using BackEnd.Constants.Errors;
 using BackEnd.Extensions;
 using BackEnd.Services;
 using BackEnd.Utils;
@@ -27,10 +28,16 @@ public class SalesOrderController(SalesOrderService salesOrderService) : Control
 
         var result = await _salesOrderService.CreateAsync(request, userId);
         if (result.IsSuccess) return Created($"/api/sales-orders/{result.Value!.SalesOrder.Id}", result.Value);
-        
-        if (result.ErrorType == ErrorType.Validation) 
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        if (result.ErrorType == ErrorType.Validation)
             return BadRequest(result.ErrorMessage);
-            
-        return StatusCode(500);
+
+        return Problem(
+            title: SalesOrderError.ProcessFailed,
+            detail: result.ErrorMessage,
+            statusCode: StatusCodes.Status500InternalServerError);
     }
 }

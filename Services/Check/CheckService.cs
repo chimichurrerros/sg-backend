@@ -43,16 +43,16 @@ public class CheckService : ICheckService
         var newCheck = _mapper.Map<Check>(request);
 
         // 2. Regla: Un cheque nuevo siempre nace Pendiente
-        newCheck.Status = CheckStatus.Pending;
+        newCheck.Status = CheckStatusEnum.Pending;
 
         // 3. Regla: Cálculo de fechas según el tipo de cheque
-        if (newCheck.Type == CheckType.Day)
+        if (newCheck.Type == CheckTypeEnum.Day)
         {
             // Cheque al día: Disponibilidad = Emisión, Vence en 30 días
             newCheck.AvailabilityDate = DateOnly.FromDateTime(request.EmisionDate);
             newCheck.MaturityDate = newCheck.AvailabilityDate.AddDays(30);
         }
-        else if (newCheck.Type == CheckType.Deferred)
+        else if (newCheck.Type == CheckTypeEnum.Deferred)
         {
             // Diferido: Vence en 6 meses desde la fecha de disponibilidad enviada
             // Asumimos que el frontend mandó AvailabilityDate, si no, toma la de hoy
@@ -78,7 +78,7 @@ public class CheckService : ICheckService
         // Actualizamos solo lo permitido por el DTO estricto
         check.Status = request.Status;
 
-        if (request.Status == CheckStatus.Cashed && request.PaymentDate.HasValue)
+        if (request.Status == CheckStatusEnum.Cashed && request.PaymentDate.HasValue)
         {
             check.PaymentDate = request.PaymentDate;
         }

@@ -9,7 +9,7 @@ public partial class BankMovement
 
     public int AccountId { get; set; }
 
-    public int MovementTypeId { get; set; }
+    public BankMovementTypeEnum MovementType { get; set; }
 
     public DateTime Date { get; set; }
 
@@ -18,8 +18,6 @@ public partial class BankMovement
     public string? ReferenceNumber { get; set; }
 
     public virtual Account Account { get; set; } = null!;
-
-    public virtual MovementType MovementType { get; set; } = null!;
 
     public virtual ICollection<PaymentOrderMovement> PaymentOrderMovements { get; set; } = new List<PaymentOrderMovement>();
 }

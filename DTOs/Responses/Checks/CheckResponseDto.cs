@@ -1,4 +1,5 @@
-namespace BackEnd.DTOs.Responses.Checks;     
+namespace BackEnd.DTOs.Responses.Checks;
+
 using BackEnd.Models;
 
 public class CheckResponseDto
@@ -14,8 +15,8 @@ public class CheckResponseDto
     public DateOnly? PaymentDate { get; set; }
 
     public DateOnly? MaturityDate { get; set; }
-    
-    public CheckType Type { get; set; }
+
+    public CheckTypeEnum Type { get; set; }
 
     public string IssuingBank { get; set; } = null!;
 
@@ -23,6 +24,6 @@ public class CheckResponseDto
 
     public decimal Amount { get; set; }
 
-    public CheckStatus Status { get; set; }
+    public CheckStatusEnum Status { get; set; }
 }
 

@@ -16,7 +16,7 @@ public class CreateSalesOrderRequestDto
 
     // Payment and Stock
     public int AccountId { get; set; }
-    public int MovementTypeId { get; set; }
+    public int MovementType { get; set; }
     public int BranchId { get; set; }
 
     // Details

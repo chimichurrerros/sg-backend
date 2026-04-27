@@ -1,5 +1,6 @@
 
 namespace BackEnd.DTOs.Requests.Checks;
+
 using BackEnd.Models;
 public class CreateCheckRequestDto
 {
@@ -9,7 +10,7 @@ public class CreateCheckRequestDto
 
     public DateOnly? AvailabilityDate { get; set; }
 
-    public CheckType Type { get; set; }
+    public CheckTypeEnum Type { get; set; }
 
     public string IssuingBank { get; set; } = null!;
 

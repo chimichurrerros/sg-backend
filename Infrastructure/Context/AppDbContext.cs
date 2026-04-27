@@ -81,8 +81,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Module> Modules { get; set; }
 
-    public virtual DbSet<MovementType> MovementTypes { get; set; }
-
     public virtual DbSet<PaymentOrder> PaymentOrders { get; set; }
 
     public virtual DbSet<PaymentOrderBill> PaymentOrderBills { get; set; }
@@ -150,11 +148,11 @@ public partial class AppDbContext : DbContext
 
     // public virtual DbSet<TransactionType> TransactionTypes { get; set; }
 
-   // public virtual DbSet<Transfer> Transfers { get; set; }
+    // public virtual DbSet<Transfer> Transfers { get; set; }
 
-   // public virtual DbSet<TransferDetail> TransferDetails { get; set; }
+    // public virtual DbSet<TransferDetail> TransferDetails { get; set; }
 
-  //  public virtual DbSet<UnitsOfMeasurement> UnitsOfMeasurements { get; set; }
+    //  public virtual DbSet<UnitsOfMeasurement> UnitsOfMeasurements { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 
@@ -172,8 +170,10 @@ public partial class AppDbContext : DbContext
     {
         // Enums section ***************************************************************************************
 
-        modelBuilder.HasPostgresEnum<CheckType>();
-        modelBuilder.HasPostgresEnum<CheckStatus>();
+        modelBuilder.HasPostgresEnum<CheckTypeEnum>();
+        modelBuilder.HasPostgresEnum<CheckStatusEnum>();
+        modelBuilder.HasPostgresEnum<BillTypeEnum>();
+        modelBuilder.HasPostgresEnum<BankMovementTypeEnum>();
 
         // *****************************************************************************************************
 
@@ -270,12 +270,6 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.AccountId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("BankMovements_AccountId_fkey");
-
-
-            entity.HasOne(d => d.MovementType).WithMany(p => p.BankMovements)
-                .HasForeignKey(d => d.MovementTypeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("BankMovements_MovementTypeId_fkey");
         });
 
         modelBuilder.Entity<Bill>(entity =>
@@ -590,13 +584,6 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("Modules_pkey");
 
             entity.Property(e => e.Name).HasMaxLength(50);
-        });
-
-        modelBuilder.Entity<MovementType>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("MovementTypes_pkey");
-
-            entity.Property(e => e.Name).HasMaxLength(100);
         });
 
         modelBuilder.Entity<PaymentOrder>(entity =>
