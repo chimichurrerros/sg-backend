@@ -8,5 +8,5 @@ services:
       dockerfile: ./Dockerfile
     ports:
       - 5125:5125
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+    # environment:
+    #   - ASPNETCORE_ENVIRONMENT=Development

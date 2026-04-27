@@ -21,7 +21,7 @@ var builder = WebApplication.CreateBuilder(args);
 //-------------------------------------------------------------------------------------------------------
 // This is usually outside the scope of the services, use it sparingly.
 // I need this to set cookies in AuthService.
-builder.Services.AddHttpContextAccessor(); 
+builder.Services.AddHttpContextAccessor();
 //-------------------------------------------------------------------------------------------------------
 // The application services should be here 
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionHandler>();
@@ -36,9 +36,10 @@ builder.Services.AddScoped<ProductCategoriesService>();
 builder.Services.AddScoped<ProductsService>();
 builder.Services.AddScoped<BranchService>();
 builder.Services.AddScoped<SupplierCategoryService>();
-builder.Services.AddScoped<ICheckService, CheckService>(); 
+builder.Services.AddScoped<ICheckService, CheckService>();
 builder.Services.AddScoped<BillService>();
 builder.Services.AddScoped<BillDetailService>();
+builder.Services.AddScoped<SalesOrderService>();
 // ------------------------------------------------------------------------------------------------------
 // Authorization configuration
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
@@ -113,13 +114,14 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseCors("DevPolicy");
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
-        options.RoutePrefix = string.Empty;
-    });
 }
+
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+    options.RoutePrefix = string.Empty;
+});
 
 app.UseHttpsRedirection();
 
