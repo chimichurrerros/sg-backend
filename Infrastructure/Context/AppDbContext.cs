@@ -170,8 +170,12 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // Enums section ***************************************************************************************
+
         modelBuilder.HasPostgresEnum<CheckType>();
         modelBuilder.HasPostgresEnum<CheckStatus>();
+
+        // *****************************************************************************************************
 
         modelBuilder.Entity<Account>(entity =>
         {
