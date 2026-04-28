@@ -53,13 +53,17 @@ public class SalesOrderService(
             {
                 CustomerId = request.CustomerId,
                 UserId = userId,
-                Number = request.Number,
+                Number = string.Empty,
                 Date = DateTime.UtcNow,
                 SalesOrderState = request.SalesOrderState,
                 Total = 0 // Will compute
             };
 
             _context.SalesOrders.Add(salesOrder);
+            await _context.SaveChangesAsync();
+
+            salesOrder.Number = GenerateSalesOrderNumber(salesOrder.Id);
+            _context.SalesOrders.Update(salesOrder);
             await _context.SaveChangesAsync();
 
             decimal total = 0;
@@ -111,11 +115,11 @@ public class SalesOrderService(
                 BillType = BillTypeEnum.CONTADO,
                 CustomerId = request.CustomerId,
                 SalesOrderId = salesOrder.Id,
-                Number = request.BillNumber,
+                Number = GenerateBillNumber(salesOrder.Id),
                 Date = DateOnly.FromDateTime(DateTime.UtcNow),
                 Total = total,
                 TaxTotal = taxTotal,
-                BillState = request.BillState,
+                BillState = BillStateEnum.Pending,
                 IsCredit = false
             });
 
@@ -254,5 +258,15 @@ public class SalesOrderService(
             return Result<SalesOrderWrapperDto>.Failure(message!, serviceResult.Errors, serviceResult.ErrorType);
 
         return Result<SalesOrderWrapperDto>.Failure(message!, serviceResult.ErrorType);
+    }
+
+    private static string GenerateSalesOrderNumber(int salesOrderId)
+    {
+        return $"SO-{salesOrderId:D6}";
+    }
+
+    private static string GenerateBillNumber(int salesOrderId)
+    {
+        return $"BILL-{salesOrderId:D6}";
     }
 }
