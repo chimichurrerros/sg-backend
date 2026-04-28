@@ -20,6 +20,7 @@ public class ProductsService(AppDbContext context, IMapper mapper)
     {
         var products = await _context.Products
             .AsNoTracking()
+            .Where(p => p.IsService != true)
             .ProjectTo<ProductResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
@@ -28,10 +29,10 @@ public class ProductsService(AppDbContext context, IMapper mapper)
 
     public async Task<Result<ListProductsWrapperDto>> GetListAsync(PaginationRequestDto pagination)
     {
-        var query = _context.Products.AsNoTracking();
-        
+        var query = _context.Products.AsNoTracking().Where(p => p.IsService != true);
+
         var totalElements = await query.CountAsync();
-        
+
         var products = await query
             .OrderBy(v => v.Id)
             .Skip((pagination.Page - 1) * pagination.PageSize)
@@ -40,7 +41,7 @@ public class ProductsService(AppDbContext context, IMapper mapper)
             .ToListAsync();
 
         var _pagination = new Pagination(pagination.Page, pagination.PageSize, totalElements);
-            
+
         return Result<ListProductsWrapperDto>.Success(new ListProductsWrapperDto { Products = products, Pagination = _pagination });
     }
 
@@ -48,7 +49,7 @@ public class ProductsService(AppDbContext context, IMapper mapper)
     {
         var product = await _context.Products
             .AsNoTracking()
-            .Where(u => u.Id == id)
+            .Where(u => u.Id == id && u.IsService != true)
             .ProjectTo<ProductResponseDto>(_mapper.ConfigurationProvider)
             .FirstOrDefaultAsync();
 
@@ -61,10 +62,11 @@ public class ProductsService(AppDbContext context, IMapper mapper)
     public async Task<Result<ProductWrapperDto>> CreateAsync(ProductRequestDto request)
     {
         var product = _mapper.Map<Product>(request);
-        
+        product.IsService = false;
+
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
-        
+
         // Reload to get names for the DTO
         return await GetByIdAsync(product.Id);
     }
@@ -72,27 +74,29 @@ public class ProductsService(AppDbContext context, IMapper mapper)
     public async Task<Result<ProductWrapperDto>> UpdateAsync(int id, ProductRequestDto request)
     {
         var product = await _context.Products.FindAsync(id);
-        
+
         if (product == null)
             return Result<ProductWrapperDto>.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
         _mapper.Map(request, product);
+        product.IsService = false;
+
         _context.Products.Update(product);
         await _context.SaveChangesAsync();
-        
+
         return await GetByIdAsync(product.Id);
     }
 
     public async Task<Result> DeleteAsync(int id)
     {
-        var product = await _context.Products.FindAsync(id);
-        
+        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id || p.IsService != true);
+
         if (product == null)
             return Result.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
         _context.Products.Remove(product);
         await _context.SaveChangesAsync();
-        
+
         return Result.Success();
     }
 }

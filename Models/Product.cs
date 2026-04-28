@@ -7,10 +7,14 @@ public partial class Product
 {
     public int Id { get; set; }
 
-    public int ProductCategoryId { get; set; }
+    public int? ProductCategoryId { get; set; }
 
-    public int ProductBrandId { get; set; }
-    
+    public int? ProductBrandId { get; set; }
+
+    public decimal? MinimumStock { get; set; }
+
+    public bool? IsService { get; set; }
+
     public string Name { get; set; } = null!;
 
     public string Description { get; set; } = null!;
@@ -19,7 +23,7 @@ public partial class Product
 
     public decimal Cost { get; set; }
 
-    public decimal MinimumStock { get; set; }
+
 
     public virtual ICollection<BillDetail> BillDetails { get; set; } = new List<BillDetail>();
 
