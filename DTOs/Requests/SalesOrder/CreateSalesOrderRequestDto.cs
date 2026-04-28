@@ -8,6 +8,9 @@ public class CreateSalesOrderRequestDto
 {
     public int CustomerId { get; set; }
     public SalesOrderStateEnum SalesOrderState { get; set; }
+    public DateTime? Date { get; set; }
+    public BillTypeEnum? BillType { get; set; }
+    public bool? IsCredit { get; set; }
 
     public int AccountId { get; set; }
     public int MovementType { get; set; }
