@@ -41,14 +41,6 @@ public class SalesOrderService(
         if (!customerIdResult.IsSuccess)
             return Result<SalesOrderWrapperDto>.Failure(customerIdResult.ErrorMessage!, customerIdResult.ErrorType);
 
-        var branchId = request.Sale.BranchId ?? request.Sale.CashierNumber;
-        if (branchId == null)
-            return Result<SalesOrderWrapperDto>.Failure("Debe enviar sale.branchId o sale.cashierNumber.", ErrorType.Validation);
-
-        var accountId = request.Sale.AccountId ?? request.Sale.CashierNumber;
-        if (accountId == null)
-            return Result<SalesOrderWrapperDto>.Failure("Debe enviar sale.accountId o sale.cashierNumber.", ErrorType.Validation);
-
         var movementType = request.Sale.MovementType ?? (int)BankMovementTypeEnum.Credit;
 
         var details = new List<CreateSalesOrderDetailRequestDto>();
@@ -77,9 +69,9 @@ public class SalesOrderService(
             IsCredit = isCredit,
             PaymentMethod = (PaymentMethodEnum)request.Pay.Method,
             SaleCondition = (SaleConditionEnum)request.Pay.Condition,
-            AccountId = accountId.Value,
+            AccountId = request.Sale.AccountId ?? 0,
             MovementType = movementType,
-            BranchId = branchId.Value,
+            BranchId = request.Sale.BranchId ?? request.Sale.CashierNumber ?? 0,
             Details = details
         };
 
@@ -95,9 +87,17 @@ public class SalesOrderService(
         if (!customerResult.IsSuccess)
             return ToSalesOrderFailure(customerResult, SalesOrderError.CustomerNotFound);
 
-        var branchResult = await _branchService.GetByIdAsync(request.BranchId);
-        if (!branchResult.IsSuccess)
-            return ToSalesOrderFailure(branchResult, BranchError.BranchNotFound);
+        var branchIdResult = await ResolveBranchIdAsync(request.BranchId);
+        if (!branchIdResult.IsSuccess)
+            return Result<SalesOrderWrapperDto>.Failure(branchIdResult.ErrorMessage!, branchIdResult.ErrorType);
+
+        var accountIdResult = await ResolveAccountIdAsync(request.AccountId);
+        if (!accountIdResult.IsSuccess)
+            return Result<SalesOrderWrapperDto>.Failure(accountIdResult.ErrorMessage!, accountIdResult.ErrorType);
+
+        var movementType = request.MovementType <= 0
+            ? (int)BankMovementTypeEnum.Credit
+            : request.MovementType;
 
         using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -156,7 +156,7 @@ public class SalesOrderService(
                 };
                 _context.SalesOrderDetails.Add(salesOrderDetail);
 
-                var stockResult = await _stockService.DecreaseStockAsync(detail.ProductId, request.BranchId, detail.Quantity);
+                var stockResult = await _stockService.DecreaseStockAsync(detail.ProductId, branchIdResult.Value, detail.Quantity);
                 if (!stockResult.IsSuccess)
                 {
                     await transaction.RollbackAsync();
@@ -215,28 +215,28 @@ public class SalesOrderService(
             }
 
             // 4. Increase Account Balance----------------------------------------------------------------
-            var account = await _context.Accounts.FindAsync(request.AccountId);
-            if (account == null)
+            if (accountIdResult.Value > 0)
             {
-                await transaction.RollbackAsync();
-                return Result<SalesOrderWrapperDto>.Failure(SalesOrderError.AccountNotFound, ErrorType.NotFound);
+                var account = await _context.Accounts.FindAsync(accountIdResult.Value);
+                if (account != null)
+                {
+                    account.CurrentBalance += total;
+                    account.AvailableBalance += total;
+                    _context.Accounts.Update(account);
+
+                    // After cange with Joshua🥵 services 
+                    // 5. Create Bank Movement----------------------------------------------------------------
+                    var bankMovement = new BankMovement
+                    {
+                        AccountId = account.Id,
+                        MovementType = (BankMovementTypeEnum)movementType,
+                        Date = DateTime.UtcNow,
+                        Amount = total,
+                        ReferenceNumber = $"SALE-{salesOrder.Id}"
+                    };
+                    _context.BankMovements.Add(bankMovement);
+                }
             }
-
-            account.CurrentBalance += total;
-            account.AvailableBalance += total;
-            _context.Accounts.Update(account);
-
-            // After cange with Joshua🥵 services 
-            // 5. Create Bank Movement----------------------------------------------------------------
-            var bankMovement = new BankMovement
-            {
-                AccountId = request.AccountId,
-                MovementType = (BankMovementTypeEnum)request.MovementType,
-                Date = DateTime.UtcNow,
-                Amount = total,
-                ReferenceNumber = $"SALE-{salesOrder.Id}"
-            };
-            _context.BankMovements.Add(bankMovement);
 
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -320,6 +320,45 @@ public class SalesOrderService(
     private static string GenerateSalesOrderNumber(int salesOrderId)
     {
         return $"SO-{salesOrderId:D6}";
+    }
+
+    private async Task<Result<int>> ResolveBranchIdAsync(int requestedBranchId)
+    {
+        if (requestedBranchId > 0)
+        {
+            var branchExists = await _context.Branches.AsNoTracking().AnyAsync(branch => branch.Id == requestedBranchId);
+            if (branchExists)
+                return Result<int>.Success(requestedBranchId);
+        }
+
+        var firstBranchId = await _context.Branches
+            .AsNoTracking()
+            .OrderBy(branch => branch.Id)
+            .Select(branch => branch.Id)
+            .FirstOrDefaultAsync();
+
+        if (firstBranchId <= 0)
+            return Result<int>.Failure(BranchError.BranchNotFound, ErrorType.NotFound);
+
+        return Result<int>.Success(firstBranchId);
+    }
+
+    private async Task<Result<int>> ResolveAccountIdAsync(int requestedAccountId)
+    {
+        if (requestedAccountId > 0)
+        {
+            var accountExists = await _context.Accounts.AsNoTracking().AnyAsync(account => account.Id == requestedAccountId);
+            if (accountExists)
+                return Result<int>.Success(requestedAccountId);
+        }
+
+        var firstAccountId = await _context.Accounts
+            .AsNoTracking()
+            .OrderBy(account => account.Id)
+            .Select(account => account.Id)
+            .FirstOrDefaultAsync();
+
+        return Result<int>.Success(firstAccountId);
     }
 
     private async Task<Result<int>> ResolveCustomerIdAsync(PosSaleCustomerRequestDto customer)
