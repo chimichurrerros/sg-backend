@@ -4,3 +4,46 @@ GET {{BackEnd_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+@token = REPLACE_WITH_JWT
+
+POST {{BackEnd_HostAddress}}/api/sales-orders/pos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+	"customer": {
+		"name": "Cliente Mostrador",
+		"ruc": "80012345-6"
+	},
+	"sale": {
+		"date": "2026-04-28T12:00:00Z",
+		"cashierNumber": 1,
+		"branchId": 1,
+		"accountId": 1,
+		"movementType": 2
+	},
+	"pay": {
+		"method": 1,
+		"condition": 1
+	},
+	"products": [
+		{
+			"productId": 1,
+			"quantity": 2
+		},
+		{
+			"barcode": "1234567890123",
+			"quantity": 1
+		}
+	],
+	"totals": {
+		"subtotal": 100000,
+		"iva": 10000,
+		"total": 110000,
+		"amount": 120000,
+		"change": 10000
+	}
+}
+
+###
