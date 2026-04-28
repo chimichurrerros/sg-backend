@@ -10,17 +10,12 @@ namespace BackEnd.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Users_PhysicalPersons_PhysicalPersonEntityId",
-                table: "Users");
-
-            migrationBuilder.DropIndex(
-                name: "IX_Users_PhysicalPersonEntityId",
-                table: "Users");
-
-            migrationBuilder.DropColumn(
-                name: "PhysicalPersonEntityId",
-                table: "Users");
+            migrationBuilder.Sql("ALTER TABLE \"Users\" DROP CONSTRAINT IF EXISTS \"FK_Users_PhysicalPersons_PhysicalPersonEntityId\";");
+            migrationBuilder.Sql("ALTER TABLE \"Users\" DROP CONSTRAINT IF EXISTS \"Users_EntityId_fkey\";");
+            migrationBuilder.Sql("DROP INDEX IF EXISTS \"IX_Users_PhysicalPersonEntityId\";");
+            migrationBuilder.Sql("DROP INDEX IF EXISTS \"IX_Users_EntityId\";");
+            migrationBuilder.Sql("ALTER TABLE \"Users\" DROP COLUMN IF EXISTS \"PhysicalPersonEntityId\";");
+            migrationBuilder.Sql("ALTER TABLE \"Users\" DROP COLUMN IF EXISTS \"EntityId\";");
 
             migrationBuilder.AlterColumn<int>(
                 name: "ProductCategoryId",

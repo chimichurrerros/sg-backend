@@ -11,6 +11,8 @@ public class CreateSalesOrderRequestDto
     public DateTime? Date { get; set; }
     public BillTypeEnum? BillType { get; set; }
     public bool? IsCredit { get; set; }
+    public PaymentMethodEnum? PaymentMethod { get; set; }
+    public SaleConditionEnum? SaleCondition { get; set; }
 
     public int AccountId { get; set; }
     public int MovementType { get; set; }
