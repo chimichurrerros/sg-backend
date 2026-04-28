@@ -1,6 +1,7 @@
 using BackEnd.Constants.Errors;
 using BackEnd.DTOs.Requests.Bill;
 using BackEnd.DTOs.Requests.BillDetail;
+using BackEnd.DTOs.Requests.Customer;
 using BackEnd.DTOs.Requests.SalesOrder;
 using BackEnd.DTOs.Responses.SalesOrder;
 using BackEnd.Infrastructure.Context;
@@ -31,6 +32,58 @@ public class SalesOrderService(
     private readonly IMapper _mapper = mapper;
     private const int TaxRate = 10;
 
+    public async Task<Result<SalesOrderWrapperDto>> CreateFromPosAsync(CreatePosSaleRequestDto request, int userId)
+    {
+        if (request.Products.Count == 0)
+            return Result<SalesOrderWrapperDto>.Failure(SalesOrderError.DetailsRequired, ErrorType.Validation);
+
+        var customerIdResult = await ResolveCustomerIdAsync(request.Customer);
+        if (!customerIdResult.IsSuccess)
+            return Result<SalesOrderWrapperDto>.Failure(customerIdResult.ErrorMessage!, customerIdResult.ErrorType);
+
+        var branchId = request.Sale.BranchId ?? request.Sale.CashierNumber;
+        if (branchId == null)
+            return Result<SalesOrderWrapperDto>.Failure("Debe enviar sale.branchId o sale.cashierNumber.", ErrorType.Validation);
+
+        var accountId = request.Sale.AccountId ?? request.Sale.CashierNumber;
+        if (accountId == null)
+            return Result<SalesOrderWrapperDto>.Failure("Debe enviar sale.accountId o sale.cashierNumber.", ErrorType.Validation);
+
+        var movementType = request.Sale.MovementType ?? (int)BankMovementTypeEnum.Credit;
+
+        var details = new List<CreateSalesOrderDetailRequestDto>();
+        foreach (var product in request.Products)
+        {
+            var productIdResult = await ResolveProductIdAsync(product);
+            if (!productIdResult.IsSuccess)
+                return Result<SalesOrderWrapperDto>.Failure(productIdResult.ErrorMessage!, productIdResult.ErrorType);
+
+            details.Add(new CreateSalesOrderDetailRequestDto
+            {
+                ProductId = productIdResult.Value,
+                Quantity = product.Quantity
+            });
+        }
+
+        var isCredit = request.Pay.Condition == PosSaleCondition.Credit;
+        var billType = request.Sale.Bill ?? (isCredit ? BillTypeEnum.CREDITO : BillTypeEnum.CONTADO);
+
+        var mappedRequest = new CreateSalesOrderRequestDto
+        {
+            CustomerId = customerIdResult.Value,
+            SalesOrderState = SalesOrderStateEnum.Confirmed,
+            Date = request.Sale.Date,
+            BillType = billType,
+            IsCredit = isCredit,
+            AccountId = accountId.Value,
+            MovementType = movementType,
+            BranchId = branchId.Value,
+            Details = details
+        };
+
+        return await CreateAsync(mappedRequest, userId);
+    }
+
     public async Task<Result<SalesOrderWrapperDto>> CreateAsync(CreateSalesOrderRequestDto request, int userId)
     {
         if (request.Details.Count == 0)
@@ -54,7 +107,7 @@ public class SalesOrderService(
                 CustomerId = request.CustomerId,
                 UserId = userId,
                 Number = string.Empty,
-                Date = DateTime.UtcNow,
+                Date = request.Date ?? DateTime.UtcNow,
                 SalesOrderState = request.SalesOrderState,
                 Total = 0 // Will compute
             };
@@ -112,15 +165,15 @@ public class SalesOrderService(
 
             var billResult = await _billService.CreateAsync(new CreateBillRequestDto
             {
-                BillType = BillTypeEnum.CONTADO,
+                BillType = request.BillType ?? BillTypeEnum.CONTADO,
                 CustomerId = request.CustomerId,
                 SalesOrderId = salesOrder.Id,
                 Number = GenerateBillNumber(salesOrder.Id),
-                Date = DateOnly.FromDateTime(DateTime.UtcNow),
+                Date = DateOnly.FromDateTime(request.Date ?? DateTime.UtcNow),
                 Total = total,
                 TaxTotal = taxTotal,
                 BillState = BillStateEnum.Pending,
-                IsCredit = false
+                IsCredit = request.IsCredit ?? false
             });
 
             if (!billResult.IsSuccess)
@@ -263,6 +316,62 @@ public class SalesOrderService(
     private static string GenerateSalesOrderNumber(int salesOrderId)
     {
         return $"SO-{salesOrderId:D6}";
+    }
+
+    private async Task<Result<int>> ResolveCustomerIdAsync(PosSaleCustomerRequestDto customer)
+    {
+        var ruc = customer.Ruc?.Trim();
+        if (string.IsNullOrWhiteSpace(ruc))
+            return Result<int>.Failure("customer.ruc es obligatorio.", ErrorType.Validation);
+
+        var existingCustomer = await _context.Customers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Ruc == ruc);
+
+        if (existingCustomer != null)
+            return Result<int>.Success(existingCustomer.Id);
+
+        var name = customer.Name?.Trim();
+        if (string.IsNullOrWhiteSpace(name))
+            return Result<int>.Failure("customer.name es obligatorio cuando el cliente no existe.", ErrorType.Validation);
+
+        var createdCustomerResult = await _customerService.CreateAsync(new CreateCustomerRequestDto
+        {
+            Name = name,
+            Ruc = ruc
+        });
+
+        if (!createdCustomerResult.IsSuccess)
+        {
+            if (createdCustomerResult.Errors != null)
+                return Result<int>.Failure(createdCustomerResult.ErrorMessage!, createdCustomerResult.Errors, createdCustomerResult.ErrorType);
+
+            return Result<int>.Failure(createdCustomerResult.ErrorMessage ?? SalesOrderError.CustomerNotFound, createdCustomerResult.ErrorType);
+        }
+
+        return Result<int>.Success(createdCustomerResult.Value!.Customer.Id);
+    }
+
+    private async Task<Result<int>> ResolveProductIdAsync(PosSaleProductRequestDto product)
+    {
+        if (product.Quantity <= 0)
+            return Result<int>.Failure("Cada producto debe tener quantity > 0.", ErrorType.Validation);
+
+        if (product.ProductId.HasValue)
+            return Result<int>.Success(product.ProductId.Value);
+
+        if (string.IsNullOrWhiteSpace(product.Barcode))
+            return Result<int>.Failure("Cada producto debe tener productId o barcode.", ErrorType.Validation);
+
+        var barcode = product.Barcode.Trim();
+        var productEntity = await _context.Products
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Barcode == barcode);
+
+        if (productEntity == null)
+            return Result<int>.Failure($"No se encontro producto con barcode {barcode}.", ErrorType.Validation);
+
+        return Result<int>.Success(productEntity.Id);
     }
 
     private static string GenerateBillNumber(int salesOrderId)
