@@ -1,4 +1,4 @@
-namespace BackEnd.DTOs.Requests.Accounts;
+namespace BackEnd.DTOs.Responses.Accounts;
 using BackEnd.Models; 
 
 public class AccountResponseDto

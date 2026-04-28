@@ -11,7 +11,7 @@ namespace BackEnd.Services;
 
 public class CheckService : ICheckService
 {
-    private readonly AppDbContext _context; // Cambia AppDbContext por el nombre de tu DbContext
+    private readonly AppDbContext _context; 
     private readonly IMapper _mapper;
 
     public CheckService(AppDbContext context, IMapper mapper)

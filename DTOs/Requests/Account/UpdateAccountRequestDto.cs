@@ -9,7 +9,5 @@ public class UpdateAccountRequestDto
 
     public string Name { get; set; } = null!;
 
-    public decimal CurrentBalance { get; set; }
-
-    public decimal AvailableBalance { get; set; }
+    
 }
