@@ -75,6 +75,8 @@ public class SalesOrderService(
             Date = request.Sale.Date,
             BillType = billType,
             IsCredit = isCredit,
+            PaymentMethod = (PaymentMethodEnum)request.Pay.Method,
+            SaleCondition = (SaleConditionEnum)request.Pay.Condition,
             AccountId = accountId.Value,
             MovementType = movementType,
             BranchId = branchId.Value,
@@ -109,6 +111,8 @@ public class SalesOrderService(
                 Number = string.Empty,
                 Date = request.Date ?? DateTime.UtcNow,
                 SalesOrderState = request.SalesOrderState,
+                PaymentMethod = request.PaymentMethod,
+                SaleCondition = request.SaleCondition,
                 Total = 0 // Will compute
             };
 
