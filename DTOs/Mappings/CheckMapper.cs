@@ -1,7 +1,7 @@
 using AutoMapper;
 using BackEnd.Models;
-using BackEnd.DTOs.Requests.Checks; // Ajusta según tu namespace
-using BackEnd.DTOs.Responses.Checks; // Ajusta según tu namespace
+using BackEnd.DTOs.Requests.Checks; 
+using BackEnd.DTOs.Responses.Checks; 
 
 namespace BackEnd.Profiles;
 
