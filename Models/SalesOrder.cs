@@ -21,6 +21,10 @@ public partial class SalesOrder
 
     public SalesOrderStateEnum SalesOrderState { get; set; }
 
+    public PaymentMethodEnum? PaymentMethod { get; set; }
+
+    public SaleConditionEnum? SaleCondition { get; set; }
+
     public virtual ICollection<Bill> Bills { get; set; } = new List<Bill>();
 
     public virtual Customer Customer { get; set; } = null!;
@@ -30,4 +34,17 @@ public partial class SalesOrder
     public virtual ICollection<SalesOrderDetail> SalesOrderDetails { get; set; } = new List<SalesOrderDetail>();
 
     public virtual User User { get; set; } = null!;
+}
+
+public enum PaymentMethodEnum
+{
+    Cash = 1,
+    Card = 2,
+    Transfer = 3
+}
+
+public enum SaleConditionEnum
+{
+    Cash = 1,
+    Credit = 2
 }

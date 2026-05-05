@@ -36,6 +36,24 @@ public class SalesOrderController(SalesOrderService salesOrderService) : Control
         return this.HandleServerError(SalesOrderError.ProcessFailed, result);
     }
 
+    [HttpPost("pos")]
+    public async Task<ActionResult<SalesOrderWrapperDto>> CreateFromPos(CreatePosSaleRequestDto request)
+    {
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = int.Parse(userIdString!);
+
+        var result = await _salesOrderService.CreateFromPosAsync(request, userId);
+        if (result.IsSuccess) return Created($"/api/sales-orders/{result.Value!.SalesOrder.Id}", result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result, null);
+
+        if (result.ErrorType == ErrorType.Validation)
+            return this.HandleBadRequestProblem(result);
+
+        return this.HandleServerError(SalesOrderError.ProcessFailed, result);
+    }
+
     [HttpGet("all")]
     public async Task<ActionResult<ListSalesOrdersWrapperDto>> GetAll()
     {

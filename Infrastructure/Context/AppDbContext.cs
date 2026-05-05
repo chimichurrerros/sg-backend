@@ -774,6 +774,7 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("Products_pkey");
 
             entity.Property(e => e.Cost).HasPrecision(15, 2);
+            entity.Property(e => e.Barcode).HasMaxLength(100);
             entity.Property(e => e.MinimumStock).HasPrecision(10, 2);
             entity.Property(e => e.Name).HasMaxLength(150);
             entity.Property(e => e.Price).HasPrecision(15, 2);
