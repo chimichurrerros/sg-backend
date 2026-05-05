@@ -37,6 +37,17 @@ public class CustomerService(AppDbContext context, IMapper mapper)
         });
     }
 
+    public async Task<Result<IEnumerable<CustomerResponseDto>>> GetAllAsync()
+    {
+        var customers = await _context.Customers
+            .AsNoTracking()
+            .OrderBy(c => c.Name) 
+            .ProjectTo<CustomerResponseDto>(_mapper.ConfigurationProvider)
+            .ToListAsync();
+
+        return Result<IEnumerable<CustomerResponseDto>>.Success(customers);
+    }
+
     public async Task<Result<CustomerWrapperDto>> GetByIdAsync(int id)
     {
         var customer = await _context.Customers
