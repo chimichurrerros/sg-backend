@@ -12,6 +12,8 @@ namespace BackEnd.Controllers.Check;
 [Route("api/checks")]
 [ApiController]
 [Authorize]
+[AllowAnonymous]
+
 public class ChecksController(CheckService checkService) : ControllerBase
 {
     private readonly CheckService _checkService = checkService;
@@ -67,8 +69,8 @@ public class ChecksController(CheckService checkService) : ControllerBase
     }
 
     // Usamos PATCH porque es una actualización parcial (solo estado y fecha)
-    [HttpPatch("{id}/status")]
-    public async Task<ActionResult<CheckWrapperDto>> UpdateStatus(int id, UpdateCheckStatusRequestDto request)
+  [HttpPatch("{id}/status")]
+    public async Task<ActionResult<CheckWrapperDto>> UpdateStatus(int id, [FromBody] UpdateCheckStatusRequestDto request)
     {
         var result = await _checkService.UpdateStatusAsync(id, request);
 
@@ -76,8 +78,11 @@ public class ChecksController(CheckService checkService) : ControllerBase
             return Ok(result.Value);
 
         if (result.ErrorType == ErrorType.NotFound)
-            return this.HandleNotFoundProblem(result);
+            return this.HandleNotFoundProblem(result); // Tu manejador personalizado
 
-        return StatusCode(500);
+        if (result.ErrorType == ErrorType.Validation)
+            return BadRequest(result); // ¡Añadimos esto para manejar reglas de negocio!
+
+        return StatusCode(500, "Ocurrió un error interno en el servidor.");
     }
 }

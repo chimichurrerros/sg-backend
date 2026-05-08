@@ -89,24 +89,50 @@ public class CheckService(AppDbContext context, IMapper mapper)
         return await GetByIdAsync(newCheck.Id);
     }
 
+    // Fíjate que ahora recibe el DTO
     public async Task<Result<CheckWrapperDto>> UpdateStatusAsync(int id, UpdateCheckStatusRequestDto request)
     {
-        var check = await _context.Checks.FindAsync(id);
+        var check = await _context.Checks.FirstOrDefaultAsync(c => c.Id == id);
 
         if (check == null)
-            return Result<CheckWrapperDto>.Failure(ApplicationError.NotFound, ErrorType.NotFound);
+            return Result<CheckWrapperDto>.Failure("El cheque no existe.", ErrorType.NotFound);
 
-        // Actualizamos solo lo permitido por el DTO estricto
-        check.Status = request.Status;
+        // Leemos el nuevo estado desde la propiedad de tu DTO (asumo que se llama Status)
+        if (check.Status == request.Status)
+            return Result<CheckWrapperDto>.Failure("El cheque ya se encuentra en el estado solicitado.", ErrorType.Validation);
 
-        if (request.Status == CheckStatusEnum.Cashed && request.PaymentDate.HasValue)
+        if (request.Status == CheckStatusEnum.Cashed)
         {
-            check.PaymentDate = request.PaymentDate;
+            var account = await _context.Accounts.FindAsync(check.AccountId);
+            if (account == null)
+                return Result<CheckWrapperDto>.Failure("La cuenta bancaria asociada a este cheque no existe.", ErrorType.NotFound);
+
+            check.PaymentDate = DateOnly.FromDateTime(DateTime.Now);
+
+            var movement = new BankMovement
+            {
+                AccountId = check.AccountId,
+                MovementType = BankMovementTypeEnum.Debit,
+                Date = DateTime.Now,
+                Amount = check.Amount,
+                ReferenceNumber = $"CHQ-{check.Number} (COBRO)"
+            };
+            
+            _context.BankMovements.Add(movement);
+
+            account.CurrentBalance -= check.Amount;
+            account.AvailableBalance -= check.Amount;
+        }
+        else if (request.Status == CheckStatusEnum.Voided) 
+        {
+            check.PaymentDate = null;
         }
 
-        _context.Checks.Update(check);
+        check.Status = request.Status;
+
         await _context.SaveChangesAsync();
 
-        return await GetByIdAsync(check.Id);
+        var response = _mapper.Map<CheckWrapperDto>(check);
+        return Result<CheckWrapperDto>.Success(response);
     }
 }

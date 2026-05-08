@@ -7,6 +7,7 @@ public partial class Check
 {
     public int Id { get; set; }
 
+    public int AccountId { get; set; }
     public string Number { get; set; } = null!;
 
     public DateTime EmisionDate { get; set; } // Fecha de emision
