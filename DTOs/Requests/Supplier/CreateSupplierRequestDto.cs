@@ -4,21 +4,21 @@ using BackEnd.Constants.Errors;
 namespace BackEnd.DTOs.Requests.Supplier;
 
 /// <summary>
-/// DTO for creating a new supplier. Suppliers are always associated with a LegalPerson entity.
+/// DTO for creating a new supplier.
 /// </summary>
 public class CreateSupplierRequestDto
 {
     /// <summary>
-    /// Unique document number (e.g., RUC, VAT ID) for the supplier's legal entity.
+    /// Unique document number (e.g., RUC, VAT ID) for the supplier.
     /// </summary>
-    [Required(ErrorMessage = SupplierError.DocumentNumberRequired)]
-    public string DocumentNumber { get; set; } = null!;
+    [Required(ErrorMessage = SupplierError.RucRequired)]
+    public string Ruc { get; set; } = null!;
 
     /// <summary>
-    /// Business/company name of the legal person.
+    /// Business/company name of the supplier.
     /// </summary>
     [Required(ErrorMessage = SupplierError.BusinessNameRequired)]
-    public string BusinessName { get; set; } = null!;
+    public string BussinessName { get; set; } = null!;
 
     /// <summary>
     /// Optional fantasy name or trade name used by the legal person.

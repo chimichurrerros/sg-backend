@@ -26,6 +26,4 @@ public partial class Entity
     public virtual LegalPerson? LegalPerson { get; set; }
 
     public virtual PhysicalPerson? PhysicalPerson { get; set; }
-
-    public virtual ICollection<Supplier> Suppliers { get; set; } = new List<Supplier>();
 }

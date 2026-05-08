@@ -991,10 +991,14 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("Suppliers_pkey");
 
-            entity.HasOne(d => d.Entity).WithMany(p => p.Suppliers)
-                .HasForeignKey(d => d.EntityId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Suppliers_EntityId_fkey");
+            entity.HasIndex(e => e.Ruc, "Suppliers_Ruc_key").IsUnique();
+            entity.Property(e => e.Address).HasMaxLength(255);
+            entity.Property(e => e.BussinessName).HasMaxLength(150);
+            entity.Property(e => e.Email).HasMaxLength(150);
+            entity.Property(e => e.FantasyName).HasMaxLength(150);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.Phone).HasMaxLength(50);
+            entity.Property(e => e.Ruc).HasMaxLength(20);
         });
 
         modelBuilder.Entity<SupplierCategory>(entity =>

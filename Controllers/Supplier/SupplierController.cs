@@ -52,7 +52,7 @@ public class SupplierController(SupplierService supplierService) : ControllerBas
     /// Authentication: Required (Bearer token or cookie)
     /// </summary>
     /// <param name="id">The supplier ID</param>
-    /// <returns>Supplier data with associated entity and categories</returns>
+    /// <returns>Supplier data with categories</returns>
     [HttpGet("{id}")]
     public async Task<ActionResult<SupplierWrapperDto>> GetSupplierById(int id)
     {
@@ -73,17 +73,17 @@ public class SupplierController(SupplierService supplierService) : ControllerBas
 
     /// <summary>
     /// POST /api/suppliers
-    /// Creates a new supplier with automatic Entity and LegalPerson creation.
+    /// Creates a new supplier directly.
     /// The request is validated by data annotations (required fields, email format).
     /// All business logic validation is handled in SupplierService.
     /// Authentication: Required (Bearer token or cookie)
     /// </summary>
-    /// <param name="request">Create supplier request containing legal entity data</param>
+    /// <param name="request">Create supplier request containing supplier data</param>
     /// <returns>Created supplier with 201 status and Location header</returns>
     [HttpPost]
     public async Task<ActionResult<SupplierWrapperDto>> Create(CreateSupplierRequestDto request)
     {
-        // Delegate all business logic to service (Entity creation, LegalPerson sync, categories, etc.)
+        // Delegate all business logic to service (supplier creation, categories, etc.)
         var result = await _supplierService.CreateAsync(request);
 
         // Return created result with Location header (201 Created)
@@ -110,7 +110,7 @@ public class SupplierController(SupplierService supplierService) : ControllerBas
     [HttpPut("{id}")]
     public async Task<ActionResult<SupplierWrapperDto>> Update(int id, UpdateSupplierRequestDto request)
     {
-        // Delegate all business logic to service (Entity/LegalPerson update, categories, etc.)
+        // Delegate all business logic to service (supplier update, categories, etc.)
         var result = await _supplierService.UpdateAsync(id, request);
 
         // Return successful result (200 OK)
