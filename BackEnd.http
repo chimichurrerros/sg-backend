@@ -1,4 +1,1 @@
-@BackEnd_HostAddress = http://localhost:5125
-
-GET {{BackEnd_HostAddress}}/api/test
-Accept: application/json
+@BackEnd_HostAddress = http://localhost:5125`
