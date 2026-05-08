@@ -47,6 +47,13 @@ builder.Services.AddScoped<StockService>();
 builder.Services.AddScoped<SalesOrderService>();
 builder.Services.AddScoped<StatesService>();
 builder.Services.AddScoped<ServicesService>();
+builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IBankMovementService, BankMovementService>();
+
+
+
+
+
 // ------------------------------------------------------------------------------------------------------
 // Authorization configuration
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
