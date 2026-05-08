@@ -265,6 +265,8 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("BankMovements_AccountId_fkey");
         });
 
+        modelBuilder.Entity<Branch>().HasQueryFilter(b => !b.IsDeleted);
+
         modelBuilder.Entity<CashAccount>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("CashAccounts_pkey");
@@ -275,6 +277,8 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.BranchId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("CashAccounts_BranchId_fkey");
+            
+            entity.HasQueryFilter(e => !e.IsDeleted);
         });
 
         modelBuilder.Entity<Check>(entity =>
@@ -802,6 +806,8 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ProductCategoryId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("Products_ProductCategoryId_fkey");
+
+            entity.HasQueryFilter(e => !e.IsDeleted);
         });
 
         modelBuilder.Entity<ProductBrand>(entity =>
@@ -809,6 +815,8 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("ProductBrands_pkey");
 
             entity.Property(e => e.Name).HasMaxLength(100);
+
+            entity.HasQueryFilter(e => !e.IsDeleted);
         });
 
         modelBuilder.Entity<ProductCategory>(entity =>
@@ -816,6 +824,8 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("ProductCategories_pkey");
 
             entity.Property(e => e.Name).HasMaxLength(100);
+
+            entity.HasQueryFilter(e => !e.IsDeleted);
         });
 
         modelBuilder.Entity<PurchaseOrder>(entity =>

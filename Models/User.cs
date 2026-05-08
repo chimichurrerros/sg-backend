@@ -14,6 +14,9 @@ public partial class User
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    public int BranchId { get; set; }
+    public virtual Branch Branch { get; set; } = null!;
+
     public virtual ICollection<CustomerQuote> CustomerQuotes { get; set; } = new List<CustomerQuote>();
 
     public virtual ICollection<PurchaseRequest> PurchaseRequests { get; set; } = new List<PurchaseRequest>();

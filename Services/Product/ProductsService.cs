@@ -94,7 +94,8 @@ public class ProductsService(AppDbContext context, IMapper mapper)
         if (product == null)
             return Result.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
-        _context.Products.Remove(product);
+        product.IsDeleted = true;
+        _context.Products.Update(product);
         await _context.SaveChangesAsync();
 
         return Result.Success();

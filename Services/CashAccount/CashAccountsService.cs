@@ -90,7 +90,8 @@ public class CashAccountsService(AppDbContext context, IMapper mapper)
         if (cashAccount == null)
             return Result.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
-        _context.CashAccounts.Remove(cashAccount);
+        cashAccount.IsDeleted = true;
+        _context.CashAccounts.Update(cashAccount);
         await _context.SaveChangesAsync();
 
         return Result.Success();

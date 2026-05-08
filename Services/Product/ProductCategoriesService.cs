@@ -89,7 +89,8 @@ public class ProductCategoriesService(AppDbContext context, IMapper mapper)
         if (category == null)
             return Result.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
-        _context.ProductCategories.Remove(category);
+        category.IsDeleted = true;
+        _context.ProductCategories.Update(category);
         await _context.SaveChangesAsync();
         
         return Result.Success();

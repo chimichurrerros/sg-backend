@@ -11,5 +11,7 @@ public partial class Branch
 
     public string Address { get; set; } = null!;
     
+    public bool IsDeleted { get; set; } = false;
+
     public virtual ICollection<Stock> Stocks { get; set; } = new List<Stock>();
 }

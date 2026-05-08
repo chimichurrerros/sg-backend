@@ -89,7 +89,8 @@ public class ProductBrandsService(AppDbContext context, IMapper mapper)
         if (brand == null)
             return Result.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
-        _context.ProductBrands.Remove(brand);
+        brand.IsDeleted = true;
+        _context.ProductBrands.Update(brand);
         await _context.SaveChangesAsync();
         
         return Result.Success();

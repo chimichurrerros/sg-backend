@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace BackEnd.Models;
@@ -25,7 +25,7 @@ public partial class Product
 
     public decimal Cost { get; set; }
 
-
+    public bool IsDeleted { get; set; } = false;
 
     public virtual ICollection<BillDetail> BillDetails { get; set; } = new List<BillDetail>();
 

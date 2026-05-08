@@ -89,7 +89,8 @@ public class BranchService(AppDbContext context, IMapper mapper)
         if (branch == null)
             return Result.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
-        _context.Branches.Remove(branch);
+        branch.IsDeleted = true;
+        _context.Branches.Update(branch);
         await _context.SaveChangesAsync();
 
         return Result.Success();

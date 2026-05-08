@@ -38,7 +38,8 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
             LastName = request.LastName,
             Email = request.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-            RoleId = defaultRole
+            RoleId = defaultRole,
+            BranchId = request.BranchId
         };
 
         _context.Users.Add(user);
@@ -92,7 +93,8 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
             new(ClaimTypes.Email, user.Email),
             new(ClaimTypes.Name, user.Name),
             new(ClaimTypes.Surname, user.LastName),
-            new(ClaimTypes.Role, user.Role!.Name)
+            new(ClaimTypes.Role, user.Role!.Name),
+            new("BranchId", user.BranchId.ToString())
         };
 
         if (user.Role!.Permissions is { } permissions) // I need this to suppress a warning
