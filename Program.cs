@@ -9,7 +9,6 @@ using BackEnd.Constants.Errors;
 using BackEnd.Services;
 using BackEnd.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
-using BackEnd.Services.Interfaces;
 
 // NECESITO ESTO PARA GUARDAR LA EL DATE TIME SIN JODER CON EL DBCONTEXT
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -40,15 +39,15 @@ builder.Services.AddScoped<ProductCategoriesService>();
 builder.Services.AddScoped<ProductsService>();
 builder.Services.AddScoped<BranchService>();
 builder.Services.AddScoped<SupplierCategoryService>();
-builder.Services.AddScoped<ICheckService, CheckService>();
+builder.Services.AddScoped<CheckService>();
 builder.Services.AddScoped<BillService>();
 builder.Services.AddScoped<BillDetailService>();
 builder.Services.AddScoped<StockService>();
 builder.Services.AddScoped<SalesOrderService>();
 builder.Services.AddScoped<StatesService>();
 builder.Services.AddScoped<ServicesService>();
-builder.Services.AddScoped<IAccountService, AccountService>();
-builder.Services.AddScoped<IBankMovementService, BankMovementService>();
+builder.Services.AddScoped<AccountService>();
+builder.Services.AddScoped<BankMovementService>();
 
 
 

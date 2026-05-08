@@ -1,95 +1,108 @@
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using BackEnd.Models;
 using BackEnd.DTOs.Requests.Accounts;
+using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Responses.Accounts;
+using BackEnd.Constants.Errors;
 using BackEnd.Utils;
-using BackEnd.Services.Interfaces;
 using BackEnd.Infrastructure.Context;
 
 namespace BackEnd.Services;
 
-public class AccountService : IAccountService
+public class AccountService(AppDbContext context, IMapper mapper)
 {
-    private readonly AppDbContext _context; 
-    private readonly IMapper _mapper;
+    private readonly AppDbContext _context = context;
+    private readonly IMapper _mapper = mapper;
 
-    public AccountService(AppDbContext context, IMapper mapper)
+    public async Task<Result<ListAccountsWrapperDto>> GetAllAsync()
     {
-        _context = context;
-        _mapper = mapper;
-    }
-
-    public async Task<Result<IEnumerable<AccountResponseDto>>> GetAllAsync()
-    {
-        // Usamos Include para traer los datos del banco si es que tiene uno asociado
         var accounts = await _context.Accounts
-            .Include(a => a.Bank)
+            .AsNoTracking()
+            .ProjectTo<AccountResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
-            
-        var response = _mapper.Map<IEnumerable<AccountResponseDto>>(accounts);
-        return Result<IEnumerable<AccountResponseDto>>.Success(response);
+
+        return Result<ListAccountsWrapperDto>.Success(new ListAccountsWrapperDto { Accounts = accounts });
     }
 
-    public async Task<Result<AccountResponseDto>> GetByIdAsync(int id)
+    public async Task<Result<ListAccountsWrapperDto>> GetListAsync(PaginationRequestDto pagination)
+    {
+        var query = _context.Accounts.AsNoTracking();
+
+        var totalElements = await query.CountAsync();
+
+        var accounts = await query
+            .OrderBy(v => v.Id)
+            .Skip((pagination.Page - 1) * pagination.PageSize)
+            .Take(pagination.PageSize)
+            .ProjectTo<AccountResponseDto>(_mapper.ConfigurationProvider)
+            .ToListAsync();
+
+        var _pagination = new Pagination(pagination.Page, pagination.PageSize, totalElements);
+
+        return Result<ListAccountsWrapperDto>.Success(new ListAccountsWrapperDto { Accounts = accounts, Pagination = _pagination });
+    }
+
+    public async Task<Result<AccountWrapperDto>> GetByIdAsync(int id)
     {
         var account = await _context.Accounts
-            .Include(a => a.Bank)
-            .FirstOrDefaultAsync(a => a.Id == id);
+            .AsNoTracking()
+            .Where(u => u.Id == id)
+            .ProjectTo<AccountResponseDto>(_mapper.ConfigurationProvider)
+            .FirstOrDefaultAsync();
 
         if (account == null)
-            return Result<AccountResponseDto>.Failure("La cuenta no existe.", ErrorType.NotFound);
+            return Result<AccountWrapperDto>.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
-        var response = _mapper.Map<AccountResponseDto>(account);
-        return Result<AccountResponseDto>.Success(response);
+        return Result<AccountWrapperDto>.Success(new AccountWrapperDto { Account = account });
     }
 
-    public async Task<Result<AccountResponseDto>> CreateAsync(CreateAccountRequestDto request)
+    public async Task<Result<AccountWrapperDto>> CreateAsync(CreateAccountRequestDto request)
     {
         var newAccount = _mapper.Map<Account>(request);
 
         // REGLA DE NEGOCIO: Una cuenta nueva siempre nace con saldo 0
-        // (A menos que tu CreateAccountRequestDto explícitamente pida un saldo inicial)
         newAccount.CurrentBalance = 0;
         newAccount.AvailableBalance = 0;
 
         _context.Accounts.Add(newAccount);
         await _context.SaveChangesAsync();
 
-        var response = _mapper.Map<AccountResponseDto>(newAccount);
-        return Result<AccountResponseDto>.Success(response);
+        return await GetByIdAsync(newAccount.Id);
     }
 
-    public async Task<Result<AccountResponseDto>> UpdateAsync(int id, UpdateAccountRequestDto request)
+    public async Task<Result<AccountWrapperDto>> UpdateAsync(int id, UpdateAccountRequestDto request)
     {
         var account = await _context.Accounts.FindAsync(id);
-        if (account == null)
-            return Result<AccountResponseDto>.Failure("La cuenta no existe.", ErrorType.NotFound);
 
-        // Mapeamos los datos permitidos. 
-        // Importante: Tu UpdateAccountRequestDto NO debería tener CurrentBalance ni AvailableBalance.
+        if (account == null)
+            return Result<AccountWrapperDto>.Failure(ApplicationError.NotFound, ErrorType.NotFound);
+
+        // Mapeamos los datos permitidos
         _mapper.Map(request, account);
 
+        _context.Accounts.Update(account);
         await _context.SaveChangesAsync();
 
-        var response = _mapper.Map<AccountResponseDto>(account);
-        return Result<AccountResponseDto>.Success(response);
+        return await GetByIdAsync(account.Id);
     }
 
-    public async Task<Result<bool>> DeleteAsync(int id)
+    public async Task<Result> DeleteAsync(int id)
     {
         var account = await _context.Accounts.FindAsync(id);
+
         if (account == null)
-            return Result<bool>.Failure("La cuenta no existe.", ErrorType.NotFound);
+            return Result.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
         // REGLA DE NEGOCIO: No se puede borrar una cuenta si ya tiene movimientos
         var hasMovements = await _context.BankMovements.AnyAsync(bm => bm.AccountId == id);
         if (hasMovements)
-            return Result<bool>.Failure("No se puede eliminar la cuenta porque ya tiene movimientos registrados.", ErrorType.Validation);
+            return Result.Failure("No se puede eliminar la cuenta porque ya tiene movimientos registrados.", ErrorType.Validation);
 
         _context.Accounts.Remove(account);
         await _context.SaveChangesAsync();
 
-        return Result<bool>.Success(true);
+        return Result.Success();
     }
 }

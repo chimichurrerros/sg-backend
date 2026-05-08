@@ -1,65 +1,100 @@
-using Microsoft.AspNetCore.Mvc;
 using BackEnd.DTOs.Requests.Accounts;
-using BackEnd.Services.Interfaces;
+using BackEnd.DTOs.Requests.Pagination;
+using BackEnd.DTOs.Responses.Accounts;
+using BackEnd.Extensions;
+using BackEnd.Services;
 using BackEnd.Utils;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
-namespace BackEnd.Controllers;
+namespace BackEnd.Controllers.Account;
 
+[Route("api/accounts")]
 [ApiController]
-[Route("api/[controller]")]
-public class AccountsController : ControllerBase
+[Authorize]
+public class AccountsController(AccountService accountService) : ControllerBase
 {
-    private readonly IAccountService _service;
-
-    public AccountsController(IAccountService service)
-    {
-        _service = service;
-    }
+    private readonly AccountService _accountService = accountService;
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<ActionResult<ListAccountsWrapperDto>> GetListAccounts([FromQuery] PaginationRequestDto pagination)
     {
-        var result = await _service.GetAllAsync();
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result);
+        var result = await _accountService.GetListAsync(pagination);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        return StatusCode(500);
+    }
+
+    [HttpGet("all")]
+    public async Task<ActionResult<ListAccountsWrapperDto>> GetAllAccounts()
+    {
+        var result = await _accountService.GetAllAsync();
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        return StatusCode(500);
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
+    public async Task<ActionResult<AccountWrapperDto>> GetById(int id)
     {
-        var result = await _service.GetByIdAsync(id);
-        if (!result.IsSuccess)
-        {
-            return result.ErrorType == ErrorType.NotFound ? NotFound(result) : BadRequest(result);
-        }
-        return Ok(result.Value);
+        var result = await _accountService.GetByIdAsync(id);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        return StatusCode(500);
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateAccountRequestDto request)
+    public async Task<ActionResult<AccountWrapperDto>> Create(CreateAccountRequestDto request)
     {
-        var result = await _service.CreateAsync(request);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result);
+        var result = await _accountService.CreateAsync(request);
+
+        if (result.IsSuccess)
+            return Created($"/api/accounts/{result.Value!.Account.Id}", result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        return StatusCode(500);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateAccountRequestDto request)
+    public async Task<ActionResult<AccountWrapperDto>> Update(int id, UpdateAccountRequestDto request)
     {
-        var result = await _service.UpdateAsync(id, request);
-        if (!result.IsSuccess)
-        {
-            return result.ErrorType == ErrorType.NotFound ? NotFound(result) : BadRequest(result);
-        }
-        return Ok(result.Value);
+        var result = await _accountService.UpdateAsync(id, request);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        return StatusCode(500);
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<ActionResult> Delete(int id)
     {
-        var result = await _service.DeleteAsync(id);
-        if (!result.IsSuccess)
-        {
-            return result.ErrorType == ErrorType.NotFound ? NotFound(result) : BadRequest(result);
-        }
-        return NoContent(); // 204 No Content es el estándar para un Delete exitoso
+        var result = await _accountService.DeleteAsync(id);
+
+        if (result.IsSuccess)
+            return NoContent(); // 204 No Content
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        // Si falla por la validación de negocio (tiene movimientos), devuelve BadRequest o un Problem 400
+        if (result.ErrorType == ErrorType.Validation)
+            return BadRequest(result);
+
+        return StatusCode(500);
     }
 }
