@@ -1,43 +1,72 @@
-using Microsoft.AspNetCore.Mvc;
 using BackEnd.DTOs.Requests.Bank.BankMovement;
-using BackEnd.Services.Interfaces;
+using BackEnd.DTOs.Requests.Pagination;
+using BackEnd.DTOs.Responses.Bank.BankMovement;
+using BackEnd.Extensions;
+using BackEnd.Services;
 using BackEnd.Utils;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
-namespace BackEnd.Controllers;
+namespace BackEnd.Controllers.Bank.BankMovement;
 
+[Route("api/bank-movements")]
 [ApiController]
-[Route("api/[controller]")]
-public class BankMovementsController : ControllerBase
+[Authorize]
+public class BankMovementsController(BankMovementService bankMovementService) : ControllerBase
 {
-    private readonly IBankMovementService _service;
-
-    public BankMovementsController(IBankMovementService service)
-    {
-        _service = service;
-    }
+    private readonly BankMovementService _bankMovementService = bankMovementService;
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<ActionResult<ListBankMovementsWrapperDto>> GetListBankMovements([FromQuery] PaginationRequestDto pagination)
     {
-        var result = await _service.GetAllAsync();
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result);
+        var result = await _bankMovementService.GetListAsync(pagination);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        return StatusCode(500);
+    }
+
+    [HttpGet("all")]
+    public async Task<ActionResult<ListBankMovementsWrapperDto>> GetAllBankMovements()
+    {
+        var result = await _bankMovementService.GetAllAsync();
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        return StatusCode(500);
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
+    public async Task<ActionResult<BankMovementWrapperDto>> GetById(int id)
     {
-        var result = await _service.GetByIdAsync(id);
-        if (!result.IsSuccess)
-        {
-            return result.ErrorType == ErrorType.NotFound ? NotFound(result) : BadRequest(result);
-        }
-        return Ok(result.Value);
+        var result = await _bankMovementService.GetByIdAsync(id);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        return StatusCode(500);
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] BankMovementRequestDto request)
+    public async Task<ActionResult<BankMovementWrapperDto>> Create(BankMovementRequestDto request)
     {
-        var result = await _service.CreateAsync(request);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result);
+        var result = await _bankMovementService.CreateAsync(request);
+
+        if (result.IsSuccess)
+            return Created($"/api/bank-movements/{result.Value!.BankMovement.Id}", result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        // Si falla por la validación de negocio (saldo insuficiente), devuelve BadRequest
+        if (result.ErrorType == ErrorType.Validation)
+            return BadRequest(result);
+
+        return StatusCode(500);
     }
 }

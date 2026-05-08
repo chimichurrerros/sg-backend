@@ -15,6 +15,16 @@ public class CustomerService(AppDbContext context, IMapper mapper)
     private readonly AppDbContext _context = context;
     private readonly IMapper _mapper = mapper;
 
+    public async Task<Result<ListCustomersWrapperDto>> GetAllAsync()
+    {
+        var products = await _context.Products
+            .AsNoTracking()
+            .ProjectTo<CustomerResponseDto>(_mapper.ConfigurationProvider)
+            .ToListAsync();
+
+        return Result<ListCustomersWrapperDto>.Success(new ListCustomersWrapperDto { Customers = products });
+    }
+
     public async Task<Result<ListCustomersWrapperDto>> GetListAsync(PaginationRequestDto pagination)
     {
         var customersQuery = _context.Customers.AsNoTracking();
@@ -35,17 +45,6 @@ public class CustomerService(AppDbContext context, IMapper mapper)
             Customers = customers,
             Pagination = paginationData
         });
-    }
-
-    public async Task<Result<IEnumerable<CustomerResponseDto>>> GetAllAsync()
-    {
-        var customers = await _context.Customers
-            .AsNoTracking()
-            .OrderBy(c => c.Name) 
-            .ProjectTo<CustomerResponseDto>(_mapper.ConfigurationProvider)
-            .ToListAsync();
-
-        return Result<IEnumerable<CustomerResponseDto>>.Success(customers);
     }
 
     public async Task<Result<CustomerWrapperDto>> GetByIdAsync(int id)
