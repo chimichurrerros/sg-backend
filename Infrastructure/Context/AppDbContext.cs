@@ -37,6 +37,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Branch> Branches { get; set; }
 
+    public virtual DbSet<CashAccount> CashAccounts { get; set; }
+
     public virtual DbSet<Check> Checks { get; set; }
 
     public virtual DbSet<CreditNote> CreditNotes { get; set; }
@@ -261,6 +263,18 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.AccountId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("BankMovements_AccountId_fkey");
+        });
+
+        modelBuilder.Entity<CashAccount>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("CashAccounts_pkey");
+
+            entity.Property(e => e.Name).HasMaxLength(150);
+
+            entity.HasOne(d => d.Branch).WithMany()
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("CashAccounts_BranchId_fkey");
         });
 
         modelBuilder.Entity<Check>(entity =>

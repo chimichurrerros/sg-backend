@@ -48,6 +48,7 @@ builder.Services.AddScoped<StatesService>();
 builder.Services.AddScoped<ServicesService>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<BankMovementService>();
+builder.Services.AddScoped<CashAccountsService>();
 
 
 
