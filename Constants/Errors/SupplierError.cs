@@ -4,9 +4,9 @@ public static class SupplierError
 {
     public const string EntityTypeRequired = "El tipo de entidad es obligatorio";
     public const string InvalidEntityType = "El tipo de entidad es inválido";
-    public const string DocumentNumberRequired = "El documento es obligatorio";
-    public const string DocumentNumberAlreadyExists = "Ya existe una entidad con ese documento";
-    public const string BusinessNameRequired = "La razón social es obligatoria para persona jurídica";
+    public const string RucRequired = "El RUC es obligatorio";
+    public const string RucAlreadyExists = "Ya existe un proveedor con ese RUC";
+    public const string BusinessNameRequired = "La razón social es obligatoria";
     public const string FirstNameRequired = "El nombre es obligatorio para persona física";
     public const string LastNameRequired = "El apellido es obligatorio para persona física";
     public const string GenderRequired = "El género es obligatorio para persona física";
