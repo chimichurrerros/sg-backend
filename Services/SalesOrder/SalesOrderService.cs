@@ -419,6 +419,6 @@ public class SalesOrderService(
 
     private static string GenerateBillNumber(int salesOrderId)
     {
-        return $"BILL-{salesOrderId:D6}";
+        return $"001-001-{salesOrderId:D6}";
     }
 }
