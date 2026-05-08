@@ -105,7 +105,7 @@ public class SupplierService(AppDbContext context, IMapper mapper)
                 Address = request.Address,
                 Email = request.Email,
                 IsActive = request.IsActive,
-                BussinessName = request.BussinessName,
+                BusinessName = request.BusinessName,
                 FantasyName = request.FantasyName
             };
 
@@ -176,7 +176,7 @@ public class SupplierService(AppDbContext context, IMapper mapper)
             supplier.Address = request.Address;
             supplier.Email = request.Email;
             supplier.IsActive = request.IsActive;
-            supplier.BussinessName = request.BussinessName;
+            supplier.BusinessName = request.BusinessName;
             supplier.FantasyName = request.FantasyName;
 
             // Step 5: Replace product categories with new ones
@@ -228,8 +228,8 @@ public class SupplierService(AppDbContext context, IMapper mapper)
         }
 
         // Validate business name (required)
-        if (string.IsNullOrWhiteSpace(request.BussinessName))
-            errors["BussinessName"] = [SupplierError.BusinessNameRequired];
+        if (string.IsNullOrWhiteSpace(request.BusinessName))
+            errors["BusinessName"] = [SupplierError.BusinessNameRequired];
 
         // If we have basic validation errors, return them immediately
         if (errors.Count > 0)
@@ -272,8 +272,8 @@ public class SupplierService(AppDbContext context, IMapper mapper)
         }
 
         // Validate business name
-        if (string.IsNullOrWhiteSpace(request.BussinessName))
-            errors["BussinessName"] = [SupplierError.BusinessNameRequired];
+        if (string.IsNullOrWhiteSpace(request.BusinessName))
+            errors["BusinessName"] = [SupplierError.BusinessNameRequired];
 
         // Return errors if validation failed
         if (errors.Count > 0)

@@ -10,7 +10,7 @@ public class SupplierResponseDto
     public string? Address { get; set; }
     public string? Email { get; set; }
     public bool IsActive { get; set; }
-    public string BussinessName { get; set; } = null!;
+    public string BusinessName { get; set; } = null!;
     public string? FantasyName { get; set; }
 }
 

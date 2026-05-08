@@ -993,7 +993,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.Ruc, "Suppliers_Ruc_key").IsUnique();
             entity.Property(e => e.Address).HasMaxLength(255);
-            entity.Property(e => e.BussinessName).HasMaxLength(150);
+            entity.Property(e => e.BusinessName).HasMaxLength(150);
             entity.Property(e => e.Email).HasMaxLength(150);
             entity.Property(e => e.FantasyName).HasMaxLength(150);
             entity.Property(e => e.IsActive).HasDefaultValue(true);

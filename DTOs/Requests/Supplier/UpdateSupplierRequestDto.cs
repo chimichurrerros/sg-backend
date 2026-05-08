@@ -18,7 +18,7 @@ public class UpdateSupplierRequestDto
     /// Business/company name of the supplier.
     /// </summary>
     [Required(ErrorMessage = SupplierError.BusinessNameRequired)]
-    public string BussinessName { get; set; } = null!;
+    public string BusinessName { get; set; } = null!;
 
     /// <summary>
     /// Optional fantasy name or trade name used by the legal person.

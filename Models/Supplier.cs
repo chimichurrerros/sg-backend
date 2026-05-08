@@ -17,7 +17,7 @@ public partial class Supplier
 
     public bool IsActive { get; set; } = true;
 
-    public string BussinessName { get; set; } = null!;
+    public string BusinessName { get; set; } = null!;
 
     public string? FantasyName { get; set; }
 
