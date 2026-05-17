@@ -824,6 +824,11 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PurchaseOrders_SupplierId_fkey");
 
+            entity.HasOne(d => d.PurchaseRequest).WithMany(p => p.PurchaseOrders)
+                .HasForeignKey(d => d.PurchaseRequestId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseOrders_PurchaseRequestId_fkey");
+
             entity.HasOne(d => d.SupplierQuote).WithMany(p => p.PurchaseOrders)
                 .HasForeignKey(d => d.SupplierQuoteId)
                 .HasConstraintName("PurchaseOrders_SupplierQuoteId_fkey");
@@ -842,6 +847,10 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ProductId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PurchaseOrderDetails_ProductId_fkey");
+
+            entity.HasOne(d => d.SupplierQuoteDetail).WithMany(p => p.PurchaseOrderDetails)
+                .HasForeignKey(d => d.SupplierQuoteDetailId)
+                .HasConstraintName("PurchaseOrderDetails_SupplierQuoteDetailId_fkey");
 
             entity.HasOne(d => d.PurchaseOrder).WithMany(p => p.PurchaseOrderDetails)
                 .HasForeignKey(d => d.PurchaseOrderId)
