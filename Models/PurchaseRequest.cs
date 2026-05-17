@@ -19,6 +19,8 @@ public partial class PurchaseRequest
 
     public virtual State State { get; set; } = null!;
 
+    public virtual ICollection<PurchaseOrder> PurchaseOrders { get; set; } = new List<PurchaseOrder>();
+
     public virtual ICollection<SupplierQuote> SupplierQuotes { get; set; } = new List<SupplierQuote>();
 
     public virtual User User { get; set; } = null!;

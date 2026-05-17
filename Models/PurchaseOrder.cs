@@ -9,6 +9,8 @@ public partial class PurchaseOrder
 
     public int SupplierId { get; set; }
 
+    public int PurchaseRequestId { get; set; }
+
     public int? SupplierQuoteId { get; set; }
 
     public string Number { get; set; } = null!;
@@ -22,6 +24,8 @@ public partial class PurchaseOrder
     public virtual ICollection<Bill> Bills { get; set; } = new List<Bill>();
 
     public virtual ICollection<PurchaseOrderDetail> PurchaseOrderDetails { get; set; } = new List<PurchaseOrderDetail>();
+
+    public virtual PurchaseRequest PurchaseRequest { get; set; } = null!;
 
     public virtual State State { get; set; } = null!;
 
