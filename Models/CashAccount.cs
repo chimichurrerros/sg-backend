@@ -6,6 +6,7 @@ public partial class CashAccount
     public string Name { get; set; } = null!;
     public int BranchId { get; set; }
     public virtual Branch Branch { get; set; } = null!;
+    public decimal Balance { get; set; } = 0;
 
     public bool IsDeleted { get; set; } = false;
 }

@@ -61,6 +61,7 @@ public class CashAccountsService(AppDbContext context, IMapper mapper)
     public async Task<Result<CashAccountWrapperDto>> CreateAsync(CashAccountRequestDto request)
     {
         var cashAccount = _mapper.Map<CashAccount>(request);
+        cashAccount.Balance = request.InitialBalance;
 
         _context.CashAccounts.Add(cashAccount);
         await _context.SaveChangesAsync();
