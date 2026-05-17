@@ -33,6 +33,7 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<SupplierService>();
 builder.Services.AddScoped<CustomerService>();
 builder.Services.AddScoped<CustomerQuoteService>();
+builder.Services.AddScoped<SupplierQuoteService>();
 builder.Services.AddScoped<EmployeeService>();
 builder.Services.AddScoped<ProductBrandsService>();
 builder.Services.AddScoped<ProductCategoriesService>();
