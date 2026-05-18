@@ -39,4 +39,6 @@ public class UpdateSupplierQuoteRequestDto
 
     [MinLength(1)]
     public List<SupplierQuoteDetailRequestDto> Details { get; set; } = [];
+
+    public int? State { get; set; }
 }

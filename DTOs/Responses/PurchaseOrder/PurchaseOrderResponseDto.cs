@@ -1,3 +1,4 @@
+using BackEnd.Models;
 using BackEnd.Utils;
 
 namespace BackEnd.DTOs.Responses.PurchaseOrder;
@@ -27,7 +28,7 @@ public class PurchaseOrderResponseDto
     public string Number { get; set; } = null!;
     public DateTime Date { get; set; }
     public decimal Total { get; set; }
-    public int StateId { get; set; }
+    public BackEnd.Models.PurchaseOrder.PurchaseOrderStateEnum State { get; set; }
     public List<PurchaseOrderDetailResponseDto> Details { get; set; } = [];
 }
 

@@ -21,7 +21,7 @@ public class SupplierQuoteResponseDto
     public int PurchaseRequestId { get; set; }
     public DateTime Date { get; set; }
     public decimal Total { get; set; }
-    public int StateId { get; set; }
+    public BackEnd.Models.SupplierQuote.SupplierQuoteStateEnum State { get; set; }
     public List<SupplierQuoteDetailResponseDto> Details { get; set; } = [];
 }
 
