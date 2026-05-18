@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260518233726_UwU")]
+    partial class UwU
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -27,7 +30,10 @@ namespace BackEnd.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "bill_type_enum", new[] { "contado", "credito" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "check_status_enum", new[] { "pending", "cashed", "voided" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "check_type_enum", new[] { "day", "deferred" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "purchase_order_state_enum", new[] { "pending", "approved", "rejected", "completed" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "purchase_request_state_enum", new[] { "pending", "approved", "rejected", "completed" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "sales_order_state_enum", new[] { "pending", "confirmed", "cancelled" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "supplier_quote_state_enum", new[] { "pending", "approved", "rejected", "completed" });
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("BackEnd.Models.Account", b =>
@@ -196,10 +202,24 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AccountNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<BankMovementTypeEnum>("AccountType")
+                        .HasColumnType("bank_movement_type_enum");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Ruc")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.HasKey("Id")
                         .HasName("Banks_pkey");
@@ -256,7 +276,7 @@ namespace BackEnd.Migrations
                     b.Property<BillTypeEnum>("BillType")
                         .HasColumnType("bill_type_enum");
 
-                    b.Property<int>("CustomerId")
+                    b.Property<int?>("CustomerId")
                         .HasColumnType("integer");
 
                     b.Property<DateOnly>("Date")
@@ -1405,10 +1425,10 @@ namespace BackEnd.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<int>("PurchaseRequestId")
-                        .HasColumnType("integer");
+                    b.Property<PurchaseOrderStateEnum>("PurchaseOrderState")
+                        .HasColumnType("purchase_order_state_enum");
 
-                    b.Property<int>("State")
+                    b.Property<int>("PurchaseRequestId")
                         .HasColumnType("integer");
 
                     b.Property<int?>("StateId")
@@ -1499,7 +1519,10 @@ namespace BackEnd.Migrations
                     b.Property<string>("Observation")
                         .HasColumnType("text");
 
-                    b.Property<int>("StateId")
+                    b.Property<PurchaseRequestStateEnum>("PurchaseRequestState")
+                        .HasColumnType("purchase_request_state_enum");
+
+                    b.Property<int?>("StateId")
                         .HasColumnType("integer");
 
                     b.Property<int>("UserId")
@@ -1838,14 +1861,14 @@ namespace BackEnd.Migrations
                     b.Property<int>("PurchaseRequestId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("State")
-                        .HasColumnType("integer");
-
                     b.Property<int?>("StateId")
                         .HasColumnType("integer");
 
                     b.Property<int>("SupplierId")
                         .HasColumnType("integer");
+
+                    b.Property<SupplierQuoteStateEnum>("SupplierQuoteState")
+                        .HasColumnType("supplier_quote_state_enum");
 
                     b.Property<decimal>("Total")
                         .HasPrecision(15, 2)
@@ -2003,7 +2026,6 @@ namespace BackEnd.Migrations
                     b.HasOne("BackEnd.Models.Customer", "Customer")
                         .WithMany("Bills")
                         .HasForeignKey("CustomerId")
-                        .IsRequired()
                         .HasConstraintName("Bills_CustomerId_fkey");
 
                     b.HasOne("BackEnd.Models.PurchaseOrder", "PurchaseOrder")
@@ -2509,19 +2531,15 @@ namespace BackEnd.Migrations
 
             modelBuilder.Entity("BackEnd.Models.PurchaseRequest", b =>
                 {
-                    b.HasOne("BackEnd.Models.State", "State")
+                    b.HasOne("BackEnd.Models.State", null)
                         .WithMany("PurchaseRequests")
-                        .HasForeignKey("StateId")
-                        .IsRequired()
-                        .HasConstraintName("PurchaseRequests_StateId_fkey");
+                        .HasForeignKey("StateId");
 
                     b.HasOne("BackEnd.Models.User", "User")
                         .WithMany("PurchaseRequests")
                         .HasForeignKey("UserId")
                         .IsRequired()
                         .HasConstraintName("PurchaseRequests_UserId_fkey");
-
-                    b.Navigation("State");
 
                     b.Navigation("User");
                 });
