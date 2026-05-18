@@ -10,97 +10,32 @@ namespace BackEnd.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "PurchaseOrders_StateId_fkey",
-                table: "PurchaseOrders");
+            migrationBuilder.Sql("ALTER TABLE \"PurchaseOrders\" DROP CONSTRAINT IF EXISTS \"PurchaseOrders_StateId_fkey\";");
+            migrationBuilder.Sql("ALTER TABLE \"SupplierQuotes\" DROP CONSTRAINT IF EXISTS \"SupplierQuotes_StateId_fkey\";");
 
-            migrationBuilder.DropForeignKey(
-                name: "SupplierQuotes_StateId_fkey",
-                table: "SupplierQuotes");
-
-            migrationBuilder.AlterColumn<int>(
+            migrationBuilder.RenameColumn(
                 name: "StateId",
                 table: "SupplierQuotes",
-                type: "integer",
-                nullable: true,
-                oldClrType: typeof(int),
-                oldType: "integer");
+                newName: "State");
 
-            migrationBuilder.AddColumn<int>(
-                name: "State",
-                table: "SupplierQuotes",
-                type: "integer",
-                nullable: false,
-                defaultValue: 0);
-
-            migrationBuilder.AlterColumn<int>(
+            migrationBuilder.RenameColumn(
                 name: "StateId",
                 table: "PurchaseOrders",
-                type: "integer",
-                nullable: true,
-                oldClrType: typeof(int),
-                oldType: "integer");
-
-            migrationBuilder.AddColumn<int>(
-                name: "State",
-                table: "PurchaseOrders",
-                type: "integer",
-                nullable: false,
-                defaultValue: 0);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_PurchaseOrders_States_StateId",
-                table: "PurchaseOrders",
-                column: "StateId",
-                principalTable: "States",
-                principalColumn: "Id");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_SupplierQuotes_States_StateId",
-                table: "SupplierQuotes",
-                column: "StateId",
-                principalTable: "States",
-                principalColumn: "Id");
+                newName: "State");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_PurchaseOrders_States_StateId",
-                table: "PurchaseOrders");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_SupplierQuotes_States_StateId",
-                table: "SupplierQuotes");
-
-            migrationBuilder.DropColumn(
+            migrationBuilder.RenameColumn(
                 name: "State",
-                table: "SupplierQuotes");
-
-            migrationBuilder.DropColumn(
-                name: "State",
-                table: "PurchaseOrders");
-
-            migrationBuilder.AlterColumn<int>(
-                name: "StateId",
                 table: "SupplierQuotes",
-                type: "integer",
-                nullable: false,
-                defaultValue: 0,
-                oldClrType: typeof(int),
-                oldType: "integer",
-                oldNullable: true);
+                newName: "StateId");
 
-            migrationBuilder.AlterColumn<int>(
-                name: "StateId",
+            migrationBuilder.RenameColumn(
+                name: "State",
                 table: "PurchaseOrders",
-                type: "integer",
-                nullable: false,
-                defaultValue: 0,
-                oldClrType: typeof(int),
-                oldType: "integer",
-                oldNullable: true);
+                newName: "StateId");
 
             migrationBuilder.AddForeignKey(
                 name: "PurchaseOrders_StateId_fkey",
