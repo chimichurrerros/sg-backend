@@ -92,7 +92,7 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
                 Number = string.Empty,
                 Date = DateTime.UtcNow,
                 Total = resolved.Value.Details.Sum(d => d.Price * d.QuantityOrdered),
-                StateId = request.StateId
+                State = PurchaseOrder.PurchaseOrderStateEnum.Pending
             };
 
             _context.PurchaseOrders.Add(order);
@@ -157,8 +157,12 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
             order.PurchaseRequestId = request.PurchaseRequestId;
             order.SupplierId = resolved.Value!.PrimarySupplierId;
             order.SupplierQuoteId = resolved.Value.PrimarySupplierQuoteId;
-            order.StateId = request.StateId;
             order.Total = resolved.Value.Details.Sum(d => d.Price * d.QuantityOrdered);
+
+            if (request.State.HasValue && Enum.IsDefined(typeof(PurchaseOrder.PurchaseOrderStateEnum), request.State.Value))
+            {
+                order.State = (PurchaseOrder.PurchaseOrderStateEnum)request.State.Value;
+            }
 
             _context.PurchaseOrderDetails.RemoveRange(order.PurchaseOrderDetails);
             order.PurchaseOrderDetails = resolved.Value.Details.Select(detail => new PurchaseOrderDetail
@@ -291,9 +295,6 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
         if (request.PurchaseRequestId <= 0)
             errors[nameof(request.PurchaseRequestId)] = [PurchaseOrderError.PurchaseRequestRequired];
 
-        if (request.StateId <= 0)
-            errors[nameof(request.StateId)] = [PurchaseOrderError.StateRequired];
-
         if (request.SupplierId.HasValue && request.SupplierId.Value <= 0)
             errors[nameof(request.SupplierId)] = [PurchaseOrderError.SupplierRequired];
 
@@ -311,10 +312,6 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
                 errors[nameof(request.SupplierId)] = [PurchaseOrderError.InvalidSupplier];
         }
 
-        var stateExists = await _context.States.AnyAsync(s => s.Id == request.StateId);
-        if (!stateExists)
-            errors[nameof(request.StateId)] = [PurchaseOrderError.InvalidState];
-
         if (errors.Count > 0)
             return Result.Failure(string.Join("; ", errors.Values.SelectMany(v => v)), errors, ErrorType.Validation);
 
@@ -327,9 +324,6 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
 
         if (request.PurchaseRequestId <= 0)
             errors[nameof(request.PurchaseRequestId)] = [PurchaseOrderError.PurchaseRequestRequired];
-
-        if (request.StateId <= 0)
-            errors[nameof(request.StateId)] = [PurchaseOrderError.StateRequired];
 
         if (request.Details == null || request.Details.Count == 0)
             errors[nameof(request.Details)] = [PurchaseOrderError.DetailsRequired];
@@ -353,10 +347,6 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
             if (!supplierExists)
                 errors[nameof(request.SupplierId)] = [PurchaseOrderError.InvalidSupplier];
         }
-
-        var stateExists = await _context.States.AnyAsync(s => s.Id == request.StateId);
-        if (!stateExists)
-            errors[nameof(request.StateId)] = [PurchaseOrderError.InvalidState];
 
         if (errors.Count > 0)
             return Result.Failure(string.Join("; ", errors.Values.SelectMany(v => v)), errors, ErrorType.Validation);
@@ -471,7 +461,7 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
             Number = string.Empty,
             Date = DateTime.UtcNow,
             Total = draft.Details.Sum(line => line.Price * line.QuantityOrdered),
-            StateId = draft.PurchaseRequestStateId,
+            State = PurchaseOrder.PurchaseOrderStateEnum.Pending,
             PurchaseOrderDetails = draft.Details.Select(line => new PurchaseOrderDetail
             {
                 ProductId = line.ProductId,

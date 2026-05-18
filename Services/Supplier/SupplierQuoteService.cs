@@ -134,6 +134,11 @@ public class SupplierQuoteService(AppDbContext context, IMapper mapper)
             quote.PurchaseRequestId = request.PurchaseRequestId;
             quote.Total = CalculateTotal(request.Details);
 
+            if (request.State.HasValue && Enum.IsDefined(typeof(SupplierQuote.SupplierQuoteStateEnum), request.State.Value))
+            {
+                quote.State = (SupplierQuote.SupplierQuoteStateEnum)request.State.Value;
+            }
+
             _context.SupplierQuoteDetails.RemoveRange(quote.SupplierQuoteDetails);
 
             quote.SupplierQuoteDetails = request.Details
