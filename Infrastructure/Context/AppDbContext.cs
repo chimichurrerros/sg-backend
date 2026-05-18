@@ -175,6 +175,7 @@ public partial class AppDbContext : DbContext
         modelBuilder.HasPostgresEnum<SalesOrderStateEnum>();
         modelBuilder.HasPostgresEnum<BankMovementTypeEnum>();
         modelBuilder.HasPostgresEnum<AccountTypeEnum>();
+        modelBuilder.HasPostgresEnum<PurchaseRequestStateEnum>();
 
         // *****************************************************************************************************
 
@@ -857,10 +858,7 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone");
 
-            entity.HasOne(d => d.State).WithMany(p => p.PurchaseRequests)
-                .HasForeignKey(d => d.StateId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("PurchaseRequests_StateId_fkey");
+            entity.Property(e => e.PurchaseRequestState).HasColumnType("purchase_request_state_enum");
 
             entity.HasOne(d => d.User).WithMany(p => p.PurchaseRequests)
                 .HasForeignKey(d => d.UserId)

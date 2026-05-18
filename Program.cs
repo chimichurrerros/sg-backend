@@ -48,6 +48,8 @@ builder.Services.AddScoped<StatesService>();
 builder.Services.AddScoped<ServicesService>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<BankMovementService>();
+builder.Services.AddScoped<PurchaseRequestService>();
+builder.Services.AddScoped<PurchaseReceiptService>();
 
 
 
@@ -85,6 +87,7 @@ builder.Services.AddDbContextPool<AppDbContext>(options =>
         npgsqlOptions.MapEnum<CheckStatusEnum>("check_status_enum");
         npgsqlOptions.MapEnum<CheckTypeEnum>("check_type_enum");
         npgsqlOptions.MapEnum<SalesOrderStateEnum>("sales_order_state_enum");
+        npgsqlOptions.MapEnum<PurchaseRequestStateEnum>("purchase_request_state_enum");
         npgsqlOptions.MapEnum<AccountTypeEnum>("account_type_enum");
     }));
 

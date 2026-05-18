@@ -11,7 +11,7 @@ public partial class Bill
 
     public BillStateEnum BillState { get; set; }
 
-    public int CustomerId { get; set; }
+    public int? CustomerId { get; set; }
 
     public int? SalesOrderId { get; set; }
 
@@ -37,7 +37,7 @@ public partial class Bill
 
     public virtual ICollection<CreditNote> CreditNotes { get; set; } = new List<CreditNote>();
 
-    public virtual Customer Customer { get; set; } = null!;
+    public virtual Customer? Customer { get; set; }
 
     public virtual ICollection<PaymentOrderBill> PaymentOrderBills { get; set; } = new List<PaymentOrderBill>();
 
