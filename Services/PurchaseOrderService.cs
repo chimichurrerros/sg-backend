@@ -225,12 +225,14 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
         var resolvedLines = new List<ResolvedPurchaseOrderLine>();
         var errors = new Dictionary<string, string[]>();
 
+        // LOGICA MEJORADA: Para cada producto, buscar el mejor precio automaticamente
         foreach (var requestDetail in purchaseRequest.PurchaseRequestDetails)
         {
+            // Obtener todos los precios disponibles para este producto
             var candidates = quoteDetails
                 .Where(qd => qd.ProductId == requestDetail.ProductId)
-                .OrderBy(qd => qd.Price)
-                .ThenBy(qd => qd.SupplierQuoteId)
+                .OrderBy(qd => qd.Price)  // Ordenar por menor precio
+                .ThenBy(qd => qd.SupplierQuoteId)  // Desempate por ID de cotización
                 .ToList();
 
             if (candidates.Count == 0)
@@ -239,26 +241,29 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
                 continue;
             }
 
-            var selected = candidates.First();
+            // Seleccionar automáticamente el de menor precio
+            var bestPricedOption = candidates.First();
 
             resolvedLines.Add(new ResolvedPurchaseOrderLine
             {
                 ProductId = requestDetail.ProductId,
                 QuantityOrdered = requestDetail.QuantityRequested,
-                SupplierQuoteDetailId = selected.Id,
-                SupplierQuoteId = selected.SupplierQuoteId,
-                SupplierId = selected.SupplierQuote.SupplierId,
-                SupplierName = ResolveSupplierName(selected.SupplierQuote.Supplier),
-                Price = selected.Price,
-                TaxRate = selected.TaxRate,
+                SupplierQuoteDetailId = bestPricedOption.Id,
+                SupplierQuoteId = bestPricedOption.SupplierQuoteId,
+                SupplierId = bestPricedOption.SupplierQuote.SupplierId,
+                SupplierName = ResolveSupplierName(bestPricedOption.SupplierQuote.Supplier),
+                Price = bestPricedOption.Price,
+                TaxRate = bestPricedOption.TaxRate,
                 Product = requestDetail.Product,
-                SupplierQuoteDetail = selected
+                SupplierQuoteDetail = bestPricedOption
             });
         }
 
         if (errors.Count > 0)
             return Result<ResolvedPurchaseOrderDraft>.Failure(PurchaseOrderError.InvalidProducts, errors, ErrorType.Validation);
 
+        // Determinar el proveedor "primario" basado en el precio total más bajo
+        // Esto es solo para referencia en la orden, ya que cada producto tiene su mejor precio
         var primarySupplierGroup = resolvedLines
             .GroupBy(line => line.SupplierId ?? 0)
             .Select(group => new
@@ -274,8 +279,9 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
             ? null
             : resolvedLines.First(line => line.SupplierId == primarySupplierId).SupplierQuoteDetail!.SupplierQuote!.Supplier;
 
-        var allSameQuote = resolvedLines.Select(line => line.SupplierQuoteId).Distinct().Count() == 1;
-        var supplierQuoteId = allSameQuote ? resolvedLines.First().SupplierQuoteId : null;
+        // Si todos los productos vienen del mismo proveedor, usar esa cotización como referencia
+        var allSameSupplier = resolvedLines.Select(line => line.SupplierId).Distinct().Count() == 1;
+        var supplierQuoteId = allSameSupplier ? resolvedLines.First().SupplierQuoteId : null;
 
         return Result<ResolvedPurchaseOrderDraft>.Success(new ResolvedPurchaseOrderDraft
         {
@@ -358,10 +364,45 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
     {
         var errors = new Dictionary<string, string[]>();
 
-        var detailOverrides = overrides?
+        // Si no se proporcionan overrides (detalles específicos), usar automáticamente los mejores precios
+        if (overrides == null || overrides.Count == 0)
+        {
+            // Ya tenemos los mejores precios del draft, solo aplicar proveedor preferido si lo hay
+            if (preferredSupplierId.HasValue && preferredSupplierId.Value > 0)
+            {
+                var primarySupplierExists = draft.Details.Any(d => d.SupplierId == preferredSupplierId.Value);
+                if (!primarySupplierExists)
+                {
+                    errors[nameof(preferredSupplierId)] = [PurchaseOrderError.InvalidSupplier];
+                    return Result<ResolvedPurchaseOrderDraft>.Failure(string.Join("; ", errors.Values.SelectMany(v => v)), errors, ErrorType.Validation);
+                }
+            }
+
+            // Usar el draft tal cual con los mejores precios automáticamente seleccionados
+            var finalPrimarySupplierId = preferredSupplierId.HasValue && preferredSupplierId.Value > 0
+                ? preferredSupplierId.Value
+                : draft.PrimarySupplierId;
+
+            var allSameSupplier = draft.Details.Select(line => line.SupplierId).Distinct().Count() == 1;
+            var primarySupplierQuoteId = allSameSupplier && draft.Details.Count > 0
+                ? draft.Details.First().SupplierQuoteId
+                : null;
+
+            return Result<ResolvedPurchaseOrderDraft>.Success(new ResolvedPurchaseOrderDraft
+            {
+                PurchaseRequestId = draft.PurchaseRequestId,
+                PurchaseRequestState = draft.PurchaseRequestState,
+                PrimarySupplierId = finalPrimarySupplierId,
+                PrimarySupplier = draft.PrimarySupplier,
+                PrimarySupplierQuoteId = primarySupplierQuoteId,
+                Details = draft.Details
+            });
+        }
+
+        // Si se proporcionan overrides, procesarlos normalmente
+        var detailOverrides = overrides
             .GroupBy(detail => detail.ProductId)
-            .ToDictionary(group => group.Key, group => group.Last())
-            ?? [];
+            .ToDictionary(group => group.Key, group => group.Last());
 
         var requestDetailMap = draft.Details.ToDictionary(detail => detail.ProductId, detail => detail);
 
@@ -427,7 +468,7 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
         if (errors.Count > 0)
             return Result<ResolvedPurchaseOrderDraft>.Failure(string.Join("; ", errors.Values.SelectMany(v => v)), errors, ErrorType.Validation);
 
-        var primarySupplierId = preferredSupplierId.HasValue && preferredSupplierId.Value > 0
+        var overridePrimarySupplierId = preferredSupplierId.HasValue && preferredSupplierId.Value > 0
             ? preferredSupplierId.Value
             : resolvedLines
             .GroupBy(line => line.SupplierId ?? 0)
@@ -436,15 +477,15 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
                 .First().SupplierId;
 
         var allSameQuote = resolvedLines.Select(line => line.SupplierQuoteId).Distinct().Count() == 1;
-        var primarySupplierQuoteId = allSameQuote ? resolvedLines.First().SupplierQuoteId : null;
+        var overridePrimarySupplierQuoteId = allSameQuote ? resolvedLines.First().SupplierQuoteId : null;
 
         return Result<ResolvedPurchaseOrderDraft>.Success(new ResolvedPurchaseOrderDraft
         {
             PurchaseRequestId = draft.PurchaseRequestId,
             PurchaseRequestState = draft.PurchaseRequestState,
-            PrimarySupplierId = primarySupplierId,
+            PrimarySupplierId = overridePrimarySupplierId,
             PrimarySupplier = draft.PrimarySupplier,
-            PrimarySupplierQuoteId = primarySupplierQuoteId,
+            PrimarySupplierQuoteId = overridePrimarySupplierQuoteId,
             Details = resolvedLines
         });
     }
