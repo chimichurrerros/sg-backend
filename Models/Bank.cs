@@ -9,11 +9,11 @@ public partial class Bank
 
     public string Name { get; set; } = null!;
 
-    public string AccountNumber {get; set;} = null!;
+    public string AccountNumber { get; set; } = null!;
 
-    public BankMovementTypeEnum AccountType {get; set;}
+    public BankMovementTypeEnum AccountType { get; set; }
 
-    public string Ruc {get; set;}
+    public string Ruc { get; set; }
 
     public bool IsActive { get; set; } = true;
 

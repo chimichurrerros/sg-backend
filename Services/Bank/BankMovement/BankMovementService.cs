@@ -2,6 +2,8 @@ using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using BackEnd.Models;
+using BackEnd.DTOs.Requests.Bank;
+using BackEnd.DTOs.Responses.Bank;
 using BackEnd.DTOs.Requests.Bank.BankMovement;
 using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Responses.Bank.BankMovement;
@@ -68,13 +70,13 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
 
         // 2. Mapeamos el DTO a Entidad
         var newMovement = _mapper.Map<BankMovement>(request);
-        
+
         // Nos aseguramos de que la fecha sea la de hoy si no enviaron una
-        if (newMovement.Date == default) 
+        if (newMovement.Date == default)
             newMovement.Date = DateTime.Now;
 
         // 3. REGLA DE NEGOCIO CRÍTICA: Actualizar saldos de la cuenta
-        if (newMovement.MovementType == BankMovementTypeEnum.Credit) 
+        if (newMovement.MovementType == BankMovementTypeEnum.Credit)
         {
             account.CurrentBalance += newMovement.Amount;
             account.AvailableBalance += newMovement.Amount;
@@ -94,5 +96,64 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
         await _context.SaveChangesAsync();
 
         return await GetByIdAsync(newMovement.Id);
+    }
+
+    public async Task<Result<BankMovementDto>> CreateMovementAsync(CreateBankMovementDto request)
+    {
+        var accountValidation = await ValidateAccountAsync(request.AccountId, request.Amount);
+        if (!accountValidation.IsSuccess)
+            return Result<BankMovementDto>.Failure(accountValidation.ErrorMessage!, accountValidation.ErrorType);
+
+        var account = await _context.Accounts.FindAsync(request.AccountId);
+        if (account == null)
+            return Result<BankMovementDto>.Failure("La cuenta bancaria seleccionada no existe.", ErrorType.NotFound);
+
+        var movement = new Models.BankMovement
+        {
+            AccountId = request.AccountId,
+            Amount = request.Amount,
+            Date = request.Date == default ? DateTime.UtcNow : request.Date,
+            ReferenceNumber = request.ReferenceNumber,
+            MovementType = request.MovementType
+        };
+
+        if (movement.MovementType == BankMovementTypeEnum.Credit)
+        {
+            account.CurrentBalance += movement.Amount;
+            account.AvailableBalance += movement.Amount;
+        }
+        else
+        {
+            account.CurrentBalance -= movement.Amount;
+            account.AvailableBalance -= movement.Amount;
+        }
+
+        _context.BankMovements.Add(movement);
+        await _context.SaveChangesAsync();
+
+        return Result<BankMovementDto>.Success(new BankMovementDto
+        {
+            Id = movement.Id,
+            AccountId = movement.AccountId,
+            Amount = movement.Amount,
+            Date = movement.Date,
+            ReferenceNumber = movement.ReferenceNumber,
+            MovementType = movement.MovementType
+        });
+    }
+
+    public async Task<Result<bool>> ValidateAccountAsync(int accountId, decimal amount)
+    {
+        if (amount <= 0)
+            return Result<bool>.Failure("El monto debe ser mayor a cero.", ErrorType.Validation);
+
+        var account = await _context.Accounts.FindAsync(accountId);
+        if (account == null)
+            return Result<bool>.Failure("La cuenta bancaria seleccionada no existe.", ErrorType.NotFound);
+
+        if (account.AvailableBalance < amount)
+            return Result<bool>.Failure("Saldo insuficiente para realizar este movimiento.", ErrorType.Validation);
+
+        return Result<bool>.Success(true);
     }
 }

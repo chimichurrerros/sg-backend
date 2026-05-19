@@ -20,8 +20,8 @@ public class PurchaseReceiptController(PurchaseReceiptService purchaseReceiptSer
     public async Task<ActionResult<BillWrapperDto>> ReceivePurchaseOrder(CreatePurchaseReceiptDto request)
     {
         var result = await _purchaseReceiptService.ReceivePurchaseOrderAsync(request);
-        
-        if (result.IsSuccess) 
+
+        if (result.IsSuccess)
             return Created($"/api/bills/{result.Value!.Bill.Id}", result.Value);
 
         if (result.ErrorType == ErrorType.Validation)
@@ -31,5 +31,14 @@ public class PurchaseReceiptController(PurchaseReceiptService purchaseReceiptSer
             return this.HandleNotFoundProblem(result);
 
         return this.HandleServerError(PurchaseReceiptError.ProcessFailed, result);
+    }
+
+    [HttpGet("all")]
+    public async Task<ActionResult<ListBillsWrapperDto>> GetAll()
+    {
+        var result = await _purchaseReceiptService.GetAllAsync();
+        if (result.IsSuccess)
+            return Ok(result.Value);
+        return StatusCode(500);
     }
 }
