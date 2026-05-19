@@ -53,6 +53,7 @@ builder.Services.AddScoped<BankMovementService>();
 builder.Services.AddScoped<PurchaseRequestService>();
 builder.Services.AddScoped<PurchaseReceiptService>();
 builder.Services.AddScoped<BankService>();
+builder.Services.AddScoped<PaymentOrderService>();
 // ------------------------------------------------------------------------------------------------------
 // Authorization configuration
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
