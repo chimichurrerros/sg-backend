@@ -23,6 +23,12 @@ public class SupplierQuoteResponseDto
     public decimal Total { get; set; }
     public BackEnd.Models.SupplierQuote.SupplierQuoteStateEnum State { get; set; }
     public List<SupplierQuoteDetailResponseDto> Details { get; set; } = [];
+    
+    /// <summary>
+    /// If the supplier quote has an associated purchase order, contains its id; otherwise null.
+    /// Useful to link from the quote to the related purchase order.
+    /// </summary>
+    public int? AssociatedPurchaseOrderId { get; set; }
 }
 
 public class SupplierQuoteWrapperDto

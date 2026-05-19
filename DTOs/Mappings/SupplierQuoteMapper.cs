@@ -1,6 +1,7 @@
 using BackEnd.DTOs.Requests.SupplierQuote;
 using BackEnd.DTOs.Responses.SupplierQuote;
 using BackEnd.Models;
+using System.Linq;
 
 namespace BackEnd.DTOs.Mappings;
 
@@ -42,7 +43,9 @@ public class SupplierQuoteMapper : AutoMapper.Profile
             .ForMember(dest => dest.SupplierName,
                 opt => opt.MapFrom(src => src.Supplier != null ? (string.IsNullOrWhiteSpace(src.Supplier.FantasyName) ? src.Supplier.BusinessName : src.Supplier.FantasyName) : null))
             .ForMember(dest => dest.Details,
-                opt => opt.MapFrom(src => src.SupplierQuoteDetails));
+                opt => opt.MapFrom(src => src.SupplierQuoteDetails))
+            .ForMember(dest => dest.AssociatedPurchaseOrderId,
+                opt => opt.MapFrom(src => (src.PurchaseOrders != null && src.PurchaseOrders.Any()) ? (int?)src.PurchaseOrders.OrderByDescending(p => p.Id).First().Id : null));
 
         CreateMap<SupplierQuote, SupplierQuoteWrapperDto>()
             .ForMember(dest => dest.SupplierQuote, opt => opt.MapFrom(src => src));

@@ -1,6 +1,7 @@
 using BackEnd.DTOs.Requests.CustomerQuote;
 using BackEnd.DTOs.Responses.CustomerQuote;
 using BackEnd.Models;
+using System.Linq;
 
 namespace BackEnd.DTOs.Mappings;
 
@@ -44,7 +45,9 @@ public class CustomerQuoteMapper : AutoMapper.Profile
             .ForMember(dest => dest.UserName,
                 opt => opt.MapFrom(src => src.User != null ? $"{src.User.Name} {src.User.LastName}".Trim() : null))
             .ForMember(dest => dest.Details,
-                opt => opt.MapFrom(src => src.CustomerQuoteDetails));
+                opt => opt.MapFrom(src => src.CustomerQuoteDetails))
+            .ForMember(dest => dest.AssociatedSalesOrderId,
+                opt => opt.MapFrom(src => (src.SalesOrders != null && src.SalesOrders.Any()) ? (int?)src.SalesOrders.OrderByDescending(o => o.Id).First().Id : null));
 
         CreateMap<CustomerQuote, CustomerQuoteWrapperDto>()
             .ForMember(dest => dest.CustomerQuote,

@@ -83,6 +83,12 @@ public class CustomerQuoteResponseDto
     /// Collection of quote detail lines.
     /// </summary>
     public List<CustomerQuoteDetailResponseDto> Details { get; set; } = [];
+
+    /// <summary>
+    /// If the quote has an associated sales order, contains its id; otherwise null.
+    /// Useful for linking from the quote view to the related sales order.
+    /// </summary>
+    public int? AssociatedSalesOrderId { get; set; }
 }
 
 /// <summary>
