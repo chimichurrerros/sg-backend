@@ -13,7 +13,7 @@ public partial class Bank
 
     public BankMovementTypeEnum AccountType {get; set;}
 
-    public string Ruc {get; set;}
+    public string? Ruc {get; set;}
 
     public bool IsActive { get; set; } = true;
 

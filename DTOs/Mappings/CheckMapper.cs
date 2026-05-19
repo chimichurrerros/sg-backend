@@ -11,8 +11,10 @@ public class CheckProfile : Profile
     {
         // De Request a Entidad (Para crear)
         CreateMap<CreateCheckRequestDto, Check>();
-
+        CreateMap<Check, CheckWrapperDto>();
         // De Entidad a Response (Para devolver al frontend)
         CreateMap<Check, CheckResponseDto>();
+
+        
     }
 }
