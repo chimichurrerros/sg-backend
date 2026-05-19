@@ -5,9 +5,20 @@ namespace BackEnd.Models;
 
 public partial class PurchaseOrder
 {
+    public enum PurchaseOrderStateEnum
+    {
+        Pending = 1,
+        Confirmed = 2,
+        PartiallyReceived = 3,
+        Received = 4,
+        Cancelled = 5
+    }
+
     public int Id { get; set; }
 
     public int SupplierId { get; set; }
+
+    public int PurchaseRequestId { get; set; }
 
     public int? SupplierQuoteId { get; set; }
 
@@ -17,13 +28,13 @@ public partial class PurchaseOrder
 
     public decimal Total { get; set; }
 
-    public int StateId { get; set; }
+    public PurchaseOrderStateEnum State { get; set; } = PurchaseOrderStateEnum.Pending;
 
     public virtual ICollection<Bill> Bills { get; set; } = new List<Bill>();
 
     public virtual ICollection<PurchaseOrderDetail> PurchaseOrderDetails { get; set; } = new List<PurchaseOrderDetail>();
 
-    public virtual State State { get; set; } = null!;
+    public virtual PurchaseRequest PurchaseRequest { get; set; } = null!;
 
     public virtual Supplier Supplier { get; set; } = null!;
 

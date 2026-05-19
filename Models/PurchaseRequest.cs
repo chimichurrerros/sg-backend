@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace BackEnd.Models;
@@ -11,12 +11,15 @@ public partial class PurchaseRequest
 
     public DateTime Date { get; set; }
 
-    public PurchaseRequestStateEnum PurchaseRequestState { get; set; }
+    public int StateId { get; set; }
 
     public string? Observation { get; set; }
 
     public virtual ICollection<PurchaseRequestDetail> PurchaseRequestDetails { get; set; } = new List<PurchaseRequestDetail>();
 
+    public virtual State State { get; set; } = null!;
+
+    public virtual ICollection<PurchaseOrder> PurchaseOrders { get; set; } = new List<PurchaseOrder>();
 
     public virtual ICollection<SupplierQuote> SupplierQuotes { get; set; } = new List<SupplierQuote>();
 

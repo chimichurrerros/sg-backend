@@ -19,5 +19,7 @@ public partial class SupplierQuoteDetail
 
     public virtual Product Product { get; set; } = null!;
 
+    public virtual ICollection<PurchaseOrderDetail> PurchaseOrderDetails { get; set; } = new List<PurchaseOrderDetail>();
+
     public virtual SupplierQuote SupplierQuote { get; set; } = null!;
 }

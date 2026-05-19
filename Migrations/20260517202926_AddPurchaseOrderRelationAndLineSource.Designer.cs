@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260517202926_AddPurchaseOrderRelationAndLineSource")]
+    partial class AddPurchaseOrderRelationAndLineSource
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1408,10 +1411,7 @@ namespace BackEnd.Migrations
                     b.Property<int>("PurchaseRequestId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("State")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("StateId")
+                    b.Property<int>("StateId")
                         .HasColumnType("integer");
 
                     b.Property<int>("SupplierId")
@@ -1533,17 +1533,12 @@ namespace BackEnd.Migrations
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
 
-                    b.Property<int>("SupplierId")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id")
                         .HasName("PurchaseRequestDetails_pkey");
 
                     b.HasIndex("ProductId");
 
                     b.HasIndex("PurchaseRequestId");
-
-                    b.HasIndex("SupplierId");
 
                     b.ToTable("PurchaseRequestDetails");
                 });
@@ -1838,10 +1833,7 @@ namespace BackEnd.Migrations
                     b.Property<int>("PurchaseRequestId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("State")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("StateId")
+                    b.Property<int>("StateId")
                         .HasColumnType("integer");
 
                     b.Property<int>("SupplierId")
@@ -2459,9 +2451,11 @@ namespace BackEnd.Migrations
                         .IsRequired()
                         .HasConstraintName("PurchaseOrders_PurchaseRequestId_fkey");
 
-                    b.HasOne("BackEnd.Models.State", null)
+                    b.HasOne("BackEnd.Models.State", "State")
                         .WithMany("PurchaseOrders")
-                        .HasForeignKey("StateId");
+                        .HasForeignKey("StateId")
+                        .IsRequired()
+                        .HasConstraintName("PurchaseOrders_StateId_fkey");
 
                     b.HasOne("BackEnd.Models.Supplier", "Supplier")
                         .WithMany("PurchaseOrders")
@@ -2475,6 +2469,8 @@ namespace BackEnd.Migrations
                         .HasConstraintName("PurchaseOrders_SupplierQuoteId_fkey");
 
                     b.Navigation("PurchaseRequest");
+
+                    b.Navigation("State");
 
                     b.Navigation("Supplier");
 
@@ -2540,17 +2536,9 @@ namespace BackEnd.Migrations
                         .IsRequired()
                         .HasConstraintName("PurchaseRequestDetails_PurchaseRequestId_fkey");
 
-                    b.HasOne("BackEnd.Models.Supplier", "Supplier")
-                        .WithMany("PurchaseRequestDetails")
-                        .HasForeignKey("SupplierId")
-                        .IsRequired()
-                        .HasConstraintName("PurchaseRequestDetails_SupplierId_fkey");
-
                     b.Navigation("Product");
 
                     b.Navigation("PurchaseRequest");
-
-                    b.Navigation("Supplier");
                 });
 
             modelBuilder.Entity("BackEnd.Models.SalesOrder", b =>
@@ -2655,9 +2643,11 @@ namespace BackEnd.Migrations
                         .IsRequired()
                         .HasConstraintName("SupplierQuotes_PurchaseRequestId_fkey");
 
-                    b.HasOne("BackEnd.Models.State", null)
+                    b.HasOne("BackEnd.Models.State", "State")
                         .WithMany("SupplierQuotes")
-                        .HasForeignKey("StateId");
+                        .HasForeignKey("StateId")
+                        .IsRequired()
+                        .HasConstraintName("SupplierQuotes_StateId_fkey");
 
                     b.HasOne("BackEnd.Models.Supplier", "Supplier")
                         .WithMany("SupplierQuotes")
@@ -2666,6 +2656,8 @@ namespace BackEnd.Migrations
                         .HasConstraintName("SupplierQuotes_SupplierId_fkey");
 
                     b.Navigation("PurchaseRequest");
+
+                    b.Navigation("State");
 
                     b.Navigation("Supplier");
                 });
@@ -2964,8 +2956,6 @@ namespace BackEnd.Migrations
                     b.Navigation("PaymentOrders");
 
                     b.Navigation("PurchaseOrders");
-
-                    b.Navigation("PurchaseRequestDetails");
 
                     b.Navigation("SupplierCategories");
 

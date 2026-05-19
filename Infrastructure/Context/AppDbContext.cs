@@ -814,16 +814,18 @@ public partial class AppDbContext : DbContext
                 .HasColumnType("timestamp without time zone");
             entity.Property(e => e.Number).HasMaxLength(50);
             entity.Property(e => e.Total).HasPrecision(15, 2);
-
-            entity.HasOne(d => d.State).WithMany(p => p.PurchaseOrders)
-                .HasForeignKey(d => d.StateId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("PurchaseOrders_StateId_fkey");
+            entity.Property(e => e.State)
+                .HasConversion<int>();
 
             entity.HasOne(d => d.Supplier).WithMany(p => p.PurchaseOrders)
                 .HasForeignKey(d => d.SupplierId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PurchaseOrders_SupplierId_fkey");
+
+            entity.HasOne(d => d.PurchaseRequest).WithMany(p => p.PurchaseOrders)
+                .HasForeignKey(d => d.PurchaseRequestId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseOrders_PurchaseRequestId_fkey");
 
             entity.HasOne(d => d.SupplierQuote).WithMany(p => p.PurchaseOrders)
                 .HasForeignKey(d => d.SupplierQuoteId)
@@ -843,6 +845,10 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ProductId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PurchaseOrderDetails_ProductId_fkey");
+
+            entity.HasOne(d => d.SupplierQuoteDetail).WithMany(p => p.PurchaseOrderDetails)
+                .HasForeignKey(d => d.SupplierQuoteDetailId)
+                .HasConstraintName("PurchaseOrderDetails_SupplierQuoteDetailId_fkey");
 
             entity.HasOne(d => d.PurchaseOrder).WithMany(p => p.PurchaseOrderDetails)
                 .HasForeignKey(d => d.PurchaseOrderId)
@@ -1022,16 +1028,13 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone");
             entity.Property(e => e.Total).HasPrecision(15, 2);
+            entity.Property(e => e.State)
+                .HasConversion<int>();
 
             entity.HasOne(d => d.PurchaseRequest).WithMany(p => p.SupplierQuotes)
                 .HasForeignKey(d => d.PurchaseRequestId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("SupplierQuotes_PurchaseRequestId_fkey");
-
-            entity.HasOne(d => d.State).WithMany(p => p.SupplierQuotes)
-                .HasForeignKey(d => d.StateId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("SupplierQuotes_StateId_fkey");
 
             entity.HasOne(d => d.Supplier).WithMany(p => p.SupplierQuotes)
                 .HasForeignKey(d => d.SupplierId)
