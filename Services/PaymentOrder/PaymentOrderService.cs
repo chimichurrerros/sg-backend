@@ -23,6 +23,9 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
         if (request.Amount <= 0)
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.InvalidAmount, ErrorType.Validation);
 
+        if (request.BankAccountId <= 0)
+            return Result<PaymentOrderWrapperDto>.Failure("Invalid bank account", ErrorType.Validation);
+
         var purchaseOrder = await _context.PurchaseOrders
             .AsNoTracking()
             .FirstOrDefaultAsync(po => po.Id == request.PurchaseOrderId);
@@ -33,7 +36,10 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
         if (purchaseOrder.State != PurchaseOrder.PurchaseOrderStateEnum.Confirmed)
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.PurchaseOrderMustBeConfirmed, ErrorType.Validation);
 
-        // use enum state instead of resolving state id
+        // Validate bank account and funds
+        var accountValidation = await _bankMovementService.ValidateAccountAsync(request.BankAccountId, request.Amount);
+        if (!accountValidation.IsSuccess)
+            return Result<PaymentOrderWrapperDto>.Failure(accountValidation.ErrorMessage!, accountValidation.ErrorType);
 
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -44,7 +50,7 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
                 SupplierId = purchaseOrder.SupplierId,
                 Date = request.PaymentDate == default ? DateTime.UtcNow : request.PaymentDate,
                 Total = request.Amount,
-                State = PaymentOrderStateEnum.Pending
+                State = PaymentOrderStateEnum.Processed
             };
 
             _context.PaymentOrders.Add(paymentOrder);
@@ -54,7 +60,7 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
             var bill = new Bill
             {
                 BillType = BillTypeEnum.CONTADO,
-                BillState = BillStateEnum.Pending,
+                BillState = BillStateEnum.Paid,
                 PurchaseOrderId = purchaseOrder.Id,
                 Number = $"PO-PAY-{paymentOrder.Id:D6}",
                 Stamp = request.Notes,
@@ -71,6 +77,31 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
             {
                 PaymentOrderId = paymentOrder.Id,
                 BillId = bill.Id,
+                Amount = request.Amount
+            });
+
+            await _context.SaveChangesAsync();
+
+            // Create bank movement
+            var movementResult = await _bankMovementService.CreateMovementAsync(new CreateBankMovementDto
+            {
+                AccountId = request.BankAccountId,
+                Amount = request.Amount,
+                Date = request.PaymentDate == default ? DateTime.UtcNow : request.PaymentDate,
+                ReferenceNumber = request.ReferenceNumber,
+                MovementType = BankMovementTypeEnum.Debit
+            });
+
+            if (!movementResult.IsSuccess)
+            {
+                await transaction.RollbackAsync();
+                return Result<PaymentOrderWrapperDto>.Failure(movementResult.ErrorMessage!, movementResult.ErrorType);
+            }
+
+            _context.PaymentOrderMovements.Add(new PaymentOrderMovement
+            {
+                PaymentOrderId = paymentOrder.Id,
+                BankMovementId = movementResult.Value!.Id,
                 Amount = request.Amount
             });
 
