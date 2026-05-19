@@ -188,6 +188,19 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
         }
     }
 
+    public async Task<Result<bool>> ConfirmPurchaseOrderAsync(int purchaseOrderId)
+    {
+        var order = await _context.PurchaseOrders.FindAsync(purchaseOrderId);
+        if (order == null)
+            return Result<bool>.Failure(PurchaseOrderError.PurchaseOrderNotFound, ErrorType.NotFound);
+
+        order.State = PurchaseOrder.PurchaseOrderStateEnum.Confirmed;
+        _context.PurchaseOrders.Update(order);
+        await _context.SaveChangesAsync();
+
+        return Result<bool>.Success(true);
+    }
+
     private IQueryable<PurchaseOrder> LoadOrdersQuery()
     {
         return _context.PurchaseOrders
