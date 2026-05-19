@@ -122,7 +122,7 @@ public class SupplierQuoteService(AppDbContext context, IMapper mapper)
         if (quote == null)
             return Result<SupplierQuoteWrapperDto>.Failure(SupplierQuoteError.SupplierQuoteNotFound, ErrorType.NotFound);
 
-        var validation = await ValidateUpdateRequestAsync(request, quote.SupplierId, quote.PurchaseRequestId);
+        var validation = await ValidateUpdateRequestAsync(request, id, quote.SupplierId, quote.PurchaseRequestId);
         if (!validation.IsSuccess)
             return Result<SupplierQuoteWrapperDto>.Failure(validation.ErrorMessage!, validation.Errors!, validation.ErrorType);
 
@@ -214,7 +214,7 @@ public class SupplierQuoteService(AppDbContext context, IMapper mapper)
         return Result.Success();
     }
 
-    private async Task<Result> ValidateUpdateRequestAsync(UpdateSupplierQuoteRequestDto request, int currentSupplierId, int currentPurchaseRequestId)
+    private async Task<Result> ValidateUpdateRequestAsync(UpdateSupplierQuoteRequestDto request, int quoteId, int currentSupplierId, int currentPurchaseRequestId)
     {
         var errors = new Dictionary<string, string[]>();
 
@@ -247,14 +247,27 @@ public class SupplierQuoteService(AppDbContext context, IMapper mapper)
         // Validate Details only if they're provided
         if (request.Details != null)
         {
-            ValidateDetails(request.Details, errors, nameof(request.Details));
+            // Check if there are any PurchaseOrderDetails associated with this quote's details
+            var hasAssociatedPurchaseOrders = await _context.SupplierQuoteDetails
+                .Where(d => d.SupplierQuoteId == quoteId)
+                .SelectMany(d => d.PurchaseOrderDetails)
+                .AnyAsync();
 
-            if (!errors.ContainsKey(nameof(request.Details)))
+            if (hasAssociatedPurchaseOrders)
             {
-                var purchaseRequestIdToValidate = request.PurchaseRequestId ?? currentPurchaseRequestId;
-                var productsValidation = await ValidateProductsBelongToPurchaseRequestAsync(purchaseRequestIdToValidate, request.Details.Select(d => d.ProductId).ToList());
-                if (!productsValidation.IsSuccess)
-                    errors[nameof(request.Details)] = [SupplierQuoteError.InvalidProducts];
+                errors[nameof(request.Details)] = ["No se pueden actualizar los detalles de una cotización que ya tiene órdenes de compra asociadas."];
+            }
+            else
+            {
+                ValidateDetails(request.Details, errors, nameof(request.Details));
+
+                if (!errors.ContainsKey(nameof(request.Details)))
+                {
+                    var purchaseRequestIdToValidate = request.PurchaseRequestId ?? currentPurchaseRequestId;
+                    var productsValidation = await ValidateProductsBelongToPurchaseRequestAsync(purchaseRequestIdToValidate, request.Details.Select(d => d.ProductId).ToList());
+                    if (!productsValidation.IsSuccess)
+                        errors[nameof(request.Details)] = [SupplierQuoteError.InvalidProducts];
+                }
             }
         }
 
