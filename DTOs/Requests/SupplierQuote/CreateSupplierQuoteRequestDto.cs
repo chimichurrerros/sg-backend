@@ -31,14 +31,11 @@ public class CreateSupplierQuoteRequestDto
 
 public class UpdateSupplierQuoteRequestDto
 {
-    [Required]
-    public int SupplierId { get; set; }
+    public int? SupplierId { get; set; }
 
-    [Required]
-    public int PurchaseRequestId { get; set; }
+    public int? PurchaseRequestId { get; set; }
 
-    [MinLength(1)]
-    public List<SupplierQuoteDetailRequestDto> Details { get; set; } = [];
+    public List<SupplierQuoteDetailRequestDto>? Details { get; set; }
 
     public int? State { get; set; }
 }

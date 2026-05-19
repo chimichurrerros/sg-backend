@@ -130,26 +130,31 @@ public class SupplierQuoteService(AppDbContext context, IMapper mapper)
 
         try
         {
-            quote.SupplierId = request.SupplierId;
-            quote.PurchaseRequestId = request.PurchaseRequestId;
-            quote.Total = CalculateTotal(request.Details);
+            if (request.SupplierId.HasValue)
+                quote.SupplierId = request.SupplierId.Value;
+
+            if (request.PurchaseRequestId.HasValue)
+                quote.PurchaseRequestId = request.PurchaseRequestId.Value;
+
+            if (request.Details != null)
+            {
+                _context.SupplierQuoteDetails.RemoveRange(quote.SupplierQuoteDetails);
+                quote.SupplierQuoteDetails = request.Details
+                    .Select(d => new SupplierQuoteDetail
+                    {
+                        ProductId = d.ProductId,
+                        QuantityAvailable = d.QuantityAvailable,
+                        Price = d.Price,
+                        TaxRate = d.TaxRate
+                    })
+                    .ToList();
+                quote.Total = CalculateTotal(request.Details);
+            }
 
             if (request.State.HasValue && Enum.IsDefined(typeof(SupplierQuote.SupplierQuoteStateEnum), request.State.Value))
             {
                 quote.State = (SupplierQuote.SupplierQuoteStateEnum)request.State.Value;
             }
-
-            _context.SupplierQuoteDetails.RemoveRange(quote.SupplierQuoteDetails);
-
-            quote.SupplierQuoteDetails = request.Details
-                .Select(d => new SupplierQuoteDetail
-                {
-                    ProductId = d.ProductId,
-                    QuantityAvailable = d.QuantityAvailable,
-                    Price = d.Price,
-                    TaxRate = d.TaxRate
-                })
-                .ToList();
 
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -213,34 +218,45 @@ public class SupplierQuoteService(AppDbContext context, IMapper mapper)
     {
         var errors = new Dictionary<string, string[]>();
 
-        if (request.SupplierId <= 0)
-            errors[nameof(request.SupplierId)] = [SupplierQuoteError.SupplierIdRequired];
-
-        if (request.PurchaseRequestId <= 0)
-            errors[nameof(request.PurchaseRequestId)] = [SupplierQuoteError.PurchaseRequestIdRequired];
-
-        ValidateDetails(request.Details, errors, nameof(request.Details));
-
-        if (errors.Count > 0)
-            return Result.Failure(string.Join("; ", errors.Values.SelectMany(v => v)), errors, ErrorType.Validation);
-
-        if (request.SupplierId != currentSupplierId)
+        // Validate SupplierId only if it's provided
+        if (request.SupplierId.HasValue)
         {
-            var supplierExists = await _context.Suppliers.AnyAsync(s => s.Id == request.SupplierId);
-            if (!supplierExists)
-                errors[nameof(request.SupplierId)] = [SupplierQuoteError.SupplierNotFound];
+            if (request.SupplierId <= 0)
+                errors[nameof(request.SupplierId)] = [SupplierQuoteError.SupplierIdRequired];
+            else if (request.SupplierId != currentSupplierId)
+            {
+                var supplierExists = await _context.Suppliers.AnyAsync(s => s.Id == request.SupplierId);
+                if (!supplierExists)
+                    errors[nameof(request.SupplierId)] = [SupplierQuoteError.SupplierNotFound];
+            }
         }
 
-        if (request.PurchaseRequestId != currentPurchaseRequestId)
+        // Validate PurchaseRequestId only if it's provided
+        if (request.PurchaseRequestId.HasValue)
         {
-            var prExists = await _context.PurchaseRequests.AnyAsync(p => p.Id == request.PurchaseRequestId);
-            if (!prExists)
-                errors[nameof(request.PurchaseRequestId)] = [SupplierQuoteError.PurchaseRequestNotFound];
+            if (request.PurchaseRequestId <= 0)
+                errors[nameof(request.PurchaseRequestId)] = [SupplierQuoteError.PurchaseRequestIdRequired];
+            else if (request.PurchaseRequestId != currentPurchaseRequestId)
+            {
+                var prExists = await _context.PurchaseRequests.AnyAsync(p => p.Id == request.PurchaseRequestId);
+                if (!prExists)
+                    errors[nameof(request.PurchaseRequestId)] = [SupplierQuoteError.PurchaseRequestNotFound];
+            }
         }
 
-        var productsValidation = await ValidateProductsBelongToPurchaseRequestAsync(request.PurchaseRequestId, request.Details.Select(d => d.ProductId).ToList());
-        if (!productsValidation.IsSuccess)
-            errors[nameof(request.Details)] = [SupplierQuoteError.InvalidProducts];
+        // Validate Details only if they're provided
+        if (request.Details != null)
+        {
+            ValidateDetails(request.Details, errors, nameof(request.Details));
+
+            if (!errors.ContainsKey(nameof(request.Details)))
+            {
+                var purchaseRequestIdToValidate = request.PurchaseRequestId ?? currentPurchaseRequestId;
+                var productsValidation = await ValidateProductsBelongToPurchaseRequestAsync(purchaseRequestIdToValidate, request.Details.Select(d => d.ProductId).ToList());
+                if (!productsValidation.IsSuccess)
+                    errors[nameof(request.Details)] = [SupplierQuoteError.InvalidProducts];
+            }
+        }
 
         if (errors.Count > 0)
             return Result.Failure(string.Join("; ", errors.Values.SelectMany(v => v)), errors, ErrorType.Validation);
