@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.OpenApi;
 
@@ -11,11 +11,5 @@ public partial class State
     public string Name { get; set; } = null!;
 
     public virtual ICollection<AccountantProcess> AccountantProcesses { get; set; } = new List<AccountantProcess>();
-
-    public virtual ICollection<CustomerQuote> CustomerQuotes { get; set; } = new List<CustomerQuote>();
-
     public virtual ICollection<PaymentOrder> PaymentOrders { get; set; } = new List<PaymentOrder>();
-
-    public virtual ICollection<PurchaseOrder> PurchaseOrders { get; set; } = new List<PurchaseOrder>();
-    
 }
