@@ -52,11 +52,7 @@ builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<BankMovementService>();
 builder.Services.AddScoped<PurchaseRequestService>();
 builder.Services.AddScoped<PurchaseReceiptService>();
-
-
-
-
-
+builder.Services.AddScoped<BankService>();
 // ------------------------------------------------------------------------------------------------------
 // Authorization configuration
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
