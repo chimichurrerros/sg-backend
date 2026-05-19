@@ -33,9 +33,7 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
         if (purchaseOrder.State != PurchaseOrder.PurchaseOrderStateEnum.Confirmed)
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.PurchaseOrderMustBeConfirmed, ErrorType.Validation);
 
-        var pendingStateId = await ResolveStateIdAsync(["pending"]);
-        if (!pendingStateId.HasValue)
-            return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.PendingStateNotFound, ErrorType.NotFound);
+        // use enum state instead of resolving state id
 
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -46,7 +44,7 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
                 SupplierId = purchaseOrder.SupplierId,
                 Date = request.PaymentDate == default ? DateTime.UtcNow : request.PaymentDate,
                 Total = request.Amount,
-                StateId = pendingStateId.Value
+                State = PaymentOrderStateEnum.Pending
             };
 
             _context.PaymentOrders.Add(paymentOrder);
@@ -126,7 +124,6 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.InvalidAmount, ErrorType.Validation);
 
         var paymentOrder = await _context.PaymentOrders
-            .Include(po => po.State)
             .Include(po => po.PaymentOrderBills)
                 .ThenInclude(pob => pob.Bill)
             .FirstOrDefaultAsync(po => po.Id == request.PaymentOrderId);
@@ -134,16 +131,14 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
         if (paymentOrder == null)
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.PaymentOrderNotFound, ErrorType.NotFound);
 
-        if (IsProcessedState(paymentOrder.State?.Name))
+        if (IsProcessedState(paymentOrder.State))
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.PaymentAlreadyProcessed, ErrorType.Validation);
 
         var accountValidation = await _bankMovementService.ValidateAccountAsync(request.BankAccountId, request.Amount);
         if (!accountValidation.IsSuccess)
             return Result<PaymentOrderWrapperDto>.Failure(accountValidation.ErrorMessage!, accountValidation.ErrorType);
 
-        var processedStateId = await ResolveStateIdAsync(["processed", "paid"]);
-        if (!processedStateId.HasValue)
-            return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.ProcessedStateNotFound, ErrorType.NotFound);
+        // set enum processed state
 
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -171,7 +166,7 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
                 Amount = request.Amount
             });
 
-            paymentOrder.StateId = processedStateId.Value;
+            paymentOrder.State = PaymentOrderStateEnum.Processed;
             _context.PaymentOrders.Update(paymentOrder);
 
             foreach (var billLink in paymentOrder.PaymentOrderBills)
@@ -199,12 +194,11 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
 
         var isConfirmed = await _context.PaymentOrders
             .AsNoTracking()
-            .Include(po => po.State)
             .Include(po => po.PaymentOrderBills)
                 .ThenInclude(pob => pob.Bill)
             .AnyAsync(po =>
                 po.PaymentOrderBills.Any(pob => pob.Bill.PurchaseOrderId == purchaseOrderId)
-                && IsProcessedState(po.State.Name));
+                && (po.State == PaymentOrderStateEnum.Processed || po.State == PaymentOrderStateEnum.Paid));
 
         return Result<bool>.Success(isConfirmed);
     }
@@ -213,27 +207,15 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
     {
         return _context.PaymentOrders
             .AsNoTracking()
-            .Include(po => po.State)
             .Include(po => po.PaymentOrderBills)
                 .ThenInclude(pob => pob.Bill)
             .Include(po => po.PaymentOrderMovements)
                 .ThenInclude(pom => pom.BankMovement);
     }
 
-    private static bool IsProcessedState(string? stateName)
+    private static bool IsProcessedState(PaymentOrderStateEnum state)
     {
-        return string.Equals(stateName, "Processed", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(stateName, "Paid", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private async Task<int?> ResolveStateIdAsync(string[] names)
-    {
-        var normalized = names.Select(n => n.ToLowerInvariant()).ToList();
-        var state = await _context.States
-            .AsNoTracking()
-            .FirstOrDefaultAsync(s => normalized.Contains(s.Name.ToLower()));
-
-        return state?.Id;
+        return state == PaymentOrderStateEnum.Processed || state == PaymentOrderStateEnum.Paid;
     }
 
     private static PaymentOrderResponseDto MapResponse(Models.PaymentOrder paymentOrder)
@@ -249,7 +231,7 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
             PurchaseOrderId = purchaseOrderId,
             Date = paymentOrder.Date,
             Total = paymentOrder.Total,
-            StateId = paymentOrder.State?.Name ?? paymentOrder.StateId.ToString(),
+            StateId = paymentOrder.State.ToString(),
             Bills = paymentOrder.PaymentOrderBills.Select(link => new PaymentOrderBillDto
             {
                 Id = link.Id,

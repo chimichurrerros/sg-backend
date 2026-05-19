@@ -13,13 +13,11 @@ public partial class PaymentOrder
 
     public decimal Total { get; set; }
 
-    public int StateId { get; set; }
+    public PaymentOrderStateEnum State { get; set; }
 
     public virtual ICollection<PaymentOrderBill> PaymentOrderBills { get; set; } = new List<PaymentOrderBill>();
 
     public virtual ICollection<PaymentOrderMovement> PaymentOrderMovements { get; set; } = new List<PaymentOrderMovement>();
-
-    public virtual State State { get; set; } = null!;
 
     public virtual Supplier Supplier { get; set; } = null!;
 }

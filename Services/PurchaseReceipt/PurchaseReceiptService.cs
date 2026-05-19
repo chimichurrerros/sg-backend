@@ -1,4 +1,6 @@
 using BackEnd.Constants.Errors;
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using BackEnd.DTOs.Requests.PurchaseReceipt;
 using BackEnd.DTOs.Responses.Bill;
 using BackEnd.Infrastructure.Context;
@@ -12,12 +14,14 @@ public class PurchaseReceiptService(
     AppDbContext context,
     StockService stockService,
     BillService billService,
-    PaymentOrderService paymentOrderService)
+    PaymentOrderService paymentOrderService,
+    IMapper mapper)
 {
     private readonly AppDbContext _context = context;
     private readonly StockService _stockService = stockService;
     private readonly BillService _billService = billService;
     private readonly PaymentOrderService _paymentOrderService = paymentOrderService;
+    private readonly IMapper _mapper = mapper;
 
     public async Task<Result<BillWrapperDto>> ReceivePurchaseOrderAsync(CreatePurchaseReceiptDto request)
     {
@@ -136,5 +140,17 @@ public class PurchaseReceiptService(
             await transaction.RollbackAsync();
             return Result<BillWrapperDto>.Failure($"{PurchaseReceiptError.ProcessFailed}: {ex.Message}", ErrorType.Unexpected);
         }
+    }
+
+    public async Task<Result<ListBillsWrapperDto>> GetAllAsync()
+    {
+        var bills = await _context.Bills
+            .AsNoTracking()
+            .Where(b => b.PurchaseOrderId != null)
+            .OrderByDescending(b => b.Id)
+            .ProjectTo<BillResponseDto>(_mapper.ConfigurationProvider)
+            .ToListAsync();
+
+        return Result<ListBillsWrapperDto>.Success(new ListBillsWrapperDto { Bills = bills });
     }
 }

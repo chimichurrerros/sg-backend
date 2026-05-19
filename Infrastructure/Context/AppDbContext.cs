@@ -591,11 +591,6 @@ public partial class AppDbContext : DbContext
                 .HasColumnType("timestamp without time zone");
             entity.Property(e => e.Total).HasPrecision(15, 2);
 
-            entity.HasOne(d => d.State).WithMany(p => p.PaymentOrders)
-                .HasForeignKey(d => d.StateId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("PaymentOrders_StateId_fkey");
-
             entity.HasOne(d => d.Supplier).WithMany(p => p.PaymentOrders)
                 .HasForeignKey(d => d.SupplierId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
