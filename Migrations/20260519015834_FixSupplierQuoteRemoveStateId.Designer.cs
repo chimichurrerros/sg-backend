@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260519015834_FixSupplierQuoteRemoveStateId")]
+    partial class FixSupplierQuoteRemoveStateId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1835,6 +1838,9 @@ namespace BackEnd.Migrations
                     b.Property<int>("State")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("StateId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("SupplierId")
                         .HasColumnType("integer");
 
@@ -1846,6 +1852,8 @@ namespace BackEnd.Migrations
                         .HasName("SupplierQuotes_pkey");
 
                     b.HasIndex("PurchaseRequestId");
+
+                    b.HasIndex("StateId");
 
                     b.HasIndex("SupplierId");
 
@@ -2627,6 +2635,10 @@ namespace BackEnd.Migrations
                         .IsRequired()
                         .HasConstraintName("SupplierQuotes_PurchaseRequestId_fkey");
 
+                    b.HasOne("BackEnd.Models.State", null)
+                        .WithMany("SupplierQuotes")
+                        .HasForeignKey("StateId");
+
                     b.HasOne("BackEnd.Models.Supplier", "Supplier")
                         .WithMany("SupplierQuotes")
                         .HasForeignKey("SupplierId")
@@ -2922,6 +2934,7 @@ namespace BackEnd.Migrations
 
                     b.Navigation("PurchaseOrders");
 
+                    b.Navigation("SupplierQuotes");
                 });
 
             modelBuilder.Entity("BackEnd.Models.Supplier", b =>

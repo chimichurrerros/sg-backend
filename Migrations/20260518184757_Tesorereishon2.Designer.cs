@@ -1493,16 +1493,11 @@ namespace BackEnd.Migrations
                     b.Property<PurchaseRequestStateEnum>("PurchaseRequestState")
                         .HasColumnType("purchase_request_state_enum");
 
-                    b.Property<int?>("StateId")
-                        .HasColumnType("integer");
-
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id")
                         .HasName("PurchaseRequests_pkey");
-
-                    b.HasIndex("StateId");
 
                     b.HasIndex("UserId");
 
@@ -2483,10 +2478,6 @@ namespace BackEnd.Migrations
 
             modelBuilder.Entity("BackEnd.Models.PurchaseRequest", b =>
                 {
-                    b.HasOne("BackEnd.Models.State", null)
-                        .WithMany("PurchaseRequests")
-                        .HasForeignKey("StateId");
-
                     b.HasOne("BackEnd.Models.User", "User")
                         .WithMany("PurchaseRequests")
                         .HasForeignKey("UserId")
@@ -2917,8 +2908,6 @@ namespace BackEnd.Migrations
                     b.Navigation("PaymentOrders");
 
                     b.Navigation("PurchaseOrders");
-
-                    b.Navigation("PurchaseRequests");
 
                     b.Navigation("SupplierQuotes");
                 });

@@ -17,8 +17,5 @@ public partial class State
     public virtual ICollection<PaymentOrder> PaymentOrders { get; set; } = new List<PaymentOrder>();
 
     public virtual ICollection<PurchaseOrder> PurchaseOrders { get; set; } = new List<PurchaseOrder>();
-
-    public virtual ICollection<PurchaseRequest> PurchaseRequests { get; set; } = new List<PurchaseRequest>();
-
-    public virtual ICollection<SupplierQuote> SupplierQuotes { get; set; } = new List<SupplierQuote>();
+    
 }

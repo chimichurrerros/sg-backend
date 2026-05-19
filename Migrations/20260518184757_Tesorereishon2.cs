@@ -32,20 +32,28 @@ namespace BackEnd.Migrations
                 .OldAnnotation("Npgsql:Enum:check_type_enum", "day,deferred")
                 .OldAnnotation("Npgsql:Enum:sales_order_state_enum", "pending,confirmed,cancelled");
 
-            migrationBuilder.AlterColumn<int>(
-                name: "StateId",
-                table: "PurchaseRequests",
-                type: "integer",
-                nullable: true,
-                oldClrType: typeof(int),
-                oldType: "integer");
-
             migrationBuilder.AddColumn<PurchaseRequestStateEnum>(
                 name: "PurchaseRequestState",
                 table: "PurchaseRequests",
                 type: "purchase_request_state_enum",
                 nullable: false,
                 defaultValue: PurchaseRequestStateEnum.Pending);
+
+            migrationBuilder.Sql(@"
+                UPDATE ""PurchaseRequests"" pr
+                SET ""PurchaseRequestState"" = CASE LOWER(s.""Name"")
+                    WHEN 'pending' THEN 'pending'::purchase_request_state_enum
+                    WHEN 'approved' THEN 'approved'::purchase_request_state_enum
+                    WHEN 'rejected' THEN 'rejected'::purchase_request_state_enum
+                    WHEN 'completed' THEN 'completed'::purchase_request_state_enum
+                    ELSE 'pending'::purchase_request_state_enum
+                END
+                FROM ""States"" s
+                WHERE pr.""StateId"" = s.""Id"";");
+
+            migrationBuilder.DropColumn(
+                name: "StateId",
+                table: "PurchaseRequests");
 
             migrationBuilder.AlterColumn<int>(
                 name: "CustomerId",
@@ -54,21 +62,28 @@ namespace BackEnd.Migrations
                 nullable: true,
                 oldClrType: typeof(int),
                 oldType: "integer");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_PurchaseRequests_States_StateId",
-                table: "PurchaseRequests",
-                column: "StateId",
-                principalTable: "States",
-                principalColumn: "Id");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_PurchaseRequests_States_StateId",
-                table: "PurchaseRequests");
+            migrationBuilder.AddColumn<int>(
+                name: "StateId",
+                table: "PurchaseRequests",
+                type: "integer",
+                nullable: true);
+
+            migrationBuilder.Sql(@"
+                UPDATE ""PurchaseRequests"" pr
+                SET ""StateId"" = s.""Id""
+                FROM ""States"" s
+                WHERE LOWER(s.""Name"") = CASE pr.""PurchaseRequestState""
+                    WHEN 0 THEN 'pending'
+                    WHEN 1 THEN 'approved'
+                    WHEN 2 THEN 'rejected'
+                    WHEN 3 THEN 'completed'
+                    ELSE 'pending'
+                END;");
 
             migrationBuilder.DropColumn(
                 name: "PurchaseRequestState",
@@ -96,8 +111,8 @@ namespace BackEnd.Migrations
                 .OldAnnotation("Npgsql:Enum:sales_order_state_enum", "pending,confirmed,cancelled");
 
             migrationBuilder.AlterColumn<int>(
-                name: "StateId",
-                table: "PurchaseRequests",
+                name: "CustomerId",
+                table: "Bills",
                 type: "integer",
                 nullable: false,
                 defaultValue: 0,
@@ -106,8 +121,8 @@ namespace BackEnd.Migrations
                 oldNullable: true);
 
             migrationBuilder.AlterColumn<int>(
-                name: "CustomerId",
-                table: "Bills",
+                name: "StateId",
+                table: "PurchaseRequests",
                 type: "integer",
                 nullable: false,
                 defaultValue: 0,

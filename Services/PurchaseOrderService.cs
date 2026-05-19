@@ -280,7 +280,7 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
         return Result<ResolvedPurchaseOrderDraft>.Success(new ResolvedPurchaseOrderDraft
         {
             PurchaseRequestId = purchaseRequestId,
-            PurchaseRequestStateId = purchaseRequest.StateId,
+            PurchaseRequestState = purchaseRequest.PurchaseRequestState,
             PrimarySupplierId = primarySupplierId,
             PrimarySupplier = primarySupplier,
             PrimarySupplierQuoteId = supplierQuoteId,
@@ -441,7 +441,7 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
         return Result<ResolvedPurchaseOrderDraft>.Success(new ResolvedPurchaseOrderDraft
         {
             PurchaseRequestId = draft.PurchaseRequestId,
-            PurchaseRequestStateId = draft.PurchaseRequestStateId,
+            PurchaseRequestState = draft.PurchaseRequestState,
             PrimarySupplierId = primarySupplierId,
             PrimarySupplier = draft.PrimarySupplier,
             PrimarySupplierQuoteId = primarySupplierQuoteId,
@@ -505,7 +505,7 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
     private sealed class ResolvedPurchaseOrderDraft
     {
         public int PurchaseRequestId { get; set; }
-        public int PurchaseRequestStateId { get; set; }
+        public PurchaseRequestStateEnum PurchaseRequestState { get; set; }
         public int PrimarySupplierId { get; set; }
         public Supplier? PrimarySupplier { get; set; }
         public int? PrimarySupplierQuoteId { get; set; }
