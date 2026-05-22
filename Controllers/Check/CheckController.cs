@@ -54,35 +54,17 @@ public class ChecksController(CheckService checkService) : ControllerBase
         return StatusCode(500);
     }
 
-    [HttpPost]
-    public async Task<ActionResult<CheckWrapperDto>> Create(CreateCheckRequestDto request)
-    {
-        var result = await _checkService.CreateAsync(request);
+    
 
-        if (result.IsSuccess)
-            return Created($"/api/checks/{result.Value!.Check.Id}", result.Value);
+   [HttpPatch("{id}/conciliate")] 
+public async Task<IActionResult> Conciliate(int id)
+{
+    // Ahora llamamos al nuevo método que creamos en el CheckService
+    var response = await _checkService.ConciliateAsync(id);
 
-        if (result.ErrorType == ErrorType.NotFound)
-            return this.HandleNotFoundProblem(result);
+    if (!response.IsSuccess)
+        return BadRequest(new { Error = response.Errors, Type = response.ErrorType });
 
-        return StatusCode(500);
-    }
-
-    // Usamos PATCH porque es una actualización parcial (solo estado y fecha)
-  [HttpPatch("{id}/status")]
-    public async Task<ActionResult<CheckWrapperDto>> UpdateStatus(int id, [FromBody] UpdateCheckStatusRequestDto request)
-    {
-        var result = await _checkService.UpdateStatusAsync(id, request);
-
-        if (result.IsSuccess)
-            return Ok(result.Value);
-
-        if (result.ErrorType == ErrorType.NotFound)
-            return this.HandleNotFoundProblem(result); // Tu manejador personalizado
-
-        if (result.ErrorType == ErrorType.Validation)
-            return BadRequest(result); // ¡Añadimos esto para manejar reglas de negocio!
-
-        return StatusCode(500, "Ocurrió un error interno en el servidor.");
-    }
+    return Ok(response.Value);
+}
 }

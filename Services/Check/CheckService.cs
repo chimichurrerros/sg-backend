@@ -58,81 +58,31 @@ public class CheckService(AppDbContext context, IMapper mapper)
         return Result<CheckWrapperDto>.Success(new CheckWrapperDto { Check = check });
     }
 
-    public async Task<Result<CheckWrapperDto>> CreateAsync(CreateCheckRequestDto request)
-    {
-        // 1. Mapear DTO a Entidad
-        var newCheck = _mapper.Map<Check>(request);
+public async Task<Result<CheckWrapperDto>> ConciliateAsync(int id)
+{
+    var check = await _context.Checks.FirstOrDefaultAsync(c => c.Id == id);
 
-        // 2. Regla: Un cheque nuevo siempre nace Pendiente
-        newCheck.Status = CheckStatusEnum.Pending;
+    if (check == null)
+        return Result<CheckWrapperDto>.Failure("El cheque no existe.", ErrorType.NotFound);
 
-        // 3. Regla: Cálculo de fechas según el tipo de cheque
-        if (newCheck.Type == CheckTypeEnum.Day)
-        {
-            // Cheque al día: Disponibilidad = Emisión, Vence en 30 días
-            newCheck.AvailabilityDate = DateOnly.FromDateTime(request.EmisionDate);
-            newCheck.MaturityDate = newCheck.AvailabilityDate.AddDays(30);
-        }
-        else if (newCheck.Type == CheckTypeEnum.Deferred)
-        {
-            // Diferido: Vence en 6 meses desde la fecha de disponibilidad enviada
-            // Asumimos que el frontend mandó AvailabilityDate, si no, toma la de hoy
-            newCheck.AvailabilityDate = request.AvailabilityDate ?? DateOnly.FromDateTime(DateTime.Today);
-            newCheck.MaturityDate = newCheck.AvailabilityDate.AddMonths(6);
-        }
+    if (check.Status == CheckStatusEnum.Cashed)
+        return Result<CheckWrapperDto>.Failure("El cheque ya está conciliado.", ErrorType.Validation);
 
-        // 4. Guardar en Base de Datos
-        _context.Checks.Add(newCheck);
-        await _context.SaveChangesAsync();
+    check.Status = CheckStatusEnum.Cashed; 
+    check.ConciliationDate = DateOnly.FromDateTime(DateTime.Now);
 
-        // 5. Devolver Response DTO recargándolo
-        return await GetByIdAsync(newCheck.Id);
-    }
+    await _context.SaveChangesAsync();
 
-    // Fíjate que ahora recibe el DTO
-    public async Task<Result<CheckWrapperDto>> UpdateStatusAsync(int id, UpdateCheckStatusRequestDto request)
-    {
-        var check = await _context.Checks.FirstOrDefaultAsync(c => c.Id == id);
+    // --- LA SOLUCIÓN AL AUTOMAPPER EXCEPTION ESTÁ AQUÍ ---
+    
+    // 1. Mapeamos la entidad Check al DTO que sí está configurado en tu perfil
+    var checkDto = _mapper.Map<CheckResponseDto>(check);
+    
+    // 2. Armamos el Wrapper a mano
+    var response = new CheckWrapperDto { Check = checkDto };
 
-        if (check == null)
-            return Result<CheckWrapperDto>.Failure("El cheque no existe.", ErrorType.NotFound);
+    // 3. Devolvemos el resultado
+    return Result<CheckWrapperDto>.Success(response);
+    } 
 
-        // Leemos el nuevo estado desde la propiedad de tu DTO (asumo que se llama Status)
-        if (check.Status == request.Status)
-            return Result<CheckWrapperDto>.Failure("El cheque ya se encuentra en el estado solicitado.", ErrorType.Validation);
-
-        if (request.Status == CheckStatusEnum.Cashed)
-        {
-            var account = await _context.Accounts.FindAsync(check.AccountId);
-            if (account == null)
-                return Result<CheckWrapperDto>.Failure("La cuenta bancaria asociada a este cheque no existe.", ErrorType.NotFound);
-
-            check.PaymentDate = DateOnly.FromDateTime(DateTime.Now);
-
-            var movement = new BankMovement
-            {
-                AccountId = check.AccountId,
-                MovementType = BankMovementTypeEnum.Debit,
-                Date = DateTime.Now,
-                Amount = check.Amount,
-                ReferenceNumber = $"CHQ-{check.Number} (COBRO)"
-            };
-            
-            _context.BankMovements.Add(movement);
-
-            account.CurrentBalance -= check.Amount;
-            account.AvailableBalance -= check.Amount;
-        }
-        else if (request.Status == CheckStatusEnum.Voided) 
-        {
-            check.PaymentDate = null;
-        }
-
-        check.Status = request.Status;
-
-        await _context.SaveChangesAsync();
-
-        var response = _mapper.Map<CheckWrapperDto>(check);
-        return Result<CheckWrapperDto>.Success(response);
-    }
 }

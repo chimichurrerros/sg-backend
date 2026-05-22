@@ -60,39 +60,44 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
     }
 
     public async Task<Result<BankMovementWrapperDto>> CreateAsync(BankMovementRequestDto request)
+{
+    var account = await _context.Accounts.FindAsync(request.AccountId);
+    if (account == null)
+        return Result<BankMovementWrapperDto>.Failure("Cuenta no encontrada", ErrorType.NotFound);
+
+    // 1. Mapeamos el movimiento
+    var newMovement = _mapper.Map<BankMovement>(request);
+    if (newMovement.Date == default) newMovement.Date = DateTime.Now;
+
+    // 2. Lógica de saldos (como ya la tenías)
+    if (newMovement.MovementType == BankMovementTypeEnum.Credit) 
     {
-        // 1. Verificamos que la cuenta exista
-        var account = await _context.Accounts.FindAsync(request.AccountId);
-        if (account == null)
-            return Result<BankMovementWrapperDto>.Failure("La cuenta bancaria seleccionada no existe.", ErrorType.NotFound);
-
-        // 2. Mapeamos el DTO a Entidad
-        var newMovement = _mapper.Map<BankMovement>(request);
-        
-        // Nos aseguramos de que la fecha sea la de hoy si no enviaron una
-        if (newMovement.Date == default) 
-            newMovement.Date = DateTime.Now;
-
-        // 3. REGLA DE NEGOCIO CRÍTICA: Actualizar saldos de la cuenta
-        if (newMovement.MovementType == BankMovementTypeEnum.Credit) 
-        {
-            account.CurrentBalance += newMovement.Amount;
-            account.AvailableBalance += newMovement.Amount;
-        }
-        else if (newMovement.MovementType == BankMovementTypeEnum.Debit)
-        {
-            // Validar que haya saldo suficiente antes de restar
-            if (account.AvailableBalance < newMovement.Amount)
-                return Result<BankMovementWrapperDto>.Failure("Saldo insuficiente para realizar este movimiento.", ErrorType.Validation);
-
-            account.CurrentBalance -= newMovement.Amount;
-            account.AvailableBalance -= newMovement.Amount;
-        }
-
-        // 4. Guardamos todo.
-        _context.BankMovements.Add(newMovement);
-        await _context.SaveChangesAsync();
-
-        return await GetByIdAsync(newMovement.Id);
+        account.CurrentBalance += newMovement.Amount;
+        account.AvailableBalance += newMovement.Amount;
     }
+    else if (newMovement.MovementType == BankMovementTypeEnum.Debit)
+    {
+        if (account.AvailableBalance < newMovement.Amount)
+            return Result<BankMovementWrapperDto>.Failure("Saldo insuficiente", ErrorType.Validation);
+
+        account.CurrentBalance -= newMovement.Amount;
+        account.AvailableBalance -= newMovement.Amount;
+    }
+
+    // 3. ¡LA NUEVA MAGIA DEL CHEQUE!
+    if (request.CheckDetails != null)
+    {
+        var newCheck = _mapper.Map<Check>(request.CheckDetails);
+        newCheck.Status = CheckStatusEnum.Pending; // Nace pendiente de conciliación
+        
+        // Entity Framework es inteligente: al asignarlo a la propiedad de navegación,
+        // automáticamente le pondrá el BankMovementId correcto cuando guarde.
+        newMovement.Check = newCheck; 
+    }
+
+    _context.BankMovements.Add(newMovement);
+    await _context.SaveChangesAsync();
+
+    return await GetByIdAsync(newMovement.Id);
+}
 }
