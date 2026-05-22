@@ -12,4 +12,6 @@ public class CreateAccountRequestDto
     public decimal CurrentBalance { get; set; }
 
     public decimal AvailableBalance { get; set; }
+
+    public string AccountNumber { get; set; } = null!;
 }

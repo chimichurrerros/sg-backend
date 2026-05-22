@@ -11,6 +11,7 @@ public class AccountResponseDto
     public string Name { get; set; } = null!;
     public decimal CurrentBalance { get; set; }
     public decimal AvailableBalance { get; set; }
+    public string AccountNumber { get; set; } = null!;
 }
 
 public class AccountWrapperDto

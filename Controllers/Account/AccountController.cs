@@ -83,7 +83,7 @@ public class AccountsController(AccountService accountService) : ControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(int id)
     {
-        var result = await _accountService.DeleteAsync(id);
+        var result = await _accountService.ToggleStatusAsync(id);
 
         if (result.IsSuccess)
             return NoContent(); // 204 No Content
