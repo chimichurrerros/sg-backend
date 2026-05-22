@@ -56,11 +56,10 @@ public class ChecksController(CheckService checkService) : ControllerBase
 
     
 
-   [HttpPatch("{id}/conciliate")] 
-public async Task<IActionResult> Conciliate(int id)
+[HttpPatch("{id}/status")]
+public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateCheckStatusRequestDto request)
 {
-    // Ahora llamamos al nuevo método que creamos en el CheckService
-    var response = await _checkService.ConciliateAsync(id);
+    var response = await _checkService.UpdateStatusAsync(id, request);
 
     if (!response.IsSuccess)
         return BadRequest(new { Error = response.Errors, Type = response.ErrorType });

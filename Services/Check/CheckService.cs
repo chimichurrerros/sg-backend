@@ -58,31 +58,36 @@ public class CheckService(AppDbContext context, IMapper mapper)
         return Result<CheckWrapperDto>.Success(new CheckWrapperDto { Check = check });
     }
 
-public async Task<Result<CheckWrapperDto>> ConciliateAsync(int id)
+public async Task<Result<CheckWrapperDto>> UpdateStatusAsync(int id, UpdateCheckStatusRequestDto request)
 {
     var check = await _context.Checks.FirstOrDefaultAsync(c => c.Id == id);
 
     if (check == null)
         return Result<CheckWrapperDto>.Failure("El cheque no existe.", ErrorType.NotFound);
 
-    if (check.Status == CheckStatusEnum.Cashed)
-        return Result<CheckWrapperDto>.Failure("El cheque ya está conciliado.", ErrorType.Validation);
+    // Evitamos hacer el proceso si ya tiene el estado solicitado
+    if (check.Status == request.Status)
+        return Result<CheckWrapperDto>.Failure($"El cheque ya se encuentra en estado {request.Status}.", ErrorType.Validation);
 
-    check.Status = CheckStatusEnum.Cashed; 
-    check.ConciliationDate = DateOnly.FromDateTime(DateTime.Now);
+    // 1. Cambiamos el estado
+    check.Status = request.Status;
 
+    // 2. Lógica de Conciliación
+    if (request.Status == CheckStatusEnum.Cashed)
+    {
+        check.ConciliationDate = DateOnly.FromDateTime(DateTime.Now);
+    }
+    else
+    {
+        check.ConciliationDate = null; 
+    }
+
+    // 3. Guardamos los cambios
     await _context.SaveChangesAsync();
 
-    // --- LA SOLUCIÓN AL AUTOMAPPER EXCEPTION ESTÁ AQUÍ ---
-    
-    // 1. Mapeamos la entidad Check al DTO que sí está configurado en tu perfil
-    var checkDto = _mapper.Map<CheckResponseDto>(check);
-    
-    // 2. Armamos el Wrapper a mano
-    var response = new CheckWrapperDto { Check = checkDto };
-
-    // 3. Devolvemos el resultado
-    return Result<CheckWrapperDto>.Success(response);
-    } 
-
+    // --- ¡LA SOLUCIÓN DEFINITIVA! ---
+    // En lugar de pelearnos con AutoMapper aquí, llamamos a GetByIdAsync.
+    // Ese método ya usa ProjectTo y sabemos que arma el Wrapper sin errores.
+    return await GetByIdAsync(check.Id);
+}
 }
