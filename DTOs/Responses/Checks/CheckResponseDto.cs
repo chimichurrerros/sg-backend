@@ -26,6 +26,7 @@ public class CheckResponseDto
 
     public decimal Amount { get; set; }
 
+
     public CheckStatusEnum Status { get; set; }
 }
 

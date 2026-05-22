@@ -62,11 +62,10 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
     }
 
     public async Task<Result<BankMovementWrapperDto>> CreateAsync(BankMovementRequestDto request)
-    {
-        // 1. Verificamos que la cuenta exista
-        var account = await _context.Accounts.FindAsync(request.AccountId);
-        if (account == null)
-            return Result<BankMovementWrapperDto>.Failure("La cuenta bancaria seleccionada no existe.", ErrorType.NotFound);
+{
+    var account = await _context.Accounts.FindAsync(request.AccountId);
+    if (account == null)
+        return Result<BankMovementWrapperDto>.Failure("Cuenta no encontrada", ErrorType.NotFound);
 
         // 2. Mapeamos el DTO a Entidad
         var newMovement = _mapper.Map<BankMovement>(request);
@@ -87,13 +86,23 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
             if (account.AvailableBalance < newMovement.Amount)
                 return Result<BankMovementWrapperDto>.Failure("Saldo insuficiente para realizar este movimiento.", ErrorType.Validation);
 
-            account.CurrentBalance -= newMovement.Amount;
-            account.AvailableBalance -= newMovement.Amount;
-        }
+        account.CurrentBalance -= newMovement.Amount;
+        account.AvailableBalance -= newMovement.Amount;
+    }
 
-        // 4. Guardamos todo.
-        _context.BankMovements.Add(newMovement);
-        await _context.SaveChangesAsync();
+    // 3. ¡LA NUEVA MAGIA DEL CHEQUE!
+    if (request.CheckDetails != null)
+    {
+        var newCheck = _mapper.Map<Check>(request.CheckDetails);
+        newCheck.Status = CheckStatusEnum.Pending; // Nace pendiente de conciliación
+        
+        // Entity Framework es inteligente: al asignarlo a la propiedad de navegación,
+        // automáticamente le pondrá el BankMovementId correcto cuando guarde.
+        newMovement.Check = newCheck; 
+    }
+
+    _context.BankMovements.Add(newMovement);
+    await _context.SaveChangesAsync();
 
         return await GetByIdAsync(newMovement.Id);
     }

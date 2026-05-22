@@ -9,7 +9,7 @@ public partial class Bank
 
     public string Name { get; set; } = null!;
 
-    public string Ruc { get; set; }
+    public string? Ruc { get; set; }
 
     public bool IsActive { get; set; } = true;
 
