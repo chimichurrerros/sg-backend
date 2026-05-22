@@ -112,7 +112,7 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
                     QuantityOrdered = detail.QuantityOrdered,
                     QuantityReceived = 0,
                     Price = detail.Price,
-                    TaxRate = detail.TaxRate
+                    TaxRate = 0m
                 });
             }
 
@@ -172,7 +172,7 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
                 QuantityOrdered = detail.QuantityOrdered,
                 QuantityReceived = 0,
                 Price = detail.Price,
-                TaxRate = detail.TaxRate
+                TaxRate = 0m
             }).ToList();
 
             await _context.SaveChangesAsync();
@@ -266,7 +266,6 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
                 SupplierId = bestPricedOption.SupplierQuote.SupplierId,
                 SupplierName = ResolveSupplierName(bestPricedOption.SupplierQuote.Supplier),
                 Price = bestPricedOption.Price,
-                TaxRate = bestPricedOption.TaxRate,
                 Product = requestDetail.Product,
                 SupplierQuoteDetail = bestPricedOption
             });
@@ -453,7 +452,6 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
                     draftDetail.SupplierId = selectedQuoteDetail.SupplierQuote.SupplierId;
                     draftDetail.SupplierName = ResolveSupplierName(selectedQuoteDetail.SupplierQuote.Supplier);
                     draftDetail.Price = selectedQuoteDetail.Price;
-                    draftDetail.TaxRate = selectedQuoteDetail.TaxRate;
                 }
             }
 
@@ -466,7 +464,6 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
                 SupplierId = draftDetail.SupplierId,
                 SupplierName = draftDetail.SupplierName,
                 Price = draftDetail.Price,
-                TaxRate = draftDetail.TaxRate,
                 Product = draftDetail.Product,
                 SupplierQuoteDetail = draftDetail.SupplierQuoteDetail
             });
@@ -522,7 +519,7 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
                 QuantityOrdered = line.QuantityOrdered,
                 QuantityReceived = 0,
                 Price = line.Price,
-                TaxRate = line.TaxRate,
+                TaxRate = 0m,
                 SupplierQuoteDetailId = line.SupplierQuoteDetailId,
                 Product = line.Product!,
                 SupplierQuoteDetail = line.SupplierQuoteDetail
@@ -551,7 +548,6 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
         public int? SupplierId { get; set; }
         public string? SupplierName { get; set; }
         public decimal Price { get; set; }
-        public decimal TaxRate { get; set; }
         public Product? Product { get; set; }
         public SupplierQuoteDetail? SupplierQuoteDetail { get; set; }
     }

@@ -12,9 +12,6 @@ public class SupplierQuoteDetailRequestDto
 
     [Range(typeof(decimal), "0.00", "79228162514264337593543950335")]
     public decimal Price { get; set; }
-
-    [Range(typeof(decimal), "0.00", "79228162514264337593543950335")]
-    public decimal TaxRate { get; set; }
 }
 
 public class CreateSupplierQuoteRequestDto

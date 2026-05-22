@@ -148,8 +148,7 @@ public class SupplierQuoteService(AppDbContext context, IMapper mapper)
                     {
                         ProductId = d.ProductId,
                         QuantityAvailable = d.QuantityAvailable,
-                        Price = d.Price,
-                        TaxRate = d.TaxRate
+                        Price = d.Price
                     })
                     .ToList();
                 quote.Total = CalculateTotal(request.Details);
