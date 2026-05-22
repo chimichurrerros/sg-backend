@@ -8,8 +8,8 @@ public partial class Check
     public int Id { get; set; }
 
     public int AccountId { get; set; }
-    public int BankMovementId { get; set; }
-    public BankMovement BankMovement { get; set; } = null!;
+    public int? BankMovementId { get; set; }
+    public BankMovement? BankMovement { get; set; }
     public string Number { get; set; } = null!;
 
     public DateTime EmisionDate { get; set; } // Fecha de emision
