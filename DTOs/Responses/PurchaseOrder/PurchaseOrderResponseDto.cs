@@ -23,6 +23,7 @@ public class PurchaseOrderResponseDto
     public int Id { get; set; }
     public int PurchaseRequestId { get; set; }
     public int SupplierId { get; set; }
+    public BackEnd.DTOs.Responses.Supplier.SupplierResponseDto? Supplier { get; set; }
     public string? SupplierName { get; set; }
     public int? SupplierQuoteId { get; set; }
     public string Number { get; set; } = null!;

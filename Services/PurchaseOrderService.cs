@@ -3,6 +3,7 @@ using BackEnd.Constants.Errors;
 using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Requests.PurchaseOrder;
 using BackEnd.DTOs.Responses.PurchaseOrder;
+using BackEnd.DTOs.Responses.Supplier;
 using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using BackEnd.Utils;
@@ -199,6 +200,50 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
         await _context.SaveChangesAsync();
 
         return Result<bool>.Success(true);
+    }
+
+    public async Task<Result<ListSuppliersWrapperDto>> GetSuppliersByPurchaseOrderIdAsync(int purchaseOrderId)
+    {
+        var order = await _context.PurchaseOrders
+            .AsNoTracking()
+            .Include(o => o.Supplier)
+            .Include(o => o.PurchaseOrderDetails)
+                .ThenInclude(d => d.SupplierQuoteDetail)
+                    .ThenInclude(sd => sd.SupplierQuote)
+                        .ThenInclude(sq => sq.Supplier)
+            .FirstOrDefaultAsync(o => o.Id == purchaseOrderId);
+
+        if (order == null)
+            return Result<ListSuppliersWrapperDto>.Failure(PurchaseOrderError.PurchaseOrderNotFound, ErrorType.NotFound);
+
+        // Retrieve the primary supplier
+        var suppliers = new List<Supplier>();
+        if (order.Supplier != null)
+        {
+            suppliers.Add(order.Supplier);
+        }
+
+        // Retrieve any other suppliers involved in the details
+        var detailSuppliers = order.PurchaseOrderDetails
+            .Where(d => d.SupplierQuoteDetail != null && d.SupplierQuoteDetail.SupplierQuote != null && d.SupplierQuoteDetail.SupplierQuote.Supplier != null)
+            .Select(d => d.SupplierQuoteDetail!.SupplierQuote.Supplier)
+            .ToList();
+            
+        suppliers.AddRange(detailSuppliers);
+
+        // Get distinct suppliers by Id
+        var distinctSuppliers = suppliers
+            .GroupBy(s => s.Id)
+            .Select(g => g.First())
+            .ToList();
+
+        var dtos = _mapper.Map<List<SupplierResponseDto>>(distinctSuppliers);
+
+        return Result<ListSuppliersWrapperDto>.Success(new ListSuppliersWrapperDto
+        {
+            Suppliers = dtos,
+            Pagination = new Pagination(1, dtos.Count, dtos.Count)
+        });
     }
 
     private IQueryable<PurchaseOrder> LoadOrdersQuery()

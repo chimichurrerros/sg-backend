@@ -59,6 +59,8 @@ public class PurchaseOrderMapper : AutoMapper.Profile
                     : null));
 
         CreateMap<PurchaseOrder, PurchaseOrderResponseDto>()
+            .ForMember(dest => dest.Supplier,
+                opt => opt.MapFrom(src => src.Supplier))
             .ForMember(dest => dest.SupplierName,
                 opt => opt.MapFrom(src => src.Supplier != null ? (string.IsNullOrWhiteSpace(src.Supplier.FantasyName) ? src.Supplier.BusinessName : src.Supplier.FantasyName) : null))
             .ForMember(dest => dest.Details,
