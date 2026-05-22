@@ -62,10 +62,6 @@ public class AccountService(AppDbContext context, IMapper mapper)
     {
         var newAccount = _mapper.Map<Account>(request);
 
-        // REGLA DE NEGOCIO: Una cuenta nueva siempre nace con saldo 0
-        newAccount.CurrentBalance = 0;
-        newAccount.AvailableBalance = 0;
-
         _context.Accounts.Add(newAccount);
         await _context.SaveChangesAsync();
 
