@@ -94,6 +94,11 @@ public class SupplierQuoteService(AppDbContext context, IMapper mapper)
             quote.Date = DateTime.UtcNow;
             quote.Total = CalculateTotal(request.Details);
 
+            foreach (var detail in quote.SupplierQuoteDetails)
+            {
+                detail.TaxRate = 10m;
+            }
+
             _context.SupplierQuotes.Add(quote);
             await _context.SaveChangesAsync();
 
@@ -148,7 +153,8 @@ public class SupplierQuoteService(AppDbContext context, IMapper mapper)
                     {
                         ProductId = d.ProductId,
                         QuantityAvailable = d.QuantityAvailable,
-                        Price = d.Price
+                        Price = d.Price,
+                        TaxRate = 10m
                     })
                     .ToList();
                 quote.Total = CalculateTotal(request.Details);

@@ -70,7 +70,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("BankId");
 
-                    b.ToTable("Accounts");
+                    b.ToTable("Accounts", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.AccountPlan", b =>
@@ -103,7 +103,7 @@ namespace BackEnd.Migrations
                     b.HasIndex(new[] { "Code" }, "AccountPlans_Code_key")
                         .IsUnique();
 
-                    b.ToTable("AccountPlans");
+                    b.ToTable("AccountPlans", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.AccountantProcess", b =>
@@ -133,7 +133,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("StateId");
 
-                    b.ToTable("AccountantProcesses");
+                    b.ToTable("AccountantProcesses", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Attendance", b =>
@@ -171,7 +171,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("EmployeeId");
 
-                    b.ToTable("Attendances");
+                    b.ToTable("Attendances", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.AttendanceType", b =>
@@ -193,7 +193,7 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("AttendanceTypes_pkey");
 
-                    b.ToTable("AttendanceTypes");
+                    b.ToTable("AttendanceTypes", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Bank", b =>
@@ -219,7 +219,7 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("Banks_pkey");
 
-                    b.ToTable("Banks");
+                    b.ToTable("Banks", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.BankMovement", b =>
@@ -254,7 +254,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("AccountId");
 
-                    b.ToTable("BankMovements");
+                    b.ToTable("BankMovements", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Bill", b =>
@@ -319,7 +319,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("SalesOrderId");
 
-                    b.ToTable("Bills");
+                    b.ToTable("Bills", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.BillDetail", b =>
@@ -355,7 +355,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("BillDetails");
+                    b.ToTable("BillDetails", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Branch", b =>
@@ -376,7 +376,7 @@ namespace BackEnd.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Branches");
+                    b.ToTable("Branches", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Check", b =>
@@ -426,7 +426,7 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("Checks_pkey");
 
-                    b.ToTable("Checks");
+                    b.ToTable("Checks", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.CreditNote", b =>
@@ -458,7 +458,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("BillId");
 
-                    b.ToTable("CreditNotes");
+                    b.ToTable("CreditNotes", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.CreditNoteDetail", b =>
@@ -490,7 +490,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("CreditNoteDetails");
+                    b.ToTable("CreditNoteDetails", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Customer", b =>
@@ -517,7 +517,7 @@ namespace BackEnd.Migrations
                     b.HasIndex(new[] { "Ruc" }, "Customers_Ruc_key")
                         .IsUnique();
 
-                    b.ToTable("Customers");
+                    b.ToTable("Customers", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.CustomerQuote", b =>
@@ -553,7 +553,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("CustomerQuotes");
+                    b.ToTable("CustomerQuotes", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.CustomerQuoteDetail", b =>
@@ -585,7 +585,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("CustomerQuoteDetails");
+                    b.ToTable("CustomerQuoteDetails", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Department", b =>
@@ -609,7 +609,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("BossId");
 
-                    b.ToTable("Departments");
+                    b.ToTable("Departments", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Employee", b =>
@@ -646,7 +646,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("InmediatlyBossId");
 
-                    b.ToTable("Employees");
+                    b.ToTable("Employees", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.EmployeeKid", b =>
@@ -670,7 +670,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("EntityId");
 
-                    b.ToTable("EmployeeKids");
+                    b.ToTable("EmployeeKids", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Entity", b =>
@@ -711,7 +711,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("EntityTypeId");
 
-                    b.ToTable("Entities");
+                    b.ToTable("Entities", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.EntityType", b =>
@@ -730,7 +730,7 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("EntityTypes_pkey");
 
-                    b.ToTable("EntityTypes");
+                    b.ToTable("EntityTypes", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Entry", b =>
@@ -762,7 +762,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("ModuleId");
 
-                    b.ToTable("Entries");
+                    b.ToTable("Entries", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.EntryDetail", b =>
@@ -794,7 +794,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("EntryId");
 
-                    b.ToTable("EntryDetails");
+                    b.ToTable("EntryDetails", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.EntryModel", b =>
@@ -813,7 +813,7 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("EntryModels_pkey");
 
-                    b.ToTable("EntryModels");
+                    b.ToTable("EntryModels", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.EntryModelDetail", b =>
@@ -840,7 +840,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("EntryModelId");
 
-                    b.ToTable("EntryModelDetails");
+                    b.ToTable("EntryModelDetails", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.FormulaType", b =>
@@ -859,7 +859,7 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("FormulaTypes_pkey");
 
-                    b.ToTable("FormulaTypes");
+                    b.ToTable("FormulaTypes", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Gender", b =>
@@ -878,7 +878,7 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("Genders_pkey");
 
-                    b.ToTable("Genders");
+                    b.ToTable("Genders", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.LegalPerson", b =>
@@ -898,7 +898,7 @@ namespace BackEnd.Migrations
                     b.HasKey("EntityId")
                         .HasName("LegalPersons_pkey");
 
-                    b.ToTable("LegalPersons");
+                    b.ToTable("LegalPersons", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.MaritalStatus", b =>
@@ -936,7 +936,7 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("Modules_pkey");
 
-                    b.ToTable("Modules");
+                    b.ToTable("Modules", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.PaymentOrder", b =>
@@ -972,7 +972,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("PaymentOrders");
+                    b.ToTable("PaymentOrders", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.PaymentOrderBill", b =>
@@ -1000,7 +1000,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("PaymentOrderId");
 
-                    b.ToTable("PaymentOrderBills");
+                    b.ToTable("PaymentOrderBills", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.PaymentOrderMovement", b =>
@@ -1028,7 +1028,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("PaymentOrderId");
 
-                    b.ToTable("PaymentOrderMovements");
+                    b.ToTable("PaymentOrderMovements", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.PayrollProcess", b =>
@@ -1069,7 +1069,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("ProcessTypeId");
 
-                    b.ToTable("PayrollProcesses");
+                    b.ToTable("PayrollProcesses", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.PayrollProcessDetail", b =>
@@ -1102,7 +1102,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("PayrollUpdateId");
 
-                    b.ToTable("PayrollProcessDetails");
+                    b.ToTable("PayrollProcessDetails", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.PayrollStatus", b =>
@@ -1140,7 +1140,7 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("PayrollTypes_pkey");
 
-                    b.ToTable("PayrollTypes");
+                    b.ToTable("PayrollTypes", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.PayrollUpdate", b =>
@@ -1175,7 +1175,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("PayrollTypeId");
 
-                    b.ToTable("PayrollUpdates");
+                    b.ToTable("PayrollUpdates", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Permission", b =>
@@ -1195,7 +1195,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("Permissions");
+                    b.ToTable("Permissions", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.PhysicalPerson", b =>
@@ -1229,7 +1229,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("MaritalStatusId");
 
-                    b.ToTable("PhysicalPersons");
+                    b.ToTable("PhysicalPersons", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Position", b =>
@@ -1248,7 +1248,7 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("Positions_pkey");
 
-                    b.ToTable("Positions");
+                    b.ToTable("Positions", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.PositionByScheduleByEmployee", b =>
@@ -1306,7 +1306,7 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("ProcessTypes_pkey");
 
-                    b.ToTable("ProcessTypes");
+                    b.ToTable("ProcessTypes", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Product", b =>
@@ -1359,7 +1359,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("ProductCategoryId");
 
-                    b.ToTable("Products");
+                    b.ToTable("Products", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.ProductBrand", b =>
@@ -1378,7 +1378,7 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("ProductBrands_pkey");
 
-                    b.ToTable("ProductBrands");
+                    b.ToTable("ProductBrands", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.ProductCategory", b =>
@@ -1397,7 +1397,7 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("ProductCategories_pkey");
 
-                    b.ToTable("ProductCategories");
+                    b.ToTable("ProductCategories", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.PurchaseOrder", b =>
@@ -1443,7 +1443,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("SupplierQuoteId");
 
-                    b.ToTable("PurchaseOrders");
+                    b.ToTable("PurchaseOrders", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.PurchaseOrderDetail", b =>
@@ -1488,7 +1488,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("SupplierQuoteDetailId");
 
-                    b.ToTable("PurchaseOrderDetails");
+                    b.ToTable("PurchaseOrderDetails", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.PurchaseRequest", b =>
@@ -1518,7 +1518,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("PurchaseRequests");
+                    b.ToTable("PurchaseRequests", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.PurchaseRequestDetail", b =>
@@ -1546,7 +1546,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("PurchaseRequestId");
 
-                    b.ToTable("PurchaseRequestDetails");
+                    b.ToTable("PurchaseRequestDetails", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Role", b =>
@@ -1565,7 +1565,7 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("Roles_pkey");
 
-                    b.ToTable("Roles");
+                    b.ToTable("Roles", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.SalesOrder", b =>
@@ -1613,7 +1613,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("SalesOrders");
+                    b.ToTable("SalesOrders", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.SalesOrderDetail", b =>
@@ -1653,7 +1653,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("SalesOrderId");
 
-                    b.ToTable("SalesOrderDetails");
+                    b.ToTable("SalesOrderDetails", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Schedule", b =>
@@ -1682,7 +1682,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("ScheduleTypeId");
 
-                    b.ToTable("Schedules");
+                    b.ToTable("Schedules", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.ScheduleType", b =>
@@ -1701,7 +1701,7 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("ScheduleTypes_pkey");
 
-                    b.ToTable("ScheduleTypes");
+                    b.ToTable("ScheduleTypes", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.State", b =>
@@ -1720,7 +1720,7 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("States_pkey");
 
-                    b.ToTable("States");
+                    b.ToTable("States", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Stock", b =>
@@ -1748,7 +1748,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("Stocks");
+                    b.ToTable("Stocks", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Supplier", b =>
@@ -1796,7 +1796,7 @@ namespace BackEnd.Migrations
                     b.HasIndex(new[] { "Ruc" }, "Suppliers_Ruc_key")
                         .IsUnique();
 
-                    b.ToTable("Suppliers");
+                    b.ToTable("Suppliers", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.SupplierCategory", b =>
@@ -1820,7 +1820,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("SupplierCategories");
+                    b.ToTable("SupplierCategories", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.SupplierQuote", b =>
@@ -1856,7 +1856,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("SupplierQuotes");
+                    b.ToTable("SupplierQuotes", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.SupplierQuoteDetail", b =>
@@ -1881,6 +1881,10 @@ namespace BackEnd.Migrations
                     b.Property<int>("SupplierQuoteId")
                         .HasColumnType("integer");
 
+                    b.Property<decimal>("TaxRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
                     b.HasKey("Id")
                         .HasName("SupplierQuoteDetails_pkey");
 
@@ -1888,7 +1892,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("SupplierQuoteId");
 
-                    b.ToTable("SupplierQuoteDetails");
+                    b.ToTable("SupplierQuoteDetails", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.User", b =>
@@ -1936,7 +1940,7 @@ namespace BackEnd.Migrations
                     b.HasIndex(new[] { "Email" }, "Users_Email_key")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Account", b =>

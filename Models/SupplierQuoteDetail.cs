@@ -15,6 +15,8 @@ public partial class SupplierQuoteDetail
 
     public decimal Price { get; set; }
 
+    public decimal TaxRate { get; set; }
+
     public virtual Product Product { get; set; } = null!;
 
     public virtual ICollection<PurchaseOrderDetail> PurchaseOrderDetails { get; set; } = new List<PurchaseOrderDetail>();
