@@ -39,8 +39,8 @@ public class PurchaseReceiptService(
         if (!paymentConfirmationResult.IsSuccess)
             return Result<BillWrapperDto>.Failure(paymentConfirmationResult.ErrorMessage!, paymentConfirmationResult.ErrorType);
 
-        if (!paymentConfirmationResult.Value)
-            return Result<BillWrapperDto>.Failure(PurchaseReceiptError.PaymentNotConfirmed, ErrorType.Validation);
+        // if (!paymentConfirmationResult.Value)
+        //     return Result<BillWrapperDto>.Failure(PurchaseReceiptError.PaymentNotConfirmed, ErrorType.Validation);
 
         using var transaction = await _context.Database.BeginTransactionAsync();
 
