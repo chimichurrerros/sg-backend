@@ -9,6 +9,8 @@ public partial class BankMovement
 
     public int AccountId { get; set; }
 
+    public Check? Check { get; set; }
+
     public BankMovementTypeEnum MovementType { get; set; }
 
     public DateTime Date { get; set; }

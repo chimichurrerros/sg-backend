@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace BackEnd.DTOs.Requests.Product;
 
 public partial class ProductRequestDto
@@ -17,4 +19,7 @@ public partial class ProductRequestDto
     public decimal Cost { get; set; }
 
     public decimal MinimumStock { get; set; }
+
+    [Range(typeof(decimal), "0", "100")]
+    public decimal TaxRate { get; set; } = 10m;
 }

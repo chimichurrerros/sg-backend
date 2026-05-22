@@ -25,6 +25,8 @@ public partial class Product
 
     public decimal Cost { get; set; }
 
+    public decimal TaxRate { get; set; } = 10m;
+
 
 
     public virtual ICollection<BillDetail> BillDetails { get; set; } = new List<BillDetail>();
