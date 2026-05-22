@@ -10,5 +10,6 @@ public interface IAccountService
     Task<Result<AccountResponseDto>> GetByIdAsync(int id);
     Task<Result<AccountResponseDto>> CreateAsync(CreateAccountRequestDto request);
     Task<Result<AccountResponseDto>> UpdateAsync(int id, UpdateAccountRequestDto request);
-    Task<Result<bool>> DeleteAsync(int id);
+    Task<Result<AccountResponseDto>> ToggleStatusAsync(int id);
+
 }

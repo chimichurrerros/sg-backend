@@ -55,7 +55,7 @@ public class AccountsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var result = await _service.DeleteAsync(id);
+        var result = await _service.ToggleStatusAsync(id);
         if (!result.IsSuccess)
         {
             return result.ErrorType == ErrorType.NotFound ? NotFound(result) : BadRequest(result);

@@ -187,6 +187,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CurrentBalance).HasPrecision(15, 2);
             entity.Property(e => e.Name).HasMaxLength(100);
 
+            entity.Property(e => e.IsActive)
+                  .HasDefaultValue(true);
+
             entity.HasOne(d => d.Bank).WithMany(p => p.Accounts)
                 .HasForeignKey(d => d.BankId)
                 .HasConstraintName("Accounts_BankId_fkey");

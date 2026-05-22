@@ -6,12 +6,13 @@ using BackEnd.DTOs.Responses.Accounts;
 using BackEnd.Utils;
 using BackEnd.Services.Interfaces;
 using BackEnd.Infrastructure.Context;
+using BackEnd.Constants.Errors;
 
 namespace BackEnd.Services;
 
 public class AccountService : IAccountService
 {
-    private readonly AppDbContext _context; 
+    private readonly AppDbContext _context;
     private readonly IMapper _mapper;
 
     public AccountService(AppDbContext context, IMapper mapper)
@@ -25,8 +26,9 @@ public class AccountService : IAccountService
         // Usamos Include para traer los datos del banco si es que tiene uno asociado
         var accounts = await _context.Accounts
             .Include(a => a.Bank)
+            .Where(a => a.IsActive)
             .ToListAsync();
-            
+
         var response = _mapper.Map<IEnumerable<AccountResponseDto>>(accounts);
         return Result<IEnumerable<AccountResponseDto>>.Success(response);
     }
@@ -35,7 +37,7 @@ public class AccountService : IAccountService
     {
         var account = await _context.Accounts
             .Include(a => a.Bank)
-            .FirstOrDefaultAsync(a => a.Id == id);
+            .FirstOrDefaultAsync(a => a.Id == id && a.IsActive);
 
         if (account == null)
             return Result<AccountResponseDto>.Failure("La cuenta no existe.", ErrorType.NotFound);
@@ -62,7 +64,7 @@ public class AccountService : IAccountService
 
     public async Task<Result<AccountResponseDto>> UpdateAsync(int id, UpdateAccountRequestDto request)
     {
-        var account = await _context.Accounts.FindAsync(id);
+        var account = await _context.Accounts.FirstOrDefaultAsync(a => a.Id == id && a.IsActive);
         if (account == null)
             return Result<AccountResponseDto>.Failure("La cuenta no existe.", ErrorType.NotFound);
 
@@ -76,20 +78,17 @@ public class AccountService : IAccountService
         return Result<AccountResponseDto>.Success(response);
     }
 
-    public async Task<Result<bool>> DeleteAsync(int id)
+    public async Task<Result<AccountResponseDto>> ToggleStatusAsync(int id)
     {
-        var account = await _context.Accounts.FindAsync(id);
+        var account = await _context.Accounts.FirstOrDefaultAsync(a => a.Id == id);
         if (account == null)
-            return Result<bool>.Failure("La cuenta no existe.", ErrorType.NotFound);
+            return Result<AccountResponseDto>.Failure(AccountError.AccountNotFound, ErrorType.NotFound);
 
-        // REGLA DE NEGOCIO: No se puede borrar una cuenta si ya tiene movimientos
-        var hasMovements = await _context.BankMovements.AnyAsync(bm => bm.AccountId == id);
-        if (hasMovements)
-            return Result<bool>.Failure("No se puede eliminar la cuenta porque ya tiene movimientos registrados.", ErrorType.Validation);
-
-        _context.Accounts.Remove(account);
+        account.IsActive = !account.IsActive;
         await _context.SaveChangesAsync();
 
-        return Result<bool>.Success(true);
+        var response = _mapper.Map<AccountResponseDto>(account);
+        return Result<AccountResponseDto>.Success(response);
     }
+
 }

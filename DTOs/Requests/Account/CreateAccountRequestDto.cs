@@ -9,6 +9,8 @@ public class CreateAccountRequestDto
 
     public string Name { get; set; } = null!;
 
+    public string AccountNumber { get; set; } = null!;
+
     public decimal CurrentBalance { get; set; }
 
     public decimal AvailableBalance { get; set; }
