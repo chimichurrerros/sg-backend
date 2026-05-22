@@ -15,6 +15,7 @@ public class ProductResponseDto
     public string Barcode { get; set; } = null!;
     public decimal Price { get; set; }
     public decimal Cost { get; set; }
+    public decimal TaxRate { get; set; }
     public decimal MinimumStock { get; set; }
 }
 

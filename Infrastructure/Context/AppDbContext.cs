@@ -774,6 +774,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.MinimumStock).HasPrecision(10, 2);
             entity.Property(e => e.Name).HasMaxLength(150);
             entity.Property(e => e.Price).HasPrecision(15, 2);
+            entity.Property(e => e.TaxRate).HasPrecision(5, 2).HasDefaultValue(10m);
 
             entity.HasOne(d => d.ProductBrand).WithMany(p => p.Products)
                 .HasForeignKey(d => d.ProductBrandId)

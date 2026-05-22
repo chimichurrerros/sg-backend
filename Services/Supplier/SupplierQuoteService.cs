@@ -94,9 +94,15 @@ public class SupplierQuoteService(AppDbContext context, IMapper mapper)
             quote.Date = DateTime.UtcNow;
             quote.Total = CalculateTotal(request.Details);
 
+            var productIds = quote.SupplierQuoteDetails.Select(d => d.ProductId).Distinct().ToList();
+            var productTaxRates = await _context.Products
+                .AsNoTracking()
+                .Where(p => productIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, p => p.TaxRate);
+
             foreach (var detail in quote.SupplierQuoteDetails)
             {
-                detail.TaxRate = 10m;
+                detail.TaxRate = productTaxRates.GetValueOrDefault(detail.ProductId, 10m);
             }
 
             _context.SupplierQuotes.Add(quote);
@@ -147,6 +153,12 @@ public class SupplierQuoteService(AppDbContext context, IMapper mapper)
 
             if (request.Details != null)
             {
+                var productIds = request.Details.Select(d => d.ProductId).Distinct().ToList();
+                var productTaxRates = await _context.Products
+                    .AsNoTracking()
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToDictionaryAsync(p => p.Id, p => p.TaxRate);
+
                 _context.SupplierQuoteDetails.RemoveRange(quote.SupplierQuoteDetails);
                 quote.SupplierQuoteDetails = request.Details
                     .Select(d => new SupplierQuoteDetail
@@ -154,7 +166,7 @@ public class SupplierQuoteService(AppDbContext context, IMapper mapper)
                         ProductId = d.ProductId,
                         QuantityAvailable = d.QuantityAvailable,
                         Price = d.Price,
-                        TaxRate = 10m
+                        TaxRate = productTaxRates.GetValueOrDefault(d.ProductId, 10m)
                     })
                     .ToList();
                 quote.Total = CalculateTotal(request.Details);
