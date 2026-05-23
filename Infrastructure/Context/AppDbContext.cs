@@ -113,6 +113,12 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<PurchaseOrderDetail> PurchaseOrderDetails { get; set; }
 
+    public virtual DbSet<PurchaseReturn> PurchaseReturns { get; set; }
+
+    public virtual DbSet<PurchaseReturnDetail> PurchaseReturnDetails { get; set; }
+
+    public virtual DbSet<PurchaseReturnReason> PurchaseReturnReasons { get; set; }
+
     public virtual DbSet<PurchaseRequest> PurchaseRequests { get; set; }
 
     public virtual DbSet<PurchaseRequestDetail> PurchaseRequestDetails { get; set; }
@@ -835,6 +841,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Price).HasPrecision(15, 2);
             entity.Property(e => e.QuantityOrdered).HasPrecision(10, 2);
             entity.Property(e => e.QuantityReceived).HasPrecision(10, 2);
+            entity.Property(e => e.QuantityReturned).HasPrecision(10, 2);
             entity.Property(e => e.TaxRate).HasPrecision(5, 2);
 
             entity.HasOne(d => d.Product).WithMany(p => p.PurchaseOrderDetails)
@@ -850,6 +857,68 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.PurchaseOrderId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PurchaseOrderDetails_PurchaseOrderId_fkey");
+        });
+
+        modelBuilder.Entity<PurchaseReturnReason>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PurchaseReturnReasons_pkey");
+
+            entity.Property(e => e.Name).HasMaxLength(150);
+
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<PurchaseReturn>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PurchaseReturns_pkey");
+
+            entity.Property(e => e.Date)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone");
+            entity.Property(e => e.Number).HasMaxLength(50);
+            entity.Property(e => e.Observation).HasMaxLength(500);
+            entity.Property(e => e.ReasonId).IsRequired();
+            entity.Property(e => e.Total).HasPrecision(15, 2);
+            entity.Property(e => e.TaxTotal).HasPrecision(15, 2);
+            entity.Property(e => e.State).HasConversion<int>();
+
+            entity.HasOne(d => d.Bill).WithMany()
+                .HasForeignKey(d => d.BillId)
+                .HasConstraintName("PurchaseReturns_BillId_fkey");
+
+            entity.HasOne(d => d.Branch).WithMany()
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseReturns_BranchId_fkey");
+
+            entity.HasOne(d => d.PurchaseOrder).WithMany()
+                .HasForeignKey(d => d.PurchaseOrderId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseReturns_PurchaseOrderId_fkey");
+
+            entity.HasOne(d => d.Reason).WithMany(p => p.PurchaseReturns)
+                .HasForeignKey(d => d.ReasonId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseReturns_ReasonId_fkey");
+        });
+
+        modelBuilder.Entity<PurchaseReturnDetail>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PurchaseReturnDetails_pkey");
+
+            entity.Property(e => e.Price).HasPrecision(15, 2);
+            entity.Property(e => e.Quantity).HasPrecision(10, 2);
+            entity.Property(e => e.TaxRate).HasPrecision(5, 2);
+
+            entity.HasOne(d => d.Product).WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseReturnDetails_ProductId_fkey");
+
+            entity.HasOne(d => d.PurchaseReturn).WithMany(p => p.PurchaseReturnDetails)
+                .HasForeignKey(d => d.PurchaseReturnId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseReturnDetails_PurchaseReturnId_fkey");
         });
 
         modelBuilder.Entity<PurchaseRequest>(entity =>

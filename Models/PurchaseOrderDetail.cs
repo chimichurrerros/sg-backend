@@ -17,6 +17,8 @@ public partial class PurchaseOrderDetail
 
     public decimal QuantityReceived { get; set; }
 
+    public decimal QuantityReturned { get; set; }
+
     public decimal Price { get; set; }
 
     public decimal TaxRate { get; set; }
