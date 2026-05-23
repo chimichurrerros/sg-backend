@@ -20,7 +20,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
             .AsNoTracking()
             .Where(reason => reason.IsActive)
             .OrderBy(reason => reason.Name)
-            .Select(MapReason)
+            .Select(r => MapReason(r))
             .ToListAsync();
 
         return Result<ListPurchaseReturnReasonsWrapperDto>.Success(new ListPurchaseReturnReasonsWrapperDto
