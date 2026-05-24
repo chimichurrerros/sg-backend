@@ -55,6 +55,7 @@ builder.Services.AddScoped<PurchaseReceiptService>();
 builder.Services.AddScoped<PurchaseReturnService>();
 builder.Services.AddScoped<BankService>();
 builder.Services.AddScoped<PaymentOrderService>();
+builder.Services.AddScoped<CreditNoteService>();
 // ------------------------------------------------------------------------------------------------------
 // Authorization configuration
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();

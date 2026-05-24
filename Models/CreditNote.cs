@@ -18,4 +18,6 @@ public partial class CreditNote
     public virtual Bill Bill { get; set; } = null!;
 
     public virtual ICollection<CreditNoteDetail> CreditNoteDetails { get; set; } = new List<CreditNoteDetail>();
+
+    public virtual ICollection<PaymentOrderCreditNote> PaymentOrderCreditNotes { get; set; } = new List<PaymentOrderCreditNote>();
 }

@@ -83,4 +83,21 @@ public class PurchaseReturnController(PurchaseReturnService purchaseReturnServic
 
         return this.HandleServerError(PurchaseReturnError.ProcessFailed, result);
     }
+
+    [HttpPost("with-bill")]
+    public async Task<ActionResult<PurchaseReturnWrapperDto>> CreateWithBill(CreateBillAndReturnDto request)
+    {
+        var result = await _purchaseReturnService.CreateWithBillAsync(request);
+
+        if (result.IsSuccess)
+            return Created($"/api/purchase-returns/{result.Value!.PurchaseReturn.Id}", result.Value);
+
+        if (result.ErrorType == ErrorType.Validation)
+            return this.HandleBadRequestProblem(result);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        return this.HandleServerError(PurchaseReturnError.ProcessFailed, result);
+    }
 }

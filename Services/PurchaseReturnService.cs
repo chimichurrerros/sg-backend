@@ -5,6 +5,7 @@ using BackEnd.DTOs.Responses.PurchaseReturn;
 using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using BackEnd.Utils;
+using Npgsql;
 using Microsoft.EntityFrameworkCore;
 
 namespace BackEnd.Services;
@@ -112,12 +113,24 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
         if (request.BranchId <= 0)
             return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.BranchNotFound, ErrorType.Validation);
 
-        var purchaseOrder = await _context.PurchaseOrders
-            .Include(purchaseOrder => purchaseOrder.PurchaseOrderDetails)
-            .FirstOrDefaultAsync(purchaseOrder => purchaseOrder.Id == request.PurchaseOrderId);
+        // We'll use a serializable transaction and revalidate quantities before commit
+        const int maxRetries = 3;
+        for (int attempt = 0; attempt < maxRetries; attempt++)
+        {
+            // Begin serializable transaction to avoid race conditions
+            await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
 
-        if (purchaseOrder == null)
-            return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.PurchaseOrderNotFound, ErrorType.NotFound);
+            try
+            {
+                var purchaseOrder = await _context.PurchaseOrders
+                    .Include(po => po.PurchaseOrderDetails)
+                    .FirstOrDefaultAsync(po => po.Id == request.PurchaseOrderId);
+
+                if (purchaseOrder == null)
+                {
+                    await transaction.RollbackAsync();
+                    return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.PurchaseOrderNotFound, ErrorType.NotFound);
+                }
 
         var branchExists = await _context.Branches.AnyAsync(branch => branch.Id == request.BranchId);
         if (!branchExists)
@@ -134,92 +147,124 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
                 return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.BillNotFound, ErrorType.NotFound);
         }
 
-        await using var transaction = await _context.Database.BeginTransactionAsync();
+                decimal total = 0;
+                decimal taxTotal = 0;
 
-        try
-        {
-            decimal total = 0;
-            decimal taxTotal = 0;
-
-            var purchaseReturn = new PurchaseReturn
-            {
-                PurchaseOrderId = request.PurchaseOrderId,
-                BillId = request.BillId,
-                BranchId = request.BranchId,
-                ReasonId = reasonResult.Value!.Id,
-                Number = string.IsNullOrWhiteSpace(request.Number) ? "TEMP" : request.Number.Trim(),
-                Date = request.Date == default ? DateTime.UtcNow : request.Date,
-                Observation = request.Observation,
-                Total = 0,
-                TaxTotal = 0,
-                State = PurchaseReturn.PurchaseReturnStateEnum.Issued
-            };
-
-            _context.PurchaseReturns.Add(purchaseReturn);
-            await _context.SaveChangesAsync();
-
-            foreach (var detail in request.Details)
-            {
-                if (detail.Quantity <= 0)
-                    return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.QuantityExceeded, ErrorType.Validation);
-
-                var purchaseOrderDetail = purchaseOrder.PurchaseOrderDetails.FirstOrDefault(item => item.ProductId == detail.ProductId);
-
-                if (purchaseOrderDetail == null)
+                var purchaseReturn = new PurchaseReturn
                 {
-                    await transaction.RollbackAsync();
-                    return Result<PurchaseReturnWrapperDto>.Failure($"{PurchaseReturnError.PurchaseOrderDetailNotFound} (Producto ID: {detail.ProductId})", ErrorType.Validation);
+                    PurchaseOrderId = request.PurchaseOrderId,
+                    BillId = request.BillId,
+                    BranchId = request.BranchId,
+                    ReasonId = reasonResult.Value!.Id,
+                    Number = string.IsNullOrWhiteSpace(request.Number) ? "TEMP" : request.Number.Trim(),
+                    Date = request.Date == default ? DateTime.UtcNow : request.Date,
+                    Observation = request.Observation,
+                    Total = 0,
+                    TaxTotal = 0,
+                    State = PurchaseReturn.PurchaseReturnStateEnum.Issued
+                };
+
+                _context.PurchaseReturns.Add(purchaseReturn);
+                await _context.SaveChangesAsync();
+
+                foreach (var detail in request.Details)
+                {
+                    if (detail.Quantity <= 0)
+                    {
+                        await transaction.RollbackAsync();
+                        return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.QuantityExceeded, ErrorType.Validation);
+                    }
+
+                    var purchaseOrderDetail = purchaseOrder.PurchaseOrderDetails.FirstOrDefault(item => item.ProductId == detail.ProductId);
+
+                    if (purchaseOrderDetail == null)
+                    {
+                        await transaction.RollbackAsync();
+                        return Result<PurchaseReturnWrapperDto>.Failure($"{PurchaseReturnError.PurchaseOrderDetailNotFound} (Producto ID: {detail.ProductId})", ErrorType.Validation);
+                    }
+
+                    var availableToReturn = purchaseOrderDetail.QuantityReceived - purchaseOrderDetail.QuantityReturned;
+
+                    if (detail.Quantity > availableToReturn)
+                    {
+                        await transaction.RollbackAsync();
+                        return Result<PurchaseReturnWrapperDto>.Failure($"{PurchaseReturnError.QuantityExceeded} (Producto ID: {detail.ProductId}, Disponible: {availableToReturn}, Intentando devolver: {detail.Quantity})", ErrorType.Validation);
+                    }
+
+                    var stockResult = await _stockService.DecreaseStockAsync(detail.ProductId, request.BranchId, detail.Quantity);
+                    if (!stockResult.IsSuccess)
+                    {
+                        await transaction.RollbackAsync();
+                        return Result<PurchaseReturnWrapperDto>.Failure(stockResult.ErrorMessage!, stockResult.ErrorType);
+                    }
+
+                    purchaseOrderDetail.QuantityReturned += detail.Quantity;
+                    _context.PurchaseOrderDetails.Update(purchaseOrderDetail);
+
+                    var lineTotal = detail.Quantity * detail.Price;
+                    var lineTax = lineTotal * (purchaseOrderDetail.TaxRate / 100m);
+
+                    total += lineTotal + lineTax;
+                    taxTotal += lineTax;
+
+                    _context.PurchaseReturnDetails.Add(new PurchaseReturnDetail
+                    {
+                        PurchaseReturnId = purchaseReturn.Id,
+                        ProductId = detail.ProductId,
+                        Quantity = detail.Quantity,
+                        Price = detail.Price,
+                        TaxRate = purchaseOrderDetail.TaxRate
+                    });
                 }
 
-                var availableToReturn = purchaseOrderDetail.QuantityReceived - purchaseOrderDetail.QuantityReturned;
-
-                if (detail.Quantity > availableToReturn)
+                // Re-validate quantities from DB to avoid race conditions
+                foreach (var detail in request.Details)
                 {
-                    await transaction.RollbackAsync();
-                    return Result<PurchaseReturnWrapperDto>.Failure($"{PurchaseReturnError.QuantityExceeded} (Producto ID: {detail.ProductId}, Disponible: {availableToReturn}, Intentando devolver: {detail.Quantity})", ErrorType.Validation);
+                    var pod = await _context.PurchaseOrderDetails
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(d => d.ProductId == detail.ProductId && d.PurchaseOrderId == request.PurchaseOrderId);
+
+                    if (pod == null)
+                    {
+                        await transaction.RollbackAsync();
+                        return Result<PurchaseReturnWrapperDto>.Failure($"{PurchaseReturnError.PurchaseOrderDetailNotFound} (Producto ID: {detail.ProductId})", ErrorType.Validation);
+                    }
+
+                    if (pod.QuantityReturned > pod.QuantityReceived)
+                    {
+                        await transaction.RollbackAsync();
+                        return Result<PurchaseReturnWrapperDto>.Failure($"{PurchaseReturnError.QuantityExceeded} (Producto ID: {detail.ProductId})", ErrorType.Validation);
+                    }
                 }
 
-                var stockResult = await _stockService.DecreaseStockAsync(detail.ProductId, request.BranchId, detail.Quantity);
-                if (!stockResult.IsSuccess)
-                {
-                    await transaction.RollbackAsync();
-                    return Result<PurchaseReturnWrapperDto>.Failure(stockResult.ErrorMessage!, stockResult.ErrorType);
-                }
+                purchaseReturn.Total = total;
+                purchaseReturn.TaxTotal = taxTotal;
+                purchaseReturn.Number = string.IsNullOrWhiteSpace(request.Number) ? $"PR-{purchaseReturn.Id:D6}" : request.Number.Trim();
 
-                purchaseOrderDetail.QuantityReturned += detail.Quantity;
-                _context.PurchaseOrderDetails.Update(purchaseOrderDetail);
+                _context.PurchaseReturns.Update(purchaseReturn);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
 
-                var lineTotal = detail.Quantity * detail.Price;
-                var lineTax = lineTotal * (purchaseOrderDetail.TaxRate / 100m);
-
-                total += lineTotal + lineTax;
-                taxTotal += lineTax;
-
-                _context.PurchaseReturnDetails.Add(new PurchaseReturnDetail
-                {
-                    PurchaseReturnId = purchaseReturn.Id,
-                    ProductId = detail.ProductId,
-                    Quantity = detail.Quantity,
-                    Price = detail.Price,
-                    TaxRate = purchaseOrderDetail.TaxRate
-                });
+                return await GetByIdAsync(purchaseReturn.Id);
             }
-
-            purchaseReturn.Total = total;
-            purchaseReturn.TaxTotal = taxTotal;
-            purchaseReturn.Number = string.IsNullOrWhiteSpace(request.Number) ? $"PR-{purchaseReturn.Id:D6}" : request.Number.Trim();
-
-            _context.PurchaseReturns.Update(purchaseReturn);
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            return await GetByIdAsync(purchaseReturn.Id);
+            catch (Npgsql.PostgresException pex) when (pex.SqlState == "40001")
+            {
+                // Serialization failure, retry
+                try { await _context.Database.RollbackTransactionAsync(); } catch { }
+                if (attempt == maxRetries - 1)
+                    return Result<PurchaseReturnWrapperDto>.Failure($"{PurchaseReturnError.ProcessFailed}: {pex.Message}", ErrorType.Unexpected);
+                // small delay before retry
+                await Task.Delay(100 * (attempt + 1));
+                continue;
+            }
+            catch (Exception ex)
+            {
+                try { await _context.Database.RollbackTransactionAsync(); } catch { }
+                return Result<PurchaseReturnWrapperDto>.Failure($"{PurchaseReturnError.ProcessFailed}: {ex.Message}", ErrorType.Unexpected);
+            }
         }
-        catch (Exception ex)
-        {
-            await transaction.RollbackAsync();
-            return Result<PurchaseReturnWrapperDto>.Failure($"{PurchaseReturnError.ProcessFailed}: {ex.Message}", ErrorType.Unexpected);
-        }
+
+        return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.ProcessFailed, ErrorType.Unexpected);
     }
 
     private async Task<Result<PurchaseReturnReason>> ResolveReasonAsync(int? reasonId, string? reasonName)
@@ -308,5 +353,193 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
             State = purchaseReturn.State,
             Details = purchaseReturn.PurchaseReturnDetails.Select(MapDetail).ToList()
         };
+    }
+
+    public async Task<Result<PurchaseReturnWrapperDto>> CreateWithBillAsync(CreateBillAndReturnDto request)
+    {
+        if (request == null || request.Bill == null || request.Return == null)
+            return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.DetailsRequired, ErrorType.Validation);
+
+        if (request.Return.PurchaseOrderId != request.Bill.PurchaseOrderId)
+            return Result<PurchaseReturnWrapperDto>.Failure("PurchaseOrderId mismatch between bill and return", ErrorType.Validation);
+
+        // Single transaction for both Bill and PurchaseReturn
+        await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+
+        try
+        {
+            // create bill
+            var bill = new Bill
+            {
+                BillType = BillTypeEnum.CONTADO,
+                BillState = BillStateEnum.Pending,
+                PurchaseOrderId = request.Bill.PurchaseOrderId,
+                Number = string.IsNullOrWhiteSpace(request.Bill.Number) ? $"B-{DateTime.UtcNow:yyyyMMddHHmmss}" : request.Bill.Number.Trim(),
+                Stamp = request.Bill.Notes,
+                Date = DateOnly.FromDateTime(request.Bill.Date == default ? DateTime.UtcNow : request.Bill.Date),
+                Total = request.Bill.Total,
+                TaxTotal = request.Bill.TaxTotal,
+                IsCredit = false
+            };
+
+            _context.Bills.Add(bill);
+            await _context.SaveChangesAsync();
+
+            // create purchase return with bill id assigned
+            var retRequest = request.Return;
+            retRequest.BillId = bill.Id;
+
+            // validate return request
+            if (retRequest.Details == null || retRequest.Details.Count == 0)
+            {
+                await transaction.RollbackAsync();
+                return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.DetailsRequired, ErrorType.Validation);
+            }
+
+            if (retRequest.PurchaseOrderId <= 0)
+            {
+                await transaction.RollbackAsync();
+                return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.PurchaseOrderNotFound, ErrorType.Validation);
+            }
+
+            if (retRequest.BranchId <= 0)
+            {
+                await transaction.RollbackAsync();
+                return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.BranchNotFound, ErrorType.Validation);
+            }
+
+            var purchaseOrder = await _context.PurchaseOrders
+                .Include(po => po.PurchaseOrderDetails)
+                .FirstOrDefaultAsync(po => po.Id == retRequest.PurchaseOrderId);
+
+            if (purchaseOrder == null)
+            {
+                await transaction.RollbackAsync();
+                return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.PurchaseOrderNotFound, ErrorType.NotFound);
+            }
+
+            var branchExists2 = await _context.Branches.AnyAsync(branch => branch.Id == retRequest.BranchId);
+            if (!branchExists2)
+            {
+                await transaction.RollbackAsync();
+                return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.BranchNotFound, ErrorType.NotFound);
+            }
+
+            var reasonResult2 = await ResolveReasonAsync(retRequest.ReasonId, retRequest.ReasonName);
+            if (!reasonResult2.IsSuccess)
+            {
+                await transaction.RollbackAsync();
+                return Result<PurchaseReturnWrapperDto>.Failure(reasonResult2.ErrorMessage!, reasonResult2.ErrorType);
+            }
+
+            decimal total = 0;
+            decimal taxTotal = 0;
+
+            var purchaseReturn = new PurchaseReturn
+            {
+                PurchaseOrderId = retRequest.PurchaseOrderId,
+                BillId = retRequest.BillId,
+                BranchId = retRequest.BranchId,
+                ReasonId = reasonResult2.Value!.Id,
+                Number = string.IsNullOrWhiteSpace(retRequest.Number) ? "TEMP" : retRequest.Number.Trim(),
+                Date = retRequest.Date == default ? DateTime.UtcNow : retRequest.Date,
+                Observation = retRequest.Observation,
+                Total = 0,
+                TaxTotal = 0,
+                State = PurchaseReturn.PurchaseReturnStateEnum.Issued
+            };
+
+            _context.PurchaseReturns.Add(purchaseReturn);
+            await _context.SaveChangesAsync();
+
+            foreach (var detail in retRequest.Details)
+            {
+                if (detail.Quantity <= 0)
+                {
+                    await transaction.RollbackAsync();
+                    return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.QuantityExceeded, ErrorType.Validation);
+                }
+
+                var purchaseOrderDetail = purchaseOrder.PurchaseOrderDetails.FirstOrDefault(item => item.ProductId == detail.ProductId);
+
+                if (purchaseOrderDetail == null)
+                {
+                    await transaction.RollbackAsync();
+                    return Result<PurchaseReturnWrapperDto>.Failure($"{PurchaseReturnError.PurchaseOrderDetailNotFound} (Producto ID: {detail.ProductId})", ErrorType.Validation);
+                }
+
+                var availableToReturn = purchaseOrderDetail.QuantityReceived - purchaseOrderDetail.QuantityReturned;
+
+                if (detail.Quantity > availableToReturn)
+                {
+                    await transaction.RollbackAsync();
+                    return Result<PurchaseReturnWrapperDto>.Failure($"{PurchaseReturnError.QuantityExceeded} (Producto ID: {detail.ProductId}, Disponible: {availableToReturn}, Intentando devolver: {detail.Quantity})", ErrorType.Validation);
+                }
+
+                var stockResult = await _stockService.DecreaseStockAsync(detail.ProductId, retRequest.BranchId, detail.Quantity);
+                if (!stockResult.IsSuccess)
+                {
+                    await transaction.RollbackAsync();
+                    return Result<PurchaseReturnWrapperDto>.Failure(stockResult.ErrorMessage!, stockResult.ErrorType);
+                }
+
+                purchaseOrderDetail.QuantityReturned += detail.Quantity;
+                _context.PurchaseOrderDetails.Update(purchaseOrderDetail);
+
+                var lineTotal = detail.Quantity * detail.Price;
+                var lineTax = lineTotal * (purchaseOrderDetail.TaxRate / 100m);
+
+                total += lineTotal + lineTax;
+                taxTotal += lineTax;
+
+                _context.PurchaseReturnDetails.Add(new PurchaseReturnDetail
+                {
+                    PurchaseReturnId = purchaseReturn.Id,
+                    ProductId = detail.ProductId,
+                    Quantity = detail.Quantity,
+                    Price = detail.Price,
+                    TaxRate = purchaseOrderDetail.TaxRate
+                });
+            }
+
+            // Re-validate quantities from DB to avoid race conditions
+            foreach (var detail in retRequest.Details)
+            {
+                var pod = await _context.PurchaseOrderDetails
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(d => d.ProductId == detail.ProductId && d.PurchaseOrderId == retRequest.PurchaseOrderId);
+
+                if (pod == null)
+                {
+                    await transaction.RollbackAsync();
+                    return Result<PurchaseReturnWrapperDto>.Failure($"{PurchaseReturnError.PurchaseOrderDetailNotFound} (Producto ID: {detail.ProductId})", ErrorType.Validation);
+                }
+
+                if (pod.QuantityReturned > pod.QuantityReceived)
+                {
+                    await transaction.RollbackAsync();
+                    return Result<PurchaseReturnWrapperDto>.Failure($"{PurchaseReturnError.QuantityExceeded} (Producto ID: {detail.ProductId})", ErrorType.Validation);
+                }
+            }
+
+            purchaseReturn.Total = total;
+            purchaseReturn.TaxTotal = taxTotal;
+            purchaseReturn.Number = string.IsNullOrWhiteSpace(retRequest.Number) ? $"PR-{purchaseReturn.Id:D6}" : retRequest.Number.Trim();
+
+            _context.PurchaseReturns.Update(purchaseReturn);
+            // update bill state to paid (business decision)
+            bill.BillState = BillStateEnum.Paid;
+            _context.Bills.Update(bill);
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return await GetByIdAsync(purchaseReturn.Id);
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            return Result<PurchaseReturnWrapperDto>.Failure($"{PurchaseReturnError.ProcessFailed}: {ex.Message}", ErrorType.Unexpected);
+        }
     }
 }

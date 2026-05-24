@@ -22,6 +22,14 @@ public class PaymentOrderMovementDto
     public string? ReferenceNumber { get; set; }
 }
 
+public class PaymentOrderCreditNoteDto
+{
+    public int Id { get; set; }
+    public int CreditNoteId { get; set; }
+    public decimal Amount { get; set; }
+    public string CreditNoteNumber { get; set; } = string.Empty;
+}
+
 public class PaymentOrderResponseDto
 {
     public int Id { get; set; }
@@ -32,6 +40,7 @@ public class PaymentOrderResponseDto
     public string StateId { get; set; } = string.Empty;
     public List<PaymentOrderBillDto> Bills { get; set; } = [];
     public List<PaymentOrderMovementDto> Movements { get; set; } = [];
+    public List<PaymentOrderCreditNoteDto> CreditNotes { get; set; } = [];
 }
 
 public class PaymentOrderWrapperDto
