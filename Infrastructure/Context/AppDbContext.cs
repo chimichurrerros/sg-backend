@@ -85,6 +85,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<PaymentOrderMovement> PaymentOrderMovements { get; set; }
 
+    public virtual DbSet<PaymentOrderCreditNote> PaymentOrderCreditNotes { get; set; }
+
     public virtual DbSet<PayrollProcess> PayrollProcesses { get; set; }
 
     public virtual DbSet<PayrollProcessDetail> PayrollProcessDetails { get; set; }
@@ -618,6 +620,21 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.PaymentOrderId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PaymentOrderBills_PaymentOrderId_fkey");
+        });
+
+        modelBuilder.Entity<PaymentOrderCreditNote>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PaymentOrderCreditNotes_pkey");
+
+            entity.Property(e => e.Amount).HasPrecision(15, 2);
+
+            entity.HasOne(d => d.CreditNote).WithMany(p => p.PaymentOrderCreditNotes)
+                .HasForeignKey(d => d.CreditNoteId)
+                .HasConstraintName("PaymentOrderCreditNotes_CreditNoteId_fkey");
+
+            entity.HasOne(d => d.PaymentOrder).WithMany(p => p.PaymentOrderCreditNotes)
+                .HasForeignKey(d => d.PaymentOrderId)
+                .HasConstraintName("PaymentOrderCreditNotes_PaymentOrderId_fkey");
         });
 
         modelBuilder.Entity<PaymentOrderMovement>(entity =>

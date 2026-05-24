@@ -19,5 +19,7 @@ public partial class PaymentOrder
 
     public virtual ICollection<PaymentOrderMovement> PaymentOrderMovements { get; set; } = new List<PaymentOrderMovement>();
 
+    public virtual ICollection<PaymentOrderCreditNote> PaymentOrderCreditNotes { get; set; } = new List<PaymentOrderCreditNote>();
+
     public virtual Supplier Supplier { get; set; } = null!;
 }

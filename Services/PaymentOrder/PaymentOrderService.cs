@@ -175,27 +175,84 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
 
         try
         {
-            var movementResult = await _bankMovementService.CreateMovementAsync(new CreateBankMovementDto
-            {
-                AccountId = request.BankAccountId,
-                Amount = request.Amount,
-                Date = request.PaymentDate == default ? DateTime.UtcNow : request.PaymentDate,
-                ReferenceNumber = request.ReferenceNumber,
-                MovementType = BankMovementTypeEnum.Debit
-            });
 
-            if (!movementResult.IsSuccess)
+            // Apply credit notes first (if any)
+            decimal totalCreditApplied = 0m;
+            if (request.CreditNotes != null && request.CreditNotes.Any())
             {
-                await transaction.RollbackAsync();
-                return Result<PaymentOrderWrapperDto>.Failure(movementResult.ErrorMessage!, movementResult.ErrorType);
+                foreach (var cn in request.CreditNotes)
+                {
+                    if (cn.Amount <= 0)
+                    {
+                        await transaction.RollbackAsync();
+                        return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.InvalidAmount, ErrorType.Validation);
+                    }
+
+                    var creditNote = await _context.CreditNotes
+                        .Include(c => c.CreditNoteDetails)
+                        .FirstOrDefaultAsync(c => c.Id == cn.CreditNoteId);
+
+                    if (creditNote == null)
+                    {
+                        await transaction.RollbackAsync();
+                        return Result<PaymentOrderWrapperDto>.Failure($"CreditNote {cn.CreditNoteId} not found", ErrorType.NotFound);
+                    }
+
+                    // compute already applied amount
+                    var alreadyApplied = await _context.PaymentOrderCreditNotes
+                        .Where(pocn => pocn.CreditNoteId == creditNote.Id)
+                        .SumAsync(p => (decimal?)p.Amount) ?? 0m;
+
+                    var available = creditNote.Total - alreadyApplied;
+                    if (cn.Amount > available)
+                    {
+                        await transaction.RollbackAsync();
+                        return Result<PaymentOrderWrapperDto>.Failure($"CreditNote {cn.CreditNoteId} has insufficient available amount", ErrorType.Validation);
+                    }
+
+                    _context.PaymentOrderCreditNotes.Add(new PaymentOrderCreditNote
+                    {
+                        PaymentOrderId = paymentOrder.Id,
+                        CreditNoteId = creditNote.Id,
+                        Amount = cn.Amount
+                    });
+
+                    totalCreditApplied += cn.Amount;
+                }
             }
 
-            _context.PaymentOrderMovements.Add(new PaymentOrderMovement
+            // Remaining amount to pay via bank
+            var bankAmount = request.Amount - totalCreditApplied;
+            if (bankAmount < 0)
             {
-                PaymentOrderId = paymentOrder.Id,
-                BankMovementId = movementResult.Value!.Id,
-                Amount = request.Amount
-            });
+                await transaction.RollbackAsync();
+                return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.InvalidAmount, ErrorType.Validation);
+            }
+
+            if (bankAmount > 0)
+            {
+                var movementResult = await _bankMovementService.CreateMovementAsync(new CreateBankMovementDto
+                {
+                    AccountId = request.BankAccountId,
+                    Amount = bankAmount,
+                    Date = request.PaymentDate == default ? DateTime.UtcNow : request.PaymentDate,
+                    ReferenceNumber = request.ReferenceNumber,
+                    MovementType = BankMovementTypeEnum.Debit
+                });
+
+                if (!movementResult.IsSuccess)
+                {
+                    await transaction.RollbackAsync();
+                    return Result<PaymentOrderWrapperDto>.Failure(movementResult.ErrorMessage!, movementResult.ErrorType);
+                }
+
+                _context.PaymentOrderMovements.Add(new PaymentOrderMovement
+                {
+                    PaymentOrderId = paymentOrder.Id,
+                    BankMovementId = movementResult.Value!.Id,
+                    Amount = bankAmount
+                });
+            }
 
             paymentOrder.State = PaymentOrderStateEnum.Processed;
             _context.PaymentOrders.Update(paymentOrder);
@@ -241,8 +298,11 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
             .Include(po => po.PaymentOrderBills)
                 .ThenInclude(pob => pob.Bill)
             .Include(po => po.PaymentOrderMovements)
-                .ThenInclude(pom => pom.BankMovement);
+                .ThenInclude(pom => pom.BankMovement)
+            .Include(po => po.PaymentOrderCreditNotes)
+                .ThenInclude(pocn => pocn.CreditNote);
     }
+
 
     private static bool IsProcessedState(PaymentOrderStateEnum state)
     {
@@ -280,6 +340,14 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
                 Date = movement.BankMovement.Date,
                 PaymentMethod = movement.BankMovement.MovementType.ToString(),
                 ReferenceNumber = movement.BankMovement.ReferenceNumber
+            }).ToList()
+            ,
+            CreditNotes = paymentOrder.PaymentOrderCreditNotes.Select(cn => new PaymentOrderCreditNoteDto
+            {
+                Id = cn.Id,
+                CreditNoteId = cn.CreditNoteId,
+                Amount = cn.Amount,
+                CreditNoteNumber = cn.CreditNote?.Id.ToString() ?? string.Empty
             }).ToList()
         };
     }
