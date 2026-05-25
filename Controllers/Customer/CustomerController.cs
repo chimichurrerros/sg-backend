@@ -51,12 +51,12 @@ public class CustomerController(CustomerService customerService) : ControllerBas
         if (result.ErrorType == ErrorType.Validation) return this.HandleValidationProblem(result);
         return StatusCode(500);
     }
-    
+
     [HttpGet("all")]
-    public async Task<IActionResult> GetAll()
+    public async Task<ActionResult<CustomerController>> GetAll()
     {
-        var result = await _customerService.GetAllAsync(); // 
-        
+        var result = await _customerService.GetAllAsync();
+
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result);
     }
 }
