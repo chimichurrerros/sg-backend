@@ -52,6 +52,16 @@ public class EmployeeController(EmployeeService employeeService) : ControllerBas
         return StatusCode(500);
     }
 
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> Delete(int id)
+    {
+        var result = await _employeeService.DeleteAsync(id);
+        if (result.IsSuccess) return NoContent();
+        if (result.ErrorType == ErrorType.NotFound) return this.HandleNotFoundProblem(result);
+        if (result.ErrorType == ErrorType.Conflict) return Conflict(result.ErrorMessage);
+        return StatusCode(500);
+    }
+
     [HttpGet("{id}/position-history")]
     public async Task<ActionResult<ListEmployeePositionHistoriesWrapperDto>> GetPositionHistory(int id)
     {
@@ -71,6 +81,27 @@ public class EmployeeController(EmployeeService employeeService) : ControllerBas
         return StatusCode(500);
     }
 
+    [HttpPut("{id}/position-history/{historyId}")]
+    public async Task<ActionResult<EmployeePositionHistoryWrapperDto>> UpdatePositionHistory(int id, int historyId, UpdateEmployeePositionHistoryRequestDto request)
+    {
+        var result = await _employeeService.UpdatePositionHistoryAsync(id, historyId, request);
+        if (result.IsSuccess) return Ok(result.Value);
+        if (result.ErrorType == ErrorType.NotFound) return this.HandleNotFoundProblem(result);
+        if (result.ErrorType == ErrorType.Validation) return this.HandleValidationProblem(result);
+        if (result.ErrorType == ErrorType.Conflict) return Conflict(result.ErrorMessage);
+        return StatusCode(500);
+    }
+
+    [HttpDelete("{id}/position-history/{historyId}")]
+    public async Task<ActionResult> DeletePositionHistory(int id, int historyId)
+    {
+        var result = await _employeeService.DeletePositionHistoryAsync(id, historyId);
+        if (result.IsSuccess) return NoContent();
+        if (result.ErrorType == ErrorType.NotFound) return this.HandleNotFoundProblem(result);
+        if (result.ErrorType == ErrorType.Conflict) return Conflict(result.ErrorMessage);
+        return StatusCode(500);
+    }
+
     [HttpGet("{id}/relations")]
     public async Task<ActionResult<ListEmployeeRelationsWrapperDto>> GetRelations(int id)
     {
@@ -87,6 +118,27 @@ public class EmployeeController(EmployeeService employeeService) : ControllerBas
         if (result.IsSuccess) return Created($"/api/employees/{id}/relations/{result.Value!.Relation.Id}", result.Value);
         if (result.ErrorType == ErrorType.NotFound) return this.HandleNotFoundProblem(result);
         if (result.ErrorType == ErrorType.Validation) return this.HandleValidationProblem(result);
+        return StatusCode(500);
+    }
+
+    [HttpPut("{id}/relations/{relationId}")]
+    public async Task<ActionResult<EmployeeRelationWrapperDto>> UpdateRelation(int id, int relationId, UpdateEmployeeRelationRequestDto request)
+    {
+        var result = await _employeeService.UpdateRelationAsync(id, relationId, request);
+        if (result.IsSuccess) return Ok(result.Value);
+        if (result.ErrorType == ErrorType.NotFound) return this.HandleNotFoundProblem(result);
+        if (result.ErrorType == ErrorType.Validation) return this.HandleValidationProblem(result);
+        if (result.ErrorType == ErrorType.Conflict) return Conflict(result.ErrorMessage);
+        return StatusCode(500);
+    }
+
+    [HttpDelete("{id}/relations/{relationId}")]
+    public async Task<ActionResult> DeleteRelation(int id, int relationId)
+    {
+        var result = await _employeeService.DeleteRelationAsync(id, relationId);
+        if (result.IsSuccess) return NoContent();
+        if (result.ErrorType == ErrorType.NotFound) return this.HandleNotFoundProblem(result);
+        if (result.ErrorType == ErrorType.Conflict) return Conflict(result.ErrorMessage);
         return StatusCode(500);
     }
 }
