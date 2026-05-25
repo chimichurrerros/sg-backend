@@ -8,7 +8,7 @@ public class EmployeeRelationResponseDto
 {
     public int Id { get; set; }
     public int EmployeeId { get; set; }
-    public EmployeeRelation.RelationTypeEnum RelationType { get; set; }
+    public BackEnd.Models.EmployeeRelation.RelationTypeEnum RelationType { get; set; }
     public string Name { get; set; } = null!;
     public string Lastname { get; set; } = null!;
     public string DocumentNumber { get; set; } = null!;

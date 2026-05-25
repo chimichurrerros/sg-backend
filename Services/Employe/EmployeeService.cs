@@ -192,6 +192,25 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
         }
     }
 
+    public async Task<Result> DeleteAsync(int id)
+    {
+        var employee = await _context.Employees
+            .Include(e => e.Entity)
+                .ThenInclude(p => p.Entity)
+            .FirstOrDefaultAsync(e => e.Id == id);
+
+        if (employee == null)
+            return Result.Failure(EmployeeError.EmployeeNotFound, ErrorType.NotFound);
+
+        if (!employee.Entity.Entity.IsActive)
+            return Result.Failure(EmployeeError.EmployeeAlreadyInactive, ErrorType.Conflict);
+
+        employee.Entity.Entity.IsActive = false;
+        await _context.SaveChangesAsync();
+
+        return Result.Success();
+    }
+
     public async Task<Result<ListEmployeePositionHistoriesWrapperDto>> GetPositionHistoriesAsync(int employeeId)
     {
         var employeeExists = await _context.Employees.AsNoTracking().AnyAsync(e => e.Id == employeeId);
@@ -288,6 +307,66 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
         }
     }
 
+    public async Task<Result<EmployeePositionHistoryWrapperDto>> UpdatePositionHistoryAsync(int employeeId, int historyId, UpdateEmployeePositionHistoryRequestDto request)
+    {
+        var validation = await ValidateUpdatePositionHistoryRequestAsync(employeeId, historyId, request);
+        if (!validation.IsSuccess)
+            return Result<EmployeePositionHistoryWrapperDto>.Failure(validation.ErrorMessage!, validation.Errors!, ErrorType.Validation);
+
+        var history = await _context.PositionByScheduleByEmployees.FirstAsync(h => h.Id == historyId);
+        history.PositionId = request.PositionId;
+        history.ScheduleId = request.ScheduleId;
+        history.BasicSalary = request.BasicSalary;
+        history.StartDate = request.StartDate;
+        history.EndDate = request.EndDate;
+
+        await _context.SaveChangesAsync();
+
+        var updated = await _context.PositionByScheduleByEmployees
+            .AsNoTracking()
+            .Where(h => h.Id == historyId)
+            .Select(history => new EmployeePositionHistoryResponseDto
+            {
+                Id = history.Id,
+                EmployeeId = history.EmployeeId,
+                PositionId = history.PositionId,
+                PositionName = history.Position.Name,
+                ScheduleId = history.ScheduleId,
+                ScheduleName = history.Schedule.ScheduleType.Name,
+                BasicSalary = history.BasicSalary,
+                StartDate = history.StartDate,
+                EndDate = history.EndDate
+            })
+            .FirstAsync();
+
+        return Result<EmployeePositionHistoryWrapperDto>.Success(new EmployeePositionHistoryWrapperDto { History = updated });
+    }
+
+    public async Task<Result> DeletePositionHistoryAsync(int employeeId, int historyId)
+    {
+        var history = await _context.PositionByScheduleByEmployees
+            .FirstOrDefaultAsync(h => h.Id == historyId && h.EmployeeId == employeeId);
+
+        if (history == null)
+            return Result.Failure(EmployeeError.PositionHistoryNotFound, ErrorType.NotFound);
+
+        var latestHistory = await _context.PositionByScheduleByEmployees
+            .AsNoTracking()
+            .Where(h => h.EmployeeId == employeeId)
+            .OrderByDescending(h => h.StartDate)
+            .ThenByDescending(h => h.Id)
+            .Select(h => new { h.Id })
+            .FirstAsync();
+
+        if (latestHistory.Id != historyId)
+            return Result.Failure(EmployeeError.PositionHistoryNotDeletable, ErrorType.Conflict);
+
+        _context.PositionByScheduleByEmployees.Remove(history);
+        await _context.SaveChangesAsync();
+
+        return Result.Success();
+    }
+
     public async Task<Result<ListEmployeeRelationsWrapperDto>> GetRelationsAsync(int employeeId)
     {
         var employeeExists = await _context.Employees.AsNoTracking().AnyAsync(e => e.Id == employeeId);
@@ -356,6 +435,57 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
                 EndDate = relation.EndDate
             }
         });
+    }
+
+    public async Task<Result<EmployeeRelationWrapperDto>> UpdateRelationAsync(int employeeId, int relationId, UpdateEmployeeRelationRequestDto request)
+    {
+        var validation = await ValidateUpdateRelationRequestAsync(employeeId, relationId, request);
+        if (!validation.IsSuccess)
+            return Result<EmployeeRelationWrapperDto>.Failure(validation.ErrorMessage!, validation.Errors!, ErrorType.Validation);
+
+        var relation = await _context.EmployeeRelations.FirstAsync(relation => relation.Id == relationId);
+        relation.RelationType = request.RelationType;
+        relation.Name = request.Name.Trim();
+        relation.Lastname = request.Lastname.Trim();
+        relation.DocumentNumber = request.DocumentNumber.Trim();
+        relation.BirthDate = request.BirthDate;
+        relation.StartDate = request.StartDate;
+        relation.EndDate = request.EndDate;
+
+        await _context.SaveChangesAsync();
+
+        return Result<EmployeeRelationWrapperDto>.Success(new EmployeeRelationWrapperDto
+        {
+            Relation = new EmployeeRelationResponseDto
+            {
+                Id = relation.Id,
+                EmployeeId = relation.EmployeeId,
+                RelationType = relation.RelationType,
+                Name = relation.Name,
+                Lastname = relation.Lastname,
+                DocumentNumber = relation.DocumentNumber,
+                BirthDate = relation.BirthDate,
+                StartDate = relation.StartDate,
+                EndDate = relation.EndDate
+            }
+        });
+    }
+
+    public async Task<Result> DeleteRelationAsync(int employeeId, int relationId)
+    {
+        var relation = await _context.EmployeeRelations
+            .FirstOrDefaultAsync(relation => relation.Id == relationId && relation.EmployeeId == employeeId);
+
+        if (relation == null)
+            return Result.Failure(EmployeeError.FamilyRelationNotFound, ErrorType.NotFound);
+
+        if (relation.EndDate != null)
+            return Result.Failure(EmployeeError.RelationNotDeletable, ErrorType.Conflict);
+
+        relation.EndDate = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+        await _context.SaveChangesAsync();
+
+        return Result.Success();
     }
 
     private async Task<Result> ValidateCreateRequestAsync(CreateEmployeeRequestDto request)
@@ -538,6 +668,109 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
 
             var newSpouseIsActive = request.EndDate == null;
             if (hasActiveSpouse && newSpouseIsActive)
+                errors["RelationType"] = [EmployeeError.EmployeeCanOnlyHaveOneActiveSpouse];
+        }
+
+        if (errors.Count > 0)
+        {
+            var errorMessage = string.Join("; ", errors.Values.SelectMany(v => v));
+            return Result.Failure(errorMessage, errors, ErrorType.Validation);
+        }
+
+        return Result.Success();
+    }
+
+    private async Task<Result> ValidateUpdatePositionHistoryRequestAsync(int employeeId, int historyId, UpdateEmployeePositionHistoryRequestDto request)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        var employee = await _context.Employees
+            .AsNoTracking()
+            .Where(e => e.Id == employeeId)
+            .Select(e => new { e.Id, e.HireDate })
+            .FirstOrDefaultAsync();
+
+        if (employee == null)
+            return Result.Failure(EmployeeError.EmployeeNotFound, ErrorType.NotFound);
+
+        var history = await _context.PositionByScheduleByEmployees
+            .AsNoTracking()
+            .Where(h => h.Id == historyId && h.EmployeeId == employeeId)
+            .Select(h => new { h.Id, h.StartDate })
+            .FirstOrDefaultAsync();
+
+        if (history == null)
+            return Result.Failure(EmployeeError.PositionHistoryNotFound, ErrorType.NotFound);
+
+        var latestHistory = await _context.PositionByScheduleByEmployees
+            .AsNoTracking()
+            .Where(h => h.EmployeeId == employeeId)
+            .OrderByDescending(h => h.StartDate)
+            .ThenByDescending(h => h.Id)
+            .Select(h => new { h.Id })
+            .FirstOrDefaultAsync();
+
+        if (latestHistory == null || latestHistory.Id != historyId)
+            return Result.Failure(EmployeeError.PositionHistoryNotEditable, ErrorType.Conflict);
+
+        var validPosition = await _context.Positions.AnyAsync(position => position.Id == request.PositionId);
+        if (!validPosition) errors["PositionId"] = [EmployeeError.InvalidPosition];
+
+        var validSchedule = await _context.Schedules.AnyAsync(schedule => schedule.Id == request.ScheduleId);
+        if (!validSchedule) errors["ScheduleId"] = [EmployeeError.InvalidSchedule];
+
+        if (request.BasicSalary <= 0) errors["BasicSalary"] = [EmployeeError.BasicSalaryMustBeGreaterThanZero];
+
+        if (request.StartDate < employee.HireDate) errors["StartDate"] = [EmployeeError.PositionStartDateBeforeHireDate];
+
+        if (errors.Count > 0)
+        {
+            var errorMessage = string.Join("; ", errors.Values.SelectMany(v => v));
+            return Result.Failure(errorMessage, errors, ErrorType.Validation);
+        }
+
+        return Result.Success();
+    }
+
+    private async Task<Result> ValidateUpdateRelationRequestAsync(int employeeId, int relationId, UpdateEmployeeRelationRequestDto request)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        var relation = await _context.EmployeeRelations
+            .AsNoTracking()
+            .Where(r => r.Id == relationId && r.EmployeeId == employeeId)
+            .Select(r => new { r.Id, r.RelationType, r.EndDate })
+            .FirstOrDefaultAsync();
+
+        if (relation == null)
+            return Result.Failure(EmployeeError.FamilyRelationNotFound, ErrorType.NotFound);
+
+        if (!Enum.IsDefined(request.RelationType))
+            errors["RelationType"] = [EmployeeError.FamilyRelationTypeInvalid];
+
+        if (string.IsNullOrWhiteSpace(request.Name)) errors["Name"] = [EmployeeError.FamilyNameRequired];
+        if (string.IsNullOrWhiteSpace(request.Lastname)) errors["Lastname"] = [EmployeeError.FamilyLastnameRequired];
+        if (string.IsNullOrWhiteSpace(request.DocumentNumber)) errors["DocumentNumber"] = [EmployeeError.FamilyDocumentRequired];
+
+        if (request.EndDate.HasValue && request.EndDate.Value < request.StartDate)
+            errors["EndDate"] = [EmployeeError.FamilyEndDateInvalid];
+
+        var duplicatedDocument = await _context.EmployeeRelations.AsNoTracking().AnyAsync(rel =>
+            rel.EmployeeId == employeeId && rel.DocumentNumber == request.DocumentNumber.Trim() && rel.Id != relationId);
+
+        if (duplicatedDocument) errors["DocumentNumber"] = [EmployeeError.FamilyDocumentAlreadyExists];
+
+        if (request.RelationType == EmployeeRelation.RelationTypeEnum.Spouse && request.EndDate == null)
+        {
+            var hasOtherActiveSpouse = await _context.EmployeeRelations
+                .AsNoTracking()
+                .AnyAsync(rel =>
+                    rel.EmployeeId == employeeId
+                    && rel.RelationType == EmployeeRelation.RelationTypeEnum.Spouse
+                    && rel.EndDate == null
+                    && rel.Id != relationId);
+
+            if (hasOtherActiveSpouse)
                 errors["RelationType"] = [EmployeeError.EmployeeCanOnlyHaveOneActiveSpouse];
         }
 

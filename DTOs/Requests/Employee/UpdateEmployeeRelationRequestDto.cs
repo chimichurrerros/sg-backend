@@ -4,7 +4,7 @@ using BackEnd.Models;
 
 namespace BackEnd.DTOs.Requests.Employee;
 
-public class CreateEmployeeRelationRequestDto
+public class UpdateEmployeeRelationRequestDto
 {
     [Required(ErrorMessage = EmployeeError.FamilyRelationTypeInvalid)]
     public BackEnd.Models.EmployeeRelation.RelationTypeEnum RelationType { get; set; }

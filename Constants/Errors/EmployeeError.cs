@@ -32,4 +32,9 @@ public static class EmployeeError
     public const string FamilyStartDateRequired = "La fecha de inicio de la relación es obligatoria";
     public const string FamilyEndDateInvalid = "La fecha de fin de la relación debe ser posterior o igual a la fecha de inicio";
     public const string EmployeeCanOnlyHaveOneActiveSpouse = "El empleado solo puede tener un cónyuge activo";
+    public const string EmployeeAlreadyInactive = "El empleado ya se encuentra inactivo";
+    public const string PositionHistoryNotEditable = "Solo se puede editar el historial de cargo más reciente";
+    public const string PositionHistoryNotDeletable = "Solo se puede eliminar el historial de cargo más reciente";
+    public const string RelationNotEditable = "Solo se puede editar la relación familiar seleccionada";
+    public const string RelationNotDeletable = "No se puede eliminar la relación familiar seleccionada";
 }
