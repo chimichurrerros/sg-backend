@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Requests.Product;
 using BackEnd.Models;
+using BackEnd.DTOs.Responses.Supplier;
 
 namespace BackEnd.Services;
 
@@ -98,5 +99,21 @@ public class ProductsService(AppDbContext context, IMapper mapper)
         await _context.SaveChangesAsync();
 
         return Result.Success();
+    }
+
+    public async Task<Result<ListSuppliersWrapperDto>> GetAllSuppliers(int idProdut)
+    {
+        var result = (from product in _context.Products
+                      where product.Id == idProdut
+                      join sc in _context.SupplierCategories
+                        on product.ProductCategoryId equals sc.ProductCategoryId
+                      join supplier in _context.Suppliers
+                        on sc.SupplierId equals supplier.Id
+                      select supplier)
+                      .Distinct() // Evita proveedores duplicados si tienen muchos productos
+                      .ProjectTo<SupplierResponseDto>(_mapper.ConfigurationProvider)
+                      .ToList();
+
+        return Result<ListSuppliersWrapperDto>.Success(new ListSuppliersWrapperDto { Suppliers = result });
     }
 }
