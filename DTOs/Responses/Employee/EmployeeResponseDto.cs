@@ -9,12 +9,14 @@ public class EmployeeResponseDto
     public int EntityId { get; set; }
     public string FileNumber { get; set; } = null!;
     public int AreaId { get; set; }
+    public int? BranchId { get; set; }
     public int? InmediatlyBossId { get; set; }
     public DateOnly HireDate { get; set; }
 
     // Relacionales
     public virtual object? Area { get; set; }
     public virtual object? Entity { get; set; } // Representa a la PhysicalPerson devuelta por la BD
+    public virtual object? Branch { get; set; }
 }
 
 public class EmployeeWrapperDto

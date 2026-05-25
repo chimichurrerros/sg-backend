@@ -415,6 +415,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Boss).WithMany(p => p.Departments)
                 .HasForeignKey(d => d.BossId)
                 .HasConstraintName("FkDepartmentsBoss");
+
+            entity.HasOne(d => d.Branch).WithMany(p => p.Departments)
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("Departments_BranchId_fkey");
         });
 
         modelBuilder.Entity<Employee>(entity =>
@@ -436,6 +441,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.InmediatlyBoss).WithMany(p => p.InverseInmediatlyBoss)
                 .HasForeignKey(d => d.InmediatlyBossId)
                 .HasConstraintName("Employees_InmediatlyBossId_fkey");
+
+            entity.HasOne(d => d.Branch).WithMany(p => p.Employees)
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("Employees_BranchId_fkey");
         });
 
         modelBuilder.Entity<EmployeeKid>(entity =>

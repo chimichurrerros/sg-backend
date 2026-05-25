@@ -14,10 +14,14 @@ public partial class Employee
     public int AreaId { get; set; }
 
     public int? InmediatlyBossId { get; set; }
+    
+    public int? BranchId { get; set; }
 
     public DateOnly HireDate { get; set; }
 
     public virtual Department Area { get; set; } = null!;
+
+    public virtual Branch? Branch { get; set; }
 
     public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
 
