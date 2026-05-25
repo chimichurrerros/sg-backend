@@ -1,4 +1,5 @@
 using BackEnd.DTOs.Requests.Pagination;
+using BackEnd.Models;
 using BackEnd.Utils;
 
 namespace BackEnd.DTOs.Responses.Employee;
@@ -12,6 +13,11 @@ public class EmployeeResponseDto
     public int? BranchId { get; set; }
     public int? InmediatlyBossId { get; set; }
     public DateOnly HireDate { get; set; }
+    public BackEnd.Models.Employee.MaritalStatusEnum MaritalStatus { get; set; }
+
+    // From PositionByScheduleByEmployee (latest)
+    public decimal? BaseSalary { get; set; }
+    public DateOnly? PositionStartDate { get; set; }
 
     // Relacionales
     public virtual object? Area { get; set; }

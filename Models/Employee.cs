@@ -5,6 +5,17 @@ namespace BackEnd.Models;
 
 public partial class Employee
 {
+    public enum MaritalStatusEnum
+    {
+        Unknown = 0,
+        Single = 1,
+        Married = 2,
+        Divorced = 3,
+        Widowed = 4,
+        Separated = 5,
+        Cohabiting = 6
+    }
+
     public int Id { get; set; }
 
     public int EntityId { get; set; }
@@ -19,6 +30,8 @@ public partial class Employee
 
     public DateOnly HireDate { get; set; }
 
+    public MaritalStatusEnum MaritalStatus { get; set; }
+
     public virtual Department Area { get; set; } = null!;
 
     public virtual Branch? Branch { get; set; }
@@ -27,7 +40,7 @@ public partial class Employee
 
     public virtual ICollection<Department> Departments { get; set; } = new List<Department>();
 
-    public virtual ICollection<EmployeeKid> EmployeeKids { get; set; } = new List<EmployeeKid>();
+    public virtual ICollection<EmployeeRelation> EmployeeRelations { get; set; } = new List<EmployeeRelation>();
 
     public virtual PhysicalPerson Entity { get; set; } = null!;
 
