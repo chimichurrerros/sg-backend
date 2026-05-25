@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using BackEnd.Constants.Errors;
+using BackEnd.Models;
 
 namespace BackEnd.DTOs.Requests.Employee;
 
@@ -13,6 +14,7 @@ public class UpdateEmployeeRequestDto
     public DateOnly HireDate { get; set; }
 
     public int AreaId { get; set; }
+    public int? BranchId { get; set; }
     public int? InmediatlyBossId { get; set; }
 
     // PhysicalPerson Info
@@ -24,7 +26,7 @@ public class UpdateEmployeeRequestDto
 
     public DateOnly BirthDate { get; set; }
     public int GenderId { get; set; }
-    public int MaritalStatusId { get; set; }
+    public BackEnd.Models.Employee.MaritalStatusEnum MaritalStatus { get; set; }
 
     // Base Entity Info
     [Required(ErrorMessage = EmployeeError.DocumentNumberRequired)]

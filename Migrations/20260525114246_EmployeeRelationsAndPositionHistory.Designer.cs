@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260525114246_EmployeeRelationsAndPositionHistory")]
+    partial class EmployeeRelationsAndPositionHistory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -653,9 +656,6 @@ namespace BackEnd.Migrations
                     b.Property<int?>("InmediatlyBossId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("MaritalStatus")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id")
                         .HasName("Employees_pkey");
 
@@ -713,11 +713,6 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("DocumentNumber")
                         .HasDatabaseName("IX_EmployeeRelations_DocumentNumber");
-
-                    b.HasIndex("EmployeeId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_EmployeeRelations_OneActiveSpouse")
-                        .HasFilter("\"RelationType\" = 1 AND \"EndDate\" IS NULL");
 
                     b.HasIndex("EmployeeId", "RelationType")
                         .HasDatabaseName("IX_EmployeeRelations_EmployeeId_RelationType");
@@ -951,6 +946,25 @@ namespace BackEnd.Migrations
                         .HasName("LegalPersons_pkey");
 
                     b.ToTable("LegalPersons");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.MaritalStatus", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id")
+                        .HasName("MaritalStatus_pkey");
+
+                    b.ToTable("MaritalStatus", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.Module", b =>
@@ -1275,6 +1289,9 @@ namespace BackEnd.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<int>("MaritalStatusId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1284,6 +1301,8 @@ namespace BackEnd.Migrations
                         .HasName("PhysicalPersons_pkey");
 
                     b.HasIndex("GenderId");
+
+                    b.HasIndex("MaritalStatusId");
 
                     b.ToTable("PhysicalPersons");
                 });
@@ -2605,9 +2624,17 @@ namespace BackEnd.Migrations
                         .IsRequired()
                         .HasConstraintName("PhysicalPersons_GenderId_fkey");
 
+                    b.HasOne("BackEnd.Models.MaritalStatus", "MaritalStatus")
+                        .WithMany("PhysicalPeople")
+                        .HasForeignKey("MaritalStatusId")
+                        .IsRequired()
+                        .HasConstraintName("PhysicalPersons_MaritalStatusId_fkey");
+
                     b.Navigation("Entity");
 
                     b.Navigation("Gender");
+
+                    b.Navigation("MaritalStatus");
                 });
 
             modelBuilder.Entity("BackEnd.Models.PositionByScheduleByEmployee", b =>
@@ -3055,6 +3082,11 @@ namespace BackEnd.Migrations
                 });
 
             modelBuilder.Entity("BackEnd.Models.Gender", b =>
+                {
+                    b.Navigation("PhysicalPeople");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.MaritalStatus", b =>
                 {
                     b.Navigation("PhysicalPeople");
                 });

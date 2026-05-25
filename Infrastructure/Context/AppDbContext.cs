@@ -53,7 +53,7 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Employee> Employees { get; set; }
 
-    public virtual DbSet<EmployeeKid> EmployeeKids { get; set; }
+    public virtual DbSet<EmployeeRelation> EmployeeRelations { get; set; }
 
     public virtual DbSet<Entity> Entities { get; set; }
 
@@ -74,8 +74,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<LegalPerson> LegalPersons { get; set; }
 
     // public virtual DbSet<Lote> Lotes { get; set; }
-
-    public virtual DbSet<MaritalStatus> MaritalStatuses { get; set; }
 
     public virtual DbSet<Module> Modules { get; set; }
 
@@ -415,6 +413,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Boss).WithMany(p => p.Departments)
                 .HasForeignKey(d => d.BossId)
                 .HasConstraintName("FkDepartmentsBoss");
+
+            entity.HasOne(d => d.Branch).WithMany(p => p.Departments)
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("Departments_BranchId_fkey");
         });
 
         modelBuilder.Entity<Employee>(entity =>
@@ -422,6 +425,7 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("Employees_pkey");
 
             entity.Property(e => e.FileNumber).HasMaxLength(50);
+            entity.Property(e => e.MaritalStatus).HasConversion<int>();
 
             entity.HasOne(d => d.Area).WithMany(p => p.Employees)
                 .HasForeignKey(d => d.AreaId)
@@ -436,21 +440,39 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.InmediatlyBoss).WithMany(p => p.InverseInmediatlyBoss)
                 .HasForeignKey(d => d.InmediatlyBossId)
                 .HasConstraintName("Employees_InmediatlyBossId_fkey");
+
+            entity.HasOne(d => d.Branch).WithMany(p => p.Employees)
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("Employees_BranchId_fkey");
         });
 
-        modelBuilder.Entity<EmployeeKid>(entity =>
+        modelBuilder.Entity<EmployeeRelation>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("EmployeeKids_pkey");
+            entity.HasKey(e => e.Id).HasName("EmployeeRelations_pkey");
 
-            entity.HasOne(d => d.Employee).WithMany(p => p.EmployeeKids)
+            entity.Property(e => e.Lastname).HasMaxLength(100);
+            entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.DocumentNumber).HasMaxLength(50);
+
+            entity.Property(e => e.RelationType)
+                .HasConversion<int>();
+
+            entity.HasIndex(e => new { e.EmployeeId, e.RelationType })
+                .HasDatabaseName("IX_EmployeeRelations_EmployeeId_RelationType");
+
+            entity.HasIndex(e => e.DocumentNumber)
+                .HasDatabaseName("IX_EmployeeRelations_DocumentNumber");
+
+            entity.HasIndex(e => e.EmployeeId)
+                .HasDatabaseName("IX_EmployeeRelations_OneActiveSpouse")
+                .IsUnique()
+                .HasFilter("\"RelationType\" = 1 AND \"EndDate\" IS NULL");
+
+            entity.HasOne(d => d.Employee).WithMany(p => p.EmployeeRelations)
                 .HasForeignKey(d => d.EmployeeId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("EmployeeKids_EmployeeId_fkey");
-
-            entity.HasOne(d => d.Entity).WithMany(p => p.EmployeeKids)
-                .HasForeignKey(d => d.EntityId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("EmployeeKids_EntityId_fkey");
+                .HasConstraintName("EmployeeRelations_EmployeeId_fkey");
         });
 
         modelBuilder.Entity<Entity>(entity =>
@@ -573,15 +595,6 @@ public partial class AppDbContext : DbContext
         //         .OnDelete(DeleteBehavior.ClientSetNull)
         //         .HasConstraintName("Lotes_ProductId_fkey");
         // });
-
-        modelBuilder.Entity<MaritalStatus>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("MaritalStatus_pkey");
-
-            entity.ToTable("MaritalStatus");
-
-            entity.Property(e => e.Name).HasMaxLength(50);
-        });
 
         modelBuilder.Entity<Module>(entity =>
         {
@@ -744,10 +757,6 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PhysicalPersons_GenderId_fkey");
 
-            entity.HasOne(d => d.MaritalStatus).WithMany(p => p.PhysicalPeople)
-                .HasForeignKey(d => d.MaritalStatusId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("PhysicalPersons_MaritalStatusId_fkey");
         });
 
         modelBuilder.Entity<Position>(entity =>
