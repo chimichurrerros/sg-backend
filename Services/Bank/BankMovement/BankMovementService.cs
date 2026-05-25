@@ -99,12 +99,17 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
         newCheck.AccountId = newMovement.AccountId;
         newCheck.Amount = newMovement.Amount;
         newCheck.Status = CheckStatusEnum.Pending;
-        newCheck.IssuingBank = account.Bank?.Name ?? "";
+
+        if (newMovement.MovementType == BankMovementTypeEnum.Debit)
+        {
+            newCheck.IssuingBank = account.Bank?.Name ?? "";
+        }
+        else
+        {
+            newCheck.Receiver = account.Name;
+        }
+
         newMovement.Check = newCheck;
-        
-        // Entity Framework es inteligente: al asignarlo a la propiedad de navegación,
-        // automáticamente le pondrá el BankMovementId correcto cuando guarde.
-        newMovement.Check = newCheck; 
     }
 
     _context.BankMovements.Add(newMovement);

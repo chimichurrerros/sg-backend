@@ -10,6 +10,7 @@ public class CreateCheckRequestDto
     public DateTime EmisionDate { get; set; }
 
     public DateOnly? AvailabilityDate { get; set; }
+    public string IssuingBank { get; set; } = null!;
 
     public CheckTypeEnum Type { get; set; }
 
