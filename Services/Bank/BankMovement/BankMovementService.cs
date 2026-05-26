@@ -90,12 +90,21 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
         var newCheck = _mapper.Map<Check>(request.CheckDetails);
         newCheck.Status = CheckStatusEnum.Pending; // Nace pendiente de conciliación
         
-        // Entity Framework es inteligente: al asignarlo a la propiedad de navegación,
-        // automáticamente le pondrá el BankMovementId correcto cuando guarde.
-        newMovement.Check = newCheck; 
+       
+       if( newCheck.Type == CheckTypeEnum.Day)
+            {
+                newCheck.AvailabilityDate = DateOnly.FromDateTime(request.CheckDetails.EmisionDate);
+                newCheck.MaturityDate = newCheck.AvailabilityDate.AddDays(30);
+            }
+        if (newCheck.Type == CheckTypeEnum.Deferred)
+            {
+                newCheck.AvailabilityDate = request.CheckDetails.AvailabilityDate ?? DateOnly.FromDateTime(DateTime.Today);
+                newCheck.MaturityDate = newCheck.AvailabilityDate.AddMonths(6);
+            }        
+            newMovement.Check = newCheck;
     }
 
-    _context.BankMovements.Add(newMovement);
+    _context.BankMovements.Add(newMovement);   
     await _context.SaveChangesAsync();
 
     return await GetByIdAsync(newMovement.Id);
