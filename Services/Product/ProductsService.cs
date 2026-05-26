@@ -116,4 +116,14 @@ public class ProductsService(AppDbContext context, IMapper mapper)
 
         return Result<ListSuppliersWrapperDto>.Success(new ListSuppliersWrapperDto { Suppliers = result });
     }
+
+    public async Task<Result<ListProductsWrapperDto>> GetByBranchIdAsync(int branchId)
+    {
+        var products = await _context.Products
+            .AsNoTracking()
+            .Where(p => p.Stocks.Any(s => s.BranchId == branchId) && p.IsService != true)
+            .ProjectTo<ProductResponseDto>(_mapper.ConfigurationProvider)
+            .ToListAsync();
+        return Result<ListProductsWrapperDto>.Success(new ListProductsWrapperDto { Products = products });
+    }
 }
