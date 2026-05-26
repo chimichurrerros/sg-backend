@@ -107,4 +107,13 @@ public class ProductsController(ProductsService productsService) : ControllerBas
 
         return StatusCode(500);
     }
+
+    [HttpGet("by-branch/{branchId}")]
+    public async Task<ActionResult<ListProductsWrapperDto>> GetProductsByBranch(int branchId)
+    {
+        var result = await _productsService.GetByBranchIdAsync(branchId);
+        if (result.IsSuccess)
+            return Ok(result.Value);
+        return StatusCode(500);
+    }
 }

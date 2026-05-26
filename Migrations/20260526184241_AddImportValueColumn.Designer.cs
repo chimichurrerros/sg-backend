@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260526184241_AddImportValueColumn")]
+    partial class AddImportValueColumn
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1765,9 +1768,6 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("BranchId")
-                        .HasColumnType("integer");
-
                     b.Property<int?>("CustomerId")
                         .HasColumnType("integer");
 
@@ -1801,8 +1801,6 @@ namespace BackEnd.Migrations
 
                     b.HasKey("Id")
                         .HasName("SalesOrders_pkey");
-
-                    b.HasIndex("BranchId");
 
                     b.HasIndex("CustomerId");
 
@@ -2802,13 +2800,6 @@ namespace BackEnd.Migrations
 
             modelBuilder.Entity("BackEnd.Models.SalesOrder", b =>
                 {
-                    b.HasOne("BackEnd.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("SalesOrders_BranchId_fkey");
-
                     b.HasOne("BackEnd.Models.Customer", "Customer")
                         .WithMany("SalesOrders")
                         .HasForeignKey("CustomerId")
@@ -2824,8 +2815,6 @@ namespace BackEnd.Migrations
                         .HasForeignKey("UserId")
                         .IsRequired()
                         .HasConstraintName("SalesOrders_UserId_fkey");
-
-                    b.Navigation("Branch");
 
                     b.Navigation("Customer");
 

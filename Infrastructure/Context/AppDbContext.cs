@@ -1012,6 +1012,10 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("SalesOrders_UserId_fkey");
+            
+            entity.HasOne(d => d.Branch).WithMany()
+                .HasForeignKey(d => d.BranchId)
+                .HasConstraintName("SalesOrders_BranchId_fkey");
         });
 
         modelBuilder.Entity<SalesOrderDetail>(entity =>
