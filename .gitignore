@@ -4,3 +4,4 @@ appsettings.json
 **/obj/
 .vscode/
 .md/
+todo*
