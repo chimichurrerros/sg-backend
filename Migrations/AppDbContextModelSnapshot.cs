@@ -2078,10 +2078,6 @@ namespace BackEnd.Migrations
                     b.Property<int>("SupplierQuoteId")
                         .HasColumnType("integer");
 
-                    b.Property<decimal>("TaxRate")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)");
-
                     b.HasKey("Id")
                         .HasName("SupplierQuoteDetails_pkey");
 
