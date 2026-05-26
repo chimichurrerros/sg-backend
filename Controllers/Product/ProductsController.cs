@@ -109,7 +109,7 @@ public class ProductsController(ProductsService productsService) : ControllerBas
     }
 
     [HttpGet("by-branch/{branchId}")]
-    public async Task<ActionResult<ListProductsWrapperDto>> GetProductsByBranch(int branchId)
+    public async Task<ActionResult<ListProductsStockWrapperDto>> GetProductsByBranch(int branchId)
     {
         var result = await _productsService.GetByBranchIdAsync(branchId);
         if (result.IsSuccess)
