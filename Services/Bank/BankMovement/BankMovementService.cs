@@ -112,7 +112,7 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
         newMovement.Check = newCheck;
     }
 
-    _context.BankMovements.Add(newMovement);
+    _context.BankMovements.Add(newMovement);   
     await _context.SaveChangesAsync();
 
         return await GetByIdAsync(newMovement.Id);
