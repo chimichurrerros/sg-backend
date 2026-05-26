@@ -29,7 +29,7 @@ public class PurchaseOrderResponseDto
     public string Number { get; set; } = null!;
     public DateTime Date { get; set; }
     public decimal Total { get; set; }
-    public BackEnd.Models.PurchaseOrder.PurchaseOrderStateEnum State { get; set; }
+    public PurchaseOrderStateEnum State { get; set; }
     public List<PurchaseOrderDetailResponseDto> Details { get; set; } = [];
 }
 

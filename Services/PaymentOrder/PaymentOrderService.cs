@@ -38,7 +38,7 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.PurchaseOrderNotFound, ErrorType.NotFound);
 
         // La orden de compra obligatoriamente tiene que estar Confirmada para pagarse
-        if (purchaseOrder.State != PurchaseOrder.PurchaseOrderStateEnum.Confirmed)
+        if (purchaseOrder.State != PurchaseOrderStateEnum.Confirmed)
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.PurchaseOrderMustBeConfirmed, ErrorType.Validation);
 
         // Valida que la cuenta bancaria exista y tenga saldo disponible suficiente para el pago
@@ -52,7 +52,7 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
         try
         {
             // 1. Crea la cabecera de la Orden de Pago (nace como Procesada directamente)
-            var paymentOrder = new Models.PaymentOrder
+            var paymentOrder = new PaymentOrder
             {
                 SupplierId = purchaseOrder.SupplierId,
                 Date = request.PaymentDate == default ? DateTime.UtcNow : request.PaymentDate,

@@ -114,7 +114,7 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
                 Number = string.Empty, // Se genera temporalmente vacío
                 Date = DateTime.UtcNow,
                 Total = resolved.Value.Details.Sum(d => d.Price * d.QuantityOrdered), // Suma total de los productos
-                State = PurchaseOrder.PurchaseOrderStateEnum.Pending
+                State = PurchaseOrderStateEnum.Pending
             };
 
             // Guarda para obtener el ID asignado por la base de datos
@@ -196,9 +196,9 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
             order.Total = resolved.Value.Details.Sum(d => d.Price * d.QuantityOrdered);
 
             // Actualiza el estado si se especificó uno válido
-            if (request.State.HasValue && Enum.IsDefined(typeof(PurchaseOrder.PurchaseOrderStateEnum), request.State.Value))
+            if (request.State.HasValue && Enum.IsDefined(typeof(PurchaseOrderStateEnum), request.State.Value))
             {
-                order.State = (PurchaseOrder.PurchaseOrderStateEnum)request.State.Value;
+                order.State = (PurchaseOrderStateEnum)request.State.Value;
             }
 
             // Remueve los detalles viejos
@@ -238,7 +238,7 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
         if (order == null)
             return Result<bool>.Failure(PurchaseOrderError.PurchaseOrderNotFound, ErrorType.NotFound);
 
-        order.State = PurchaseOrder.PurchaseOrderStateEnum.Confirmed;
+        order.State = PurchaseOrderStateEnum.Confirmed;
         _context.PurchaseOrders.Update(order);
         await _context.SaveChangesAsync();
 
@@ -624,7 +624,7 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
             Number = string.Empty,
             Date = DateTime.UtcNow,
             Total = draft.Details.Sum(line => line.Price * line.QuantityOrdered),
-            State = PurchaseOrder.PurchaseOrderStateEnum.Pending,
+            State = PurchaseOrderStateEnum.Pending,
             PurchaseOrderDetails = draft.Details.Select(line => new PurchaseOrderDetail
             {
                 ProductId = line.ProductId,
