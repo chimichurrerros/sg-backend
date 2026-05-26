@@ -199,9 +199,9 @@ public class SupplierQuoteService(AppDbContext context, IMapper mapper)
             }
 
             // Si viene un nuevo estado de cotización válido, lo actualiza
-            if (request.State.HasValue && Enum.IsDefined(typeof(SupplierQuote.SupplierQuoteStateEnum), request.State.Value))
+            if (request.State.HasValue && Enum.IsDefined(typeof(SupplierQuoteStateEnum), request.State.Value))
             {
-                quote.State = (SupplierQuote.SupplierQuoteStateEnum)request.State.Value;
+                quote.State = (SupplierQuoteStateEnum)request.State.Value;
             }
 
             // Guarda los cambios y confirma la transacción

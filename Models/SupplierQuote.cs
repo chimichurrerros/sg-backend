@@ -1,18 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace BackEnd.Models;
 
 public partial class SupplierQuote
 {
-    public enum SupplierQuoteStateEnum
-    {
-        Pending = 1,
-        Accepted = 2,
-        Rejected = 3,
-        Cancelled = 4
-    }
-
     public int Id { get; set; }
 
     public int SupplierId { get; set; }

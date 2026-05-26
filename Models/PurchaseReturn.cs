@@ -5,13 +5,6 @@ namespace BackEnd.Models;
 
 public partial class PurchaseReturn
 {
-    public enum PurchaseReturnStateEnum
-    {
-        Created = 1,
-        Issued = 2,
-        Cancelled = 3
-    }
-
     public int Id { get; set; }
 
     public int PurchaseOrderId { get; set; }
