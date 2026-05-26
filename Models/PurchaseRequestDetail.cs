@@ -11,6 +11,8 @@ public partial class PurchaseRequestDetail
 
     public int ProductId { get; set; }
 
+    public int SupplierId { get; set; }
+
     public decimal QuantityRequested { get; set; }
 
     public virtual Product Product { get; set; } = null!;

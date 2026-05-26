@@ -66,9 +66,10 @@ public class PurchaseRequestService(
                 {
                     PurchaseRequestId = purchaseRequest.Id,
                     ProductId = detail.ProductId,
+                    SupplierId = detail.SupplierId,
                     QuantityRequested = detail.QuantityRequested
                 };
-                
+
                 _context.PurchaseRequestDetails.Add(purchaseRequestDetail);
             }
 
