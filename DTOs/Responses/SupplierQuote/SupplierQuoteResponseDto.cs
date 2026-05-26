@@ -8,9 +8,9 @@ public class SupplierQuoteDetailResponseDto
     public int Id { get; set; }
     public int ProductId { get; set; }
     public string? ProductName { get; set; }
+    public decimal ProductTaxRate { get; set; }
     public decimal QuantityAvailable { get; set; }
     public decimal Price { get; set; }
-    public decimal TaxRate { get; set; }
 }
 
 public class SupplierQuoteResponseDto

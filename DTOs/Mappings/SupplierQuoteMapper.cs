@@ -37,7 +37,9 @@ public class SupplierQuoteMapper : AutoMapper.Profile
 
         CreateMap<SupplierQuoteDetail, SupplierQuoteDetailResponseDto>()
             .ForMember(dest => dest.ProductName,
-                opt => opt.MapFrom(src => src.Product != null ? src.Product.Name : null));
+                opt => opt.MapFrom(src => src.Product != null ? src.Product.Name : null))
+            .ForMember(dest => dest.ProductTaxRate,
+                opt => opt.MapFrom(src => src.Product != null ? src.Product.TaxRate : 0m));
 
         CreateMap<SupplierQuote, SupplierQuoteResponseDto>()
             .ForMember(dest => dest.SupplierName,
