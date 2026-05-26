@@ -114,12 +114,6 @@ public class SupplierQuoteService(AppDbContext context, IMapper mapper)
             quote.Date = DateTime.UtcNow; // Asigna la fecha y hora actual en UTC
             quote.Total = CalculateTotal(request.Details); // Calcula el costo total de la cotización
 
-            // Por cada detalle de la cotización, le asigna un impuesto del 10% por defecto
-            foreach (var detail in quote.SupplierQuoteDetails)
-            {
-                detail.TaxRate = 10m;
-            }
-
             // Agrega la cotización al contexto y guarda los cambios en la base de datos
             _context.SupplierQuotes.Add(quote);
             await _context.SaveChangesAsync();
@@ -189,8 +183,7 @@ public class SupplierQuoteService(AppDbContext context, IMapper mapper)
                     {
                         ProductId = d.ProductId,
                         QuantityAvailable = d.QuantityAvailable,
-                        Price = d.Price,
-                        TaxRate = 10m
+                        Price = d.Price
                     })
                     .ToList();
                 
