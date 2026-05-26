@@ -14,7 +14,7 @@ namespace BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
     [Migration("20260525202128_updatebankmovements")]
-    partial class updatebankmovements
+    partial class UpDateBankMovements
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

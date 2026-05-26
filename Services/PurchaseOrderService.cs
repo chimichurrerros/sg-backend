@@ -58,7 +58,7 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
     {
         // Busca en la base de datos cargando todas las relaciones
         var order = await LoadOrdersQuery().FirstOrDefaultAsync(o => o.Id == id);
-        
+
         // Si no existe, devuelve un error 404
         if (order == null)
             return Result<PurchaseOrderWrapperDto>.Failure(PurchaseOrderError.PurchaseOrderNotFound, ErrorType.NotFound);
@@ -203,7 +203,7 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
 
             // Remueve los detalles viejos
             _context.PurchaseOrderDetails.RemoveRange(order.PurchaseOrderDetails);
-            
+
             // Asigna los nuevos detalles recalculados
             order.PurchaseOrderDetails = resolved.Value.Details.Select(detail => new PurchaseOrderDetail
             {
@@ -254,7 +254,7 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
             .Include(o => o.Supplier)
             .Include(o => o.PurchaseOrderDetails)
                 .ThenInclude(d => d.SupplierQuoteDetail)
-                    .ThenInclude(sd => sd.SupplierQuote)
+                    .ThenInclude(sd => sd!.SupplierQuote)
                         .ThenInclude(sq => sq.Supplier)
             .FirstOrDefaultAsync(o => o.Id == purchaseOrderId);
 
@@ -262,7 +262,7 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
             return Result<ListSuppliersWrapperDto>.Failure(PurchaseOrderError.PurchaseOrderNotFound, ErrorType.NotFound);
 
         var suppliers = new List<Supplier>();
-        
+
         // Agrega el proveedor principal de la orden de compra
         if (order.Supplier != null)
         {
@@ -274,7 +274,7 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
             .Where(d => d.SupplierQuoteDetail != null && d.SupplierQuoteDetail.SupplierQuote != null && d.SupplierQuoteDetail.SupplierQuote.Supplier != null)
             .Select(d => d.SupplierQuoteDetail!.SupplierQuote.Supplier)
             .ToList();
-            
+
         suppliers.AddRange(detailSuppliers);
 
         // Elimina duplicados basándose en el ID del proveedor
@@ -305,7 +305,7 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
                 .ThenInclude(d => d.Product)
             .Include(o => o.PurchaseOrderDetails)
                 .ThenInclude(d => d.SupplierQuoteDetail)
-                    .ThenInclude(sd => sd.SupplierQuote)
+                    .ThenInclude(sd => sd!.SupplierQuote)
                         .ThenInclude(sq => sq.Supplier);
     }
 

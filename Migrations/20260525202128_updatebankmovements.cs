@@ -5,7 +5,7 @@
 namespace BackEnd.Migrations
 {
     /// <inheritdoc />
-    public partial class updatebankmovements : Migration
+    public partial class UpDateBankMovements : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
