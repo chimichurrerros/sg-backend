@@ -7,17 +7,11 @@ public partial class PhysicalPerson
 {
     public int EntityId { get; set; }
 
-    public int GenderId { get; set; }
-
     public string Name { get; set; } = null!;
 
     public string Lastname { get; set; } = null!;
 
     public DateOnly BirthDate { get; set; }
 
-    public virtual ICollection<Employee> Employees { get; set; } = new List<Employee>();
-
     public virtual Entity Entity { get; set; } = null!;
-
-    public virtual Gender Gender { get; set; } = null!;
 }

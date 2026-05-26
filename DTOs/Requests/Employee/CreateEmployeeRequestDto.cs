@@ -37,7 +37,7 @@ public class CreateEmployeeRequestDto
     public string Lastname { get; set; } = null!;
 
     public DateOnly BirthDate { get; set; }
-    public int GenderId { get; set; }
+    public BackEnd.Models.Employee.GenderEnum Gender { get; set; }
     public BackEnd.Models.Employee.MaritalStatusEnum MaritalStatus { get; set; }
 
     // Base Entity Info
