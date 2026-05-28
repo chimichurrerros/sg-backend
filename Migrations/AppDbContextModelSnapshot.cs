@@ -607,9 +607,6 @@ namespace BackEnd.Migrations
                     b.Property<int?>("BossId")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -619,8 +616,6 @@ namespace BackEnd.Migrations
                         .HasName("Departments_pkey");
 
                     b.HasIndex("BossId");
-
-                    b.HasIndex("BranchId");
 
                     b.ToTable("Departments");
                 });
@@ -1304,6 +1299,12 @@ namespace BackEnd.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("DefaultBasicSalary")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(15, 2)
+                        .HasColumnType("numeric(15,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -2323,15 +2324,7 @@ namespace BackEnd.Migrations
                         .HasForeignKey("BossId")
                         .HasConstraintName("FkDepartmentsBoss");
 
-                    b.HasOne("BackEnd.Models.Branch", "Branch")
-                        .WithMany("Departments")
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("Departments_BranchId_fkey");
-
                     b.Navigation("Boss");
-
-                    b.Navigation("Branch");
                 });
 
             modelBuilder.Entity("BackEnd.Models.Employee", b =>
@@ -2985,8 +2978,6 @@ namespace BackEnd.Migrations
 
             modelBuilder.Entity("BackEnd.Models.Branch", b =>
                 {
-                    b.Navigation("Departments");
-
                     b.Navigation("Employees");
 
                     b.Navigation("Stocks");

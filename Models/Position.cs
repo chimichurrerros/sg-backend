@@ -9,5 +9,7 @@ public partial class Position
 
     public string Name { get; set; } = null!;
 
+    public decimal DefaultBasicSalary { get; set; }
+
     public virtual ICollection<PositionByScheduleByEmployee> PositionByScheduleByEmployees { get; set; } = new List<PositionByScheduleByEmployee>();
 }
