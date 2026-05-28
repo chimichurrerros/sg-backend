@@ -411,11 +411,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Boss).WithMany(p => p.Departments)
                 .HasForeignKey(d => d.BossId)
                 .HasConstraintName("FkDepartmentsBoss");
-
-            entity.HasOne(d => d.Branch).WithMany(p => p.Departments)
-                .HasForeignKey(d => d.BranchId)
-                .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("Departments_BranchId_fkey");
         });
 
         modelBuilder.Entity<Employee>(entity =>
@@ -752,6 +747,7 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("Positions_pkey");
 
             entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.DefaultBasicSalary).HasPrecision(15, 2).HasDefaultValue(0m);
         });
 
         modelBuilder.Entity<PositionByScheduleByEmployee>(entity =>

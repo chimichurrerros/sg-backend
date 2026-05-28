@@ -22,6 +22,7 @@ public static class EmployeeError
     public const string PositionHistoryNotFound = "No se encontró el historial de cargo solicitado";
     public const string PositionStartDateBeforeHireDate = "La fecha de inicio del cargo no puede ser anterior al ingreso del empleado";
     public const string PositionStartDateMustBeAfterCurrent = "La fecha de inicio del nuevo cargo debe ser posterior al cargo actual";
+    public const string PositionEndDateInvalid = "La fecha de fin del cargo debe ser posterior o igual a la fecha de inicio";
     public const string FamilyRelationNotFound = "No se encontró la relación familiar solicitada";
     public const string FamilyRelationTypeInvalid = "El tipo de relación familiar es inválido";
     public const string FamilyNameRequired = "El nombre del familiar es obligatorio";
