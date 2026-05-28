@@ -53,10 +53,11 @@ public class CustomerController(CustomerService customerService) : ControllerBas
     }
 
     [HttpGet("all")]
-    public async Task<ActionResult<CustomerController>> GetAll()
+    public async Task<ActionResult<ListCustomersWrapperDto>> GetAll()
     {
         var result = await _customerService.GetAllAsync();
+        if (result.IsSuccess) return Ok(result.Value);
+        else return this.HandleBadRequestProblem(result);
 
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result);
     }
 }
