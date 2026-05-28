@@ -36,6 +36,8 @@ public class PurchaseReturnResponseDto
     public decimal Total { get; set; }
     public decimal TaxTotal { get; set; }
     public PurchaseReturnStateEnum State { get; set; }
+    public string SupplierName { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
     public List<PurchaseReturnDetailResponseDto> Details { get; set; } = [];
 }
 

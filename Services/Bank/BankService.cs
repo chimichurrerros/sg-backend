@@ -26,20 +26,50 @@ public class BankService(AppDbContext context, IMapper mapper)
         return Result<ListBanksWrapperDto>.Success(new ListBanksWrapperDto { Banks = Banks });
     }
 
-    public async Task<Result<ListBanksWrapperDto>> GetListAsync(PaginationRequestDto pagination)
+    public async Task<Result<ListBanksWrapperDto>> GetListAsync(BankQueryDto queryDto)
     {
         var query = _context.Banks.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(queryDto.Name))
+        {
+            query = query.Where(b => b.Name.ToLower().Contains(queryDto.Name.ToLower()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryDto.Ruc))
+        {
+            query = query.Where(b => b.Ruc != null && b.Ruc.ToLower().Contains(queryDto.Ruc.ToLower()));
+        }
+
+        if (queryDto.IsActive.HasValue)
+        {
+            query = query.Where(b => b.IsActive == queryDto.IsActive.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryDto.Representative))
+        {
+            query = query.Where(b => b.Accounts.Any(a => a.Name.ToLower().Contains(queryDto.Representative.ToLower())));
+        }
+
+        if (queryDto.Type.HasValue)
+        {
+            query = query.Where(b => b.Accounts.Any(a => a.AccountType == queryDto.Type.Value));
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryDto.AccountNumber))
+        {
+            query = query.Where(b => b.Accounts.Any(a => a.AccountNumber.ToLower().Contains(queryDto.AccountNumber.ToLower())));
+        }
 
         var totalElements = await query.CountAsync();
 
         var Banks = await query
             .OrderBy(v => v.Id)
-            .Skip((pagination.Page - 1) * pagination.PageSize)
-            .Take(pagination.PageSize)
+            .Skip((queryDto.Page - 1) * queryDto.PageSize)
+            .Take(queryDto.PageSize)
             .ProjectTo<BankResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
-        var _pagination = new Pagination(pagination.Page, pagination.PageSize, totalElements);
+        var _pagination = new Pagination(queryDto.Page, queryDto.PageSize, totalElements);
 
         return Result<ListBanksWrapperDto>.Success(new ListBanksWrapperDto { Banks = Banks, Pagination = _pagination });
     }

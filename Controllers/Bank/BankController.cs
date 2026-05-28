@@ -17,9 +17,9 @@ public class BankController(BankService bankService) : ControllerBase
     private readonly BankService _bankService = bankService;
 
     [HttpGet]
-    public async Task<ActionResult<ListBanksWrapperDto>> GetListBankes([FromQuery] PaginationRequestDto pagination)
+    public async Task<ActionResult<ListBanksWrapperDto>> GetListBankes([FromQuery] BankQueryDto query)
     {
-        var result = await _bankService.GetListAsync(pagination);
+        var result = await _bankService.GetListAsync(query);
 
         if (result.IsSuccess)
             return Ok(result.Value);

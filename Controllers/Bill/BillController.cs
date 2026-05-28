@@ -17,9 +17,9 @@ public class BillController(BillService billService) : ControllerBase
     private readonly BillService _billService = billService;
 
     [HttpGet]
-    public async Task<ActionResult<ListBillsWrapperDto>> GetListBills([FromQuery] PaginationRequestDto pagination)
+    public async Task<ActionResult<ListBillsWrapperDto>> GetListBills([FromQuery] BillQueryDto query)
     {
-        var result = await _billService.GetListAsync(pagination);
+        var result = await _billService.GetListAsync(query);
         if (result.IsSuccess) return Ok(result.Value);
         return StatusCode(500);
     }
