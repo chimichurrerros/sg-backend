@@ -51,11 +51,11 @@ public class CustomerQuoteService(AppDbContext context, IMapper mapper)
     /// </summary>
     /// <param name="pagination">Pagination parameters (Page and PageSize).</param>
     /// <returns>Paginated list of quotes wrapped with pagination metadata.</returns>
-    public async Task<Result<ListCustomerQuotesWrapperDto>> GetListAsync(PaginationRequestDto pagination)
+    public async Task<Result<ListCustomerQuotesWrapperDto>> GetListAsync(CustomerQuoteQueryDto queryDto)
     {
         await ExpireQuotesIfNeededAsync();
 
-        var quotesQuery = _context.CustomerQuotes
+        IQueryable<CustomerQuote> quotesQuery = _context.CustomerQuotes
             .AsNoTracking()
             .Include(q => q.Customer)
             .Include(q => q.User)
@@ -63,16 +63,42 @@ public class CustomerQuoteService(AppDbContext context, IMapper mapper)
             .Include(q => q.CustomerQuoteDetails)
                 .ThenInclude(d => d.Product);
 
+        if (queryDto.Id.HasValue)
+        {
+            quotesQuery = quotesQuery.Where(q => q.Id == queryDto.Id.Value);
+        }
+
+        if (queryDto.Date.HasValue)
+        {
+            quotesQuery = quotesQuery.Where(q => q.Date.Date == queryDto.Date.Value.Date);
+        }
+
+        if (queryDto.ExpirationDate.HasValue)
+        {
+            var targetCreationDate = queryDto.ExpirationDate.Value.AddDays(-QuoteValidityDays);
+            quotesQuery = quotesQuery.Where(q => q.Date.Date == targetCreationDate.Date);
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryDto.CustomerName))
+        {
+            quotesQuery = quotesQuery.Where(q => q.Customer != null && q.Customer.Name.ToLower().Contains(queryDto.CustomerName.ToLower()));
+        }
+
+        if (queryDto.CustomerId.HasValue)
+        {
+            quotesQuery = quotesQuery.Where(q => q.CustomerId == queryDto.CustomerId.Value);
+        }
+
         var totalElements = await quotesQuery.CountAsync();
 
         var quotes = await quotesQuery
             .OrderByDescending(q => q.Id)
-            .Skip((pagination.Page - 1) * pagination.PageSize)
-            .Take(pagination.PageSize)
+            .Skip((queryDto.Page - 1) * queryDto.PageSize)
+            .Take(queryDto.PageSize)
             .ToListAsync();
 
         var quoteDtos = _mapper.Map<List<CustomerQuoteResponseDto>>(quotes);
-        var paginationData = new Pagination(pagination.Page, pagination.PageSize, totalElements);
+        var paginationData = new Pagination(queryDto.Page, queryDto.PageSize, totalElements);
 
         return Result<ListCustomerQuotesWrapperDto>.Success(new ListCustomerQuotesWrapperDto
         {

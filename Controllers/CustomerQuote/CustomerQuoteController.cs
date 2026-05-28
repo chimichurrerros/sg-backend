@@ -23,12 +23,12 @@ public class CustomerQuoteController(CustomerQuoteService customerQuoteService) 
     /// <summary>
     /// Retrieves a paginated list of customer quotes.
     /// </summary>
-    /// <param name="pagination">Pagination parameters from query string.</param>
+    /// <param name="query">Pagination parameters from query string.</param>
     /// <returns>Paginated list of quotes.</returns>
     [HttpGet]
-    public async Task<ActionResult<ListCustomerQuotesWrapperDto>> GetListCustomerQuotes([FromQuery] PaginationRequestDto pagination)
+    public async Task<ActionResult<ListCustomerQuotesWrapperDto>> GetListCustomerQuotes([FromQuery] CustomerQuoteQueryDto query)
     {
-        var result = await _customerQuoteService.GetListAsync(pagination);
+        var result = await _customerQuoteService.GetListAsync(query);
 
         if (result.IsSuccess)
             return Ok(result.Value);

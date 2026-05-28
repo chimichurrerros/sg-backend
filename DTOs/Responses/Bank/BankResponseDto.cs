@@ -18,6 +18,9 @@ public class BankAccountResponseDto
     public string Name { get; set; } = null!;
     public decimal CurrentBalance { get; set; }
     public decimal AvailableBalance { get; set; }
+    public AccountTypeEnum AccountType { get; set; }
+    public string AccountNumber { get; set; } = null!;
+    public bool IsActive { get; set; }
 }
 
 public class BankWrapperDto
