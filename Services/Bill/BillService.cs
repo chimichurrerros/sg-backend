@@ -40,6 +40,21 @@ public class BillService(AppDbContext context, IMapper mapper)
             query = query.Where(b => b.Date == queryDto.Date.Value);
         }
 
+        if (queryDto.StartDate.HasValue)
+        {
+            query = query.Where(b => b.Date >= queryDto.StartDate.Value);
+        }
+
+        if (queryDto.EndDate.HasValue)
+        {
+            query = query.Where(b => b.Date <= queryDto.EndDate.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryDto.CustomerRuc))
+        {
+            query = query.Where(b => b.Customer != null && b.Customer.Ruc.ToLower().Contains(queryDto.CustomerRuc.ToLower()));
+        }
+
         var totalElements = await query.CountAsync();
 
         var bills = await query

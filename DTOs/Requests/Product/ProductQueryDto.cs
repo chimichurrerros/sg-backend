@@ -14,4 +14,12 @@ public class ProductQueryDto : PaginationRequestDto
     public decimal? MaxPrice { get; set; }
     public decimal? MinQuantity { get; set; }
     public decimal? MaxQuantity { get; set; }
+    public int? Id { get; set; }
+    public string? Description { get; set; }
+    public string? Barcode { get; set; }
+    public decimal? MinCost { get; set; }
+    public decimal? MaxCost { get; set; }
+    public decimal? TaxRate { get; set; }
+    public decimal? MinMinimumStock { get; set; }
+    public decimal? MaxMinimumStock { get; set; }
 }

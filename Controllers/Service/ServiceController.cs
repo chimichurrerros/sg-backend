@@ -17,9 +17,9 @@ public class ServiceController(ServicesService ServiceService) : ControllerBase
     private readonly ServicesService _serviceService = ServiceService;
 
     [HttpGet]
-    public async Task<ActionResult<ListServiceWrapperDto>> GetListProducts([FromQuery] PaginationRequestDto pagination)
+    public async Task<ActionResult<ListServiceWrapperDto>> GetListProducts([FromQuery] ServiceQueryDto query)
     {
-        var result = await _serviceService.GetListAsync(pagination);
+        var result = await _serviceService.GetListAsync(query);
 
         if (result.IsSuccess)
             return Ok(result.Value);
