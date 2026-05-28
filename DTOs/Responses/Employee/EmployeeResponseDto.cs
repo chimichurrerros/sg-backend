@@ -27,9 +27,6 @@ public class EmployeeResponseDto
     public decimal? BaseSalary { get; set; }
     public DateOnly? PositionStartDate { get; set; }
 
-    // Relacionales
-    public virtual object? Area { get; set; }
-    public virtual object? Branch { get; set; }
 }
 
 public class EmployeeWrapperDto
