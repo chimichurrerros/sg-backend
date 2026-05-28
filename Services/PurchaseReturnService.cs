@@ -96,7 +96,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
 
         if (!string.IsNullOrWhiteSpace(queryDto.CustomerName))
         {
-            query = query.Where(pr => 
+            query = query.Where(pr =>
                 (pr.Bill != null && pr.Bill.Customer != null && pr.Bill.Customer.Name.ToLower().Contains(queryDto.CustomerName.ToLower())) ||
                 (pr.PurchaseOrder != null && pr.PurchaseOrder.Supplier != null && pr.PurchaseOrder.Supplier.BusinessName.ToLower().Contains(queryDto.CustomerName.ToLower()))
             );
@@ -166,20 +166,20 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
                     return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.PurchaseOrderNotFound, ErrorType.NotFound);
                 }
 
-        var branchExists = await _context.Branches.AnyAsync(branch => branch.Id == request.BranchId);
-        if (!branchExists)
-            return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.BranchNotFound, ErrorType.NotFound);
+                var branchExists = await _context.Branches.AnyAsync(branch => branch.Id == request.BranchId);
+                if (!branchExists)
+                    return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.BranchNotFound, ErrorType.NotFound);
 
-        var reasonResult = await ResolveReasonAsync(request.ReasonId, request.ReasonName);
-        if (!reasonResult.IsSuccess)
-            return Result<PurchaseReturnWrapperDto>.Failure(reasonResult.ErrorMessage!, reasonResult.ErrorType);
+                var reasonResult = await ResolveReasonAsync(request.ReasonId, request.ReasonName);
+                if (!reasonResult.IsSuccess)
+                    return Result<PurchaseReturnWrapperDto>.Failure(reasonResult.ErrorMessage!, reasonResult.ErrorType);
 
-        if (request.BillId.HasValue)
-        {
-            var billExists = await _context.Bills.AnyAsync(bill => bill.Id == request.BillId.Value && bill.PurchaseOrderId == request.PurchaseOrderId);
-            if (!billExists)
-                return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.BillNotFound, ErrorType.NotFound);
-        }
+                if (request.BillId.HasValue)
+                {
+                    var billExists = await _context.Bills.AnyAsync(bill => bill.Id == request.BillId.Value && bill.PurchaseOrderId == request.PurchaseOrderId);
+                    if (!billExists)
+                        return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.BillNotFound, ErrorType.NotFound);
+                }
 
                 decimal total = 0;
                 decimal taxTotal = 0;
@@ -338,7 +338,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
             .AsNoTracking()
             .Include(purchaseReturn => purchaseReturn.Branch)
             .Include(purchaseReturn => purchaseReturn.Bill)
-                .ThenInclude(bill => bill.Customer)
+                .ThenInclude(bill => bill!.Customer)
             .Include(purchaseReturn => purchaseReturn.PurchaseOrder)
                 .ThenInclude(po => po.Supplier)
             .Include(purchaseReturn => purchaseReturn.Reason)

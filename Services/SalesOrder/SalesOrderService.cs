@@ -384,7 +384,7 @@ public class SalesOrderService(
         var createdCustomerResult = await _customerService.CreateAsync(new CreateCustomerRequestDto
         {
             Name = name,
-            Ruc = ruc
+            Ruc = ruc!
         });
 
         if (!createdCustomerResult.IsSuccess)
