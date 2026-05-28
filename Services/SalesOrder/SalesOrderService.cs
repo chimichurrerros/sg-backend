@@ -37,7 +37,7 @@ public class SalesOrderService(
         if (request.Products.Count == 0)
             return Result<SalesOrderWrapperDto>.Failure(SalesOrderError.DetailsRequired, ErrorType.Validation);
 
-        var customerIdResult = await ResolveCustomerIdAsync(request.Customer);
+        var customerIdResult = await ResolveCustomerIdAsync(request.Customer!);
         if (!customerIdResult.IsSuccess)
             return Result<SalesOrderWrapperDto>.Failure(customerIdResult.ErrorMessage!, customerIdResult.ErrorType);
 
