@@ -367,8 +367,8 @@ public class SalesOrderService(
     private async Task<Result<int>> ResolveCustomerIdAsync(PosSaleCustomerRequestDto customer)
     {
         var ruc = customer.Ruc?.Trim();
-        if (string.IsNullOrWhiteSpace(ruc))
-            return Result<int>.Failure("customer.ruc es obligatorio.", ErrorType.Validation);
+        // if (string.IsNullOrWhiteSpace(ruc))
+        //     return Result<int>.Failure("customer.ruc es obligatorio.", ErrorType.Validation);
 
         var existingCustomer = await _context.Customers
             .AsNoTracking()
