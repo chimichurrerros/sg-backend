@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260526185531_AddBranchIdColumnSalesOrder")]
-    partial class AddBranchIdColumnSalesOrder
+    [Migration("20260528032731_InitianMigration")]
+    partial class InitianMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -2080,10 +2080,6 @@ namespace BackEnd.Migrations
 
                     b.Property<int>("SupplierQuoteId")
                         .HasColumnType("integer");
-
-                    b.Property<decimal>("TaxRate")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)");
 
                     b.HasKey("Id")
                         .HasName("SupplierQuoteDetails_pkey");

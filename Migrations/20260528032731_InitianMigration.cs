@@ -8,16 +8,20 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackEnd.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialMigration : Migration
+    public partial class InitianMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AlterDatabase()
+                .Annotation("Npgsql:Enum:account_type_enum", "cash,checking,savings")
                 .Annotation("Npgsql:Enum:bank_movement_type_enum", "debit,credit")
+                .Annotation("Npgsql:Enum:bill_state_enum", "pending,paid,voided")
                 .Annotation("Npgsql:Enum:bill_type_enum", "contado,credito")
                 .Annotation("Npgsql:Enum:check_status_enum", "pending,cashed,voided")
-                .Annotation("Npgsql:Enum:check_type_enum", "day,deferred");
+                .Annotation("Npgsql:Enum:check_type_enum", "day,deferred")
+                .Annotation("Npgsql:Enum:purchase_request_state_enum", "pending,approved,rejected,completed")
+                .Annotation("Npgsql:Enum:sales_order_state_enum", "pending,confirmed,cancelled");
 
             migrationBuilder.CreateTable(
                 name: "AccountPlans",
@@ -33,19 +37,6 @@ namespace BackEnd.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("AccountPlans_pkey", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "AccountTypes",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("AccountTypes_pkey", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -68,7 +59,9 @@ namespace BackEnd.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false)
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Ruc = table.Column<string>(type: "text", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -87,28 +80,6 @@ namespace BackEnd.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Branches", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Checks",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Number = table.Column<string>(type: "text", nullable: false),
-                    EmisionDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
-                    AvailabilityDate = table.Column<DateOnly>(type: "date", nullable: false),
-                    PaymentDate = table.Column<DateOnly>(type: "date", nullable: true),
-                    MaturityDate = table.Column<DateOnly>(type: "date", nullable: true),
-                    IssuingBank = table.Column<string>(type: "text", nullable: false),
-                    Type = table.Column<CheckTypeEnum>(type: "check_type_enum", nullable: false),
-                    Receiver = table.Column<string>(type: "text", nullable: false),
-                    Amount = table.Column<decimal>(type: "numeric", nullable: false),
-                    Status = table.Column<CheckStatusEnum>(type: "check_status_enum", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("Checks_pkey", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -175,19 +146,6 @@ namespace BackEnd.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("Genders_pkey", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "MaritalStatus",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("MaritalStatus_pkey", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -282,6 +240,20 @@ namespace BackEnd.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "PurchaseReturnReasons",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PurchaseReturnReasons_pkey", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Roles",
                 columns: table => new
                 {
@@ -321,25 +293,41 @@ namespace BackEnd.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Suppliers",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Ruc = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Phone = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    Address = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    Email = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    BusinessName = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    FantasyName = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("Suppliers_pkey", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Accounts",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    AccountTypeId = table.Column<int>(type: "integer", nullable: false),
+                    AccountType = table.Column<AccountTypeEnum>(type: "account_type_enum", nullable: false),
                     BankId = table.Column<int>(type: "integer", nullable: true),
                     Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    AccountNumber = table.Column<string>(type: "text", nullable: false),
                     CurrentBalance = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false),
-                    AvailableBalance = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false)
+                    AvailableBalance = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("Accounts_pkey", x => x.Id);
-                    table.ForeignKey(
-                        name: "Accounts_AccountTypeId_fkey",
-                        column: x => x.AccountTypeId,
-                        principalTable: "AccountTypes",
-                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "Accounts_BankId_fkey",
                         column: x => x.BankId,
@@ -457,13 +445,16 @@ namespace BackEnd.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ProductCategoryId = table.Column<int>(type: "integer", nullable: false),
-                    ProductBrandId = table.Column<int>(type: "integer", nullable: false),
+                    ProductCategoryId = table.Column<int>(type: "integer", nullable: true),
+                    ProductBrandId = table.Column<int>(type: "integer", nullable: true),
+                    MinimumStock = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: true),
+                    IsService = table.Column<bool>(type: "boolean", nullable: true),
                     Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
                     Description = table.Column<string>(type: "text", nullable: false),
+                    Barcode = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Price = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false),
                     Cost = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false),
-                    MinimumStock = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false)
+                    TaxRate = table.Column<decimal>(type: "numeric(5,2)", precision: 5, scale: 2, nullable: false, defaultValue: 10m)
                 },
                 constraints: table =>
                 {
@@ -497,6 +488,30 @@ namespace BackEnd.Migrations
                         principalTable: "Roles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Users",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    RoleId = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    LastName = table.Column<string>(type: "text", nullable: false),
+                    PasswordHash = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Email = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("Users_pkey", x => x.Id);
+                    table.ForeignKey(
+                        name: "Users_RoleId_fkey",
+                        column: x => x.RoleId,
+                        principalTable: "Roles",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -538,6 +553,57 @@ namespace BackEnd.Migrations
                         name: "AccountantProcesses_StateId_fkey",
                         column: x => x.StateId,
                         principalTable: "States",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PaymentOrders",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    SupplierId = table.Column<int>(type: "integer", nullable: false),
+                    Date = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    Total = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false),
+                    State = table.Column<int>(type: "integer", nullable: false),
+                    StateId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PaymentOrders_pkey", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PaymentOrders_States_StateId",
+                        column: x => x.StateId,
+                        principalTable: "States",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "PaymentOrders_SupplierId_fkey",
+                        column: x => x.SupplierId,
+                        principalTable: "Suppliers",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SupplierCategories",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    SupplierId = table.Column<int>(type: "integer", nullable: false),
+                    ProductCategoryId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("SupplierCategories_pkey", x => x.Id);
+                    table.ForeignKey(
+                        name: "SupplierCategories_ProductCategoryId_fkey",
+                        column: x => x.ProductCategoryId,
+                        principalTable: "ProductCategories",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "SupplierCategories_SupplierId_fkey",
+                        column: x => x.SupplierId,
+                        principalTable: "Suppliers",
                         principalColumn: "Id");
                 });
 
@@ -587,7 +653,6 @@ namespace BackEnd.Migrations
                 {
                     EntityId = table.Column<int>(type: "integer", nullable: false),
                     GenderId = table.Column<int>(type: "integer", nullable: false),
-                    MaritalStatusId = table.Column<int>(type: "integer", nullable: false),
                     Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Lastname = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     BirthDate = table.Column<DateOnly>(type: "date", nullable: false)
@@ -604,29 +669,6 @@ namespace BackEnd.Migrations
                         name: "PhysicalPersons_GenderId_fkey",
                         column: x => x.GenderId,
                         principalTable: "Genders",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "PhysicalPersons_MaritalStatusId_fkey",
-                        column: x => x.MaritalStatusId,
-                        principalTable: "MaritalStatus",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Suppliers",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    EntityId = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("Suppliers_pkey", x => x.Id);
-                    table.ForeignKey(
-                        name: "Suppliers_EntityId_fkey",
-                        column: x => x.EntityId,
-                        principalTable: "Entities",
                         principalColumn: "Id");
                 });
 
@@ -652,6 +694,54 @@ namespace BackEnd.Migrations
                         name: "Stocks_ProductId_fkey",
                         column: x => x.ProductId,
                         principalTable: "Products",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CustomerQuotes",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CustomerId = table.Column<int>(type: "integer", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    Date = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    Total = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("CustomerQuotes_pkey", x => x.Id);
+                    table.ForeignKey(
+                        name: "CustomerQuotes_CustomerId_fkey",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "CustomerQuotes_UserId_fkey",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PurchaseRequests",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    Date = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    PurchaseRequestState = table.Column<PurchaseRequestStateEnum>(type: "purchase_request_state_enum", nullable: false),
+                    Observation = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PurchaseRequests_pkey", x => x.Id);
+                    table.ForeignKey(
+                        name: "PurchaseRequests_UserId_fkey",
+                        column: x => x.UserId,
+                        principalTable: "Users",
                         principalColumn: "Id");
                 });
 
@@ -682,167 +772,32 @@ namespace BackEnd.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Users",
+                name: "Checks",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    EntityId = table.Column<int>(type: "integer", nullable: true),
-                    RoleId = table.Column<int>(type: "integer", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
-                    LastName = table.Column<string>(type: "text", nullable: false),
-                    PasswordHash = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    Email = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
+                    AccountId = table.Column<int>(type: "integer", nullable: false),
+                    BankMovementId = table.Column<int>(type: "integer", nullable: true),
+                    Number = table.Column<string>(type: "text", nullable: false),
+                    EmisionDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    AvailabilityDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    PaymentDate = table.Column<DateOnly>(type: "date", nullable: true),
+                    MaturityDate = table.Column<DateOnly>(type: "date", nullable: true),
+                    IssuingBank = table.Column<string>(type: "text", nullable: false),
+                    Type = table.Column<CheckTypeEnum>(type: "check_type_enum", nullable: false),
+                    Receiver = table.Column<string>(type: "text", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric", nullable: false),
+                    ConciliationDate = table.Column<DateOnly>(type: "date", nullable: true),
+                    Status = table.Column<CheckStatusEnum>(type: "check_status_enum", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("Users_pkey", x => x.Id);
+                    table.PrimaryKey("Checks_pkey", x => x.Id);
                     table.ForeignKey(
-                        name: "Users_EntityId_fkey",
-                        column: x => x.EntityId,
-                        principalTable: "PhysicalPersons",
-                        principalColumn: "EntityId");
-                    table.ForeignKey(
-                        name: "Users_RoleId_fkey",
-                        column: x => x.RoleId,
-                        principalTable: "Roles",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "PaymentOrders",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    SupplierId = table.Column<int>(type: "integer", nullable: false),
-                    Date = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    Total = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false),
-                    StateId = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PaymentOrders_pkey", x => x.Id);
-                    table.ForeignKey(
-                        name: "PaymentOrders_StateId_fkey",
-                        column: x => x.StateId,
-                        principalTable: "States",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "PaymentOrders_SupplierId_fkey",
-                        column: x => x.SupplierId,
-                        principalTable: "Suppliers",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "SupplierCategories",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    SupplierId = table.Column<int>(type: "integer", nullable: false),
-                    ProductCategoryId = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("SupplierCategories_pkey", x => x.Id);
-                    table.ForeignKey(
-                        name: "SupplierCategories_ProductCategoryId_fkey",
-                        column: x => x.ProductCategoryId,
-                        principalTable: "ProductCategories",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "SupplierCategories_SupplierId_fkey",
-                        column: x => x.SupplierId,
-                        principalTable: "Suppliers",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "EntryDetails",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    EntryId = table.Column<int>(type: "integer", nullable: false),
-                    AccountPlanId = table.Column<int>(type: "integer", nullable: false),
-                    Debit = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false),
-                    Credit = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("EntryDetails_pkey", x => x.Id);
-                    table.ForeignKey(
-                        name: "EntryDetails_AccountPlanId_fkey",
-                        column: x => x.AccountPlanId,
-                        principalTable: "AccountPlans",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "EntryDetails_EntryId_fkey",
-                        column: x => x.EntryId,
-                        principalTable: "Entries",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "CustomerQuotes",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    CustomerId = table.Column<int>(type: "integer", nullable: false),
-                    UserId = table.Column<int>(type: "integer", nullable: false),
-                    Date = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    Total = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    StateId = table.Column<int>(type: "integer", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("CustomerQuotes_pkey", x => x.Id);
-                    table.ForeignKey(
-                        name: "CustomerQuotes_CustomerId_fkey",
-                        column: x => x.CustomerId,
-                        principalTable: "Customers",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "CustomerQuotes_UserId_fkey",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_CustomerQuotes_States_StateId",
-                        column: x => x.StateId,
-                        principalTable: "States",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "PurchaseRequests",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    UserId = table.Column<int>(type: "integer", nullable: false),
-                    Date = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    StateId = table.Column<int>(type: "integer", nullable: false),
-                    Observation = table.Column<string>(type: "text", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PurchaseRequests_pkey", x => x.Id);
-                    table.ForeignKey(
-                        name: "PurchaseRequests_StateId_fkey",
-                        column: x => x.StateId,
-                        principalTable: "States",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "PurchaseRequests_UserId_fkey",
-                        column: x => x.UserId,
-                        principalTable: "Users",
+                        name: "FK_Checks_BankMovements_BankMovementId",
+                        column: x => x.BankMovementId,
+                        principalTable: "BankMovements",
                         principalColumn: "Id");
                 });
 
@@ -903,17 +858,27 @@ namespace BackEnd.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    CustomerId = table.Column<int>(type: "integer", nullable: false),
+                    CustomerId = table.Column<int>(type: "integer", nullable: true),
                     UserId = table.Column<int>(type: "integer", nullable: false),
+                    BranchId = table.Column<int>(type: "integer", nullable: false),
                     CustomerQuoteId = table.Column<int>(type: "integer", nullable: true),
                     Number = table.Column<string>(type: "text", nullable: false),
                     Date = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    ImportValue = table.Column<decimal>(type: "numeric", nullable: false),
                     Total = table.Column<decimal>(type: "numeric", nullable: false),
-                    StateId = table.Column<int>(type: "integer", nullable: false)
+                    SalesOrderState = table.Column<SalesOrderStateEnum>(type: "sales_order_state_enum", nullable: false),
+                    PaymentMethod = table.Column<int>(type: "integer", nullable: true),
+                    SaleCondition = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("SalesOrders_pkey", x => x.Id);
+                    table.ForeignKey(
+                        name: "SalesOrders_BranchId_fkey",
+                        column: x => x.BranchId,
+                        principalTable: "Branches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "SalesOrders_CustomerId_fkey",
                         column: x => x.CustomerId,
@@ -923,11 +888,6 @@ namespace BackEnd.Migrations
                         name: "SalesOrders_CustomerQuoteId_fkey",
                         column: x => x.CustomerQuoteId,
                         principalTable: "CustomerQuotes",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "SalesOrders_StateId_fkey",
-                        column: x => x.StateId,
-                        principalTable: "States",
                         principalColumn: "Id");
                     table.ForeignKey(
                         name: "SalesOrders_UserId_fkey",
@@ -944,6 +904,7 @@ namespace BackEnd.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     PurchaseRequestId = table.Column<int>(type: "integer", nullable: false),
                     ProductId = table.Column<int>(type: "integer", nullable: false),
+                    SupplierId = table.Column<int>(type: "integer", nullable: false),
                     QuantityRequested = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false)
                 },
                 constraints: table =>
@@ -971,7 +932,7 @@ namespace BackEnd.Migrations
                     PurchaseRequestId = table.Column<int>(type: "integer", nullable: false),
                     Date = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
                     Total = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false),
-                    StateId = table.Column<int>(type: "integer", nullable: false)
+                    State = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -982,14 +943,35 @@ namespace BackEnd.Migrations
                         principalTable: "PurchaseRequests",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "SupplierQuotes_StateId_fkey",
-                        column: x => x.StateId,
-                        principalTable: "States",
-                        principalColumn: "Id");
-                    table.ForeignKey(
                         name: "SupplierQuotes_SupplierId_fkey",
                         column: x => x.SupplierId,
                         principalTable: "Suppliers",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "EntryDetails",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    EntryId = table.Column<int>(type: "integer", nullable: false),
+                    AccountPlanId = table.Column<int>(type: "integer", nullable: false),
+                    Debit = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false),
+                    Credit = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("EntryDetails_pkey", x => x.Id);
+                    table.ForeignKey(
+                        name: "EntryDetails_AccountPlanId_fkey",
+                        column: x => x.AccountPlanId,
+                        principalTable: "AccountPlans",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "EntryDetails_EntryId_fkey",
+                        column: x => x.EntryId,
+                        principalTable: "Entries",
                         principalColumn: "Id");
                 });
 
@@ -1028,19 +1010,20 @@ namespace BackEnd.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     SupplierId = table.Column<int>(type: "integer", nullable: false),
+                    PurchaseRequestId = table.Column<int>(type: "integer", nullable: false),
                     SupplierQuoteId = table.Column<int>(type: "integer", nullable: true),
                     Number = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Date = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
                     Total = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false),
-                    StateId = table.Column<int>(type: "integer", nullable: false)
+                    State = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PurchaseOrders_pkey", x => x.Id);
                     table.ForeignKey(
-                        name: "PurchaseOrders_StateId_fkey",
-                        column: x => x.StateId,
-                        principalTable: "States",
+                        name: "PurchaseOrders_PurchaseRequestId_fkey",
+                        column: x => x.PurchaseRequestId,
+                        principalTable: "PurchaseRequests",
                         principalColumn: "Id");
                     table.ForeignKey(
                         name: "PurchaseOrders_SupplierId_fkey",
@@ -1063,8 +1046,7 @@ namespace BackEnd.Migrations
                     SupplierQuoteId = table.Column<int>(type: "integer", nullable: false),
                     ProductId = table.Column<int>(type: "integer", nullable: false),
                     QuantityAvailable = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false),
-                    Price = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false),
-                    TaxRate = table.Column<decimal>(type: "numeric(5,2)", precision: 5, scale: 2, nullable: false)
+                    Price = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1088,7 +1070,8 @@ namespace BackEnd.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     BillType = table.Column<BillTypeEnum>(type: "bill_type_enum", nullable: false),
-                    CustomerId = table.Column<int>(type: "integer", nullable: false),
+                    BillState = table.Column<BillStateEnum>(type: "bill_state_enum", nullable: false),
+                    CustomerId = table.Column<int>(type: "integer", nullable: true),
                     SalesOrderId = table.Column<int>(type: "integer", nullable: true),
                     PurchaseOrderId = table.Column<int>(type: "integer", nullable: true),
                     Stamp = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
@@ -1098,7 +1081,6 @@ namespace BackEnd.Migrations
                     PaymentTerms = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     Total = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false),
                     TaxTotal = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false),
-                    StateId = table.Column<int>(type: "integer", nullable: false),
                     IsCredit = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
@@ -1119,11 +1101,6 @@ namespace BackEnd.Migrations
                         column: x => x.SalesOrderId,
                         principalTable: "SalesOrders",
                         principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "Bills_StateId_fkey",
-                        column: x => x.StateId,
-                        principalTable: "States",
-                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -1133,9 +1110,11 @@ namespace BackEnd.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     PurchaseOrderId = table.Column<int>(type: "integer", nullable: false),
+                    SupplierQuoteDetailId = table.Column<int>(type: "integer", nullable: true),
                     ProductId = table.Column<int>(type: "integer", nullable: false),
                     QuantityOrdered = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false),
                     QuantityReceived = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false),
+                    QuantityReturned = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false),
                     Price = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false),
                     TaxRate = table.Column<decimal>(type: "numeric(5,2)", precision: 5, scale: 2, nullable: false)
                 },
@@ -1151,6 +1130,11 @@ namespace BackEnd.Migrations
                         name: "PurchaseOrderDetails_PurchaseOrderId_fkey",
                         column: x => x.PurchaseOrderId,
                         principalTable: "PurchaseOrders",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "PurchaseOrderDetails_SupplierQuoteDetailId_fkey",
+                        column: x => x.SupplierQuoteDetailId,
+                        principalTable: "SupplierQuoteDetails",
                         principalColumn: "Id");
                 });
 
@@ -1228,6 +1212,48 @@ namespace BackEnd.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "PurchaseReturns",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PurchaseOrderId = table.Column<int>(type: "integer", nullable: false),
+                    BillId = table.Column<int>(type: "integer", nullable: true),
+                    BranchId = table.Column<int>(type: "integer", nullable: false),
+                    ReasonId = table.Column<int>(type: "integer", nullable: false),
+                    Number = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Date = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    Observation = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Total = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false),
+                    TaxTotal = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false),
+                    State = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PurchaseReturns_pkey", x => x.Id);
+                    table.ForeignKey(
+                        name: "PurchaseReturns_BillId_fkey",
+                        column: x => x.BillId,
+                        principalTable: "Bills",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "PurchaseReturns_BranchId_fkey",
+                        column: x => x.BranchId,
+                        principalTable: "Branches",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "PurchaseReturns_PurchaseOrderId_fkey",
+                        column: x => x.PurchaseOrderId,
+                        principalTable: "PurchaseOrders",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "PurchaseReturns_ReasonId_fkey",
+                        column: x => x.ReasonId,
+                        principalTable: "PurchaseReturnReasons",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "CreditNoteDetails",
                 columns: table => new
                 {
@@ -1250,6 +1276,60 @@ namespace BackEnd.Migrations
                         name: "CreditNoteDetails_ProductId_fkey",
                         column: x => x.ProductId,
                         principalTable: "Products",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PaymentOrderCreditNotes",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PaymentOrderId = table.Column<int>(type: "integer", nullable: false),
+                    CreditNoteId = table.Column<int>(type: "integer", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PaymentOrderCreditNotes_pkey", x => x.Id);
+                    table.ForeignKey(
+                        name: "PaymentOrderCreditNotes_CreditNoteId_fkey",
+                        column: x => x.CreditNoteId,
+                        principalTable: "CreditNotes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "PaymentOrderCreditNotes_PaymentOrderId_fkey",
+                        column: x => x.PaymentOrderId,
+                        principalTable: "PaymentOrders",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PurchaseReturnDetails",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PurchaseReturnId = table.Column<int>(type: "integer", nullable: false),
+                    ProductId = table.Column<int>(type: "integer", nullable: false),
+                    Quantity = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false),
+                    Price = table.Column<decimal>(type: "numeric(15,2)", precision: 15, scale: 2, nullable: false),
+                    TaxRate = table.Column<decimal>(type: "numeric(5,2)", precision: 5, scale: 2, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PurchaseReturnDetails_pkey", x => x.Id);
+                    table.ForeignKey(
+                        name: "PurchaseReturnDetails_ProductId_fkey",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "PurchaseReturnDetails_PurchaseReturnId_fkey",
+                        column: x => x.PurchaseReturnId,
+                        principalTable: "PurchaseReturns",
                         principalColumn: "Id");
                 });
 
@@ -1283,11 +1363,18 @@ namespace BackEnd.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     BossId = table.Column<int>(type: "integer", nullable: true),
+                    BranchId = table.Column<int>(type: "integer", nullable: true),
                     Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("Departments_pkey", x => x.Id);
+                    table.ForeignKey(
+                        name: "Departments_BranchId_fkey",
+                        column: x => x.BranchId,
+                        principalTable: "Branches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
@@ -1300,7 +1387,9 @@ namespace BackEnd.Migrations
                     FileNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     AreaId = table.Column<int>(type: "integer", nullable: false),
                     InmediatlyBossId = table.Column<int>(type: "integer", nullable: true),
-                    HireDate = table.Column<DateOnly>(type: "date", nullable: false)
+                    BranchId = table.Column<int>(type: "integer", nullable: true),
+                    HireDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    MaritalStatus = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1310,6 +1399,12 @@ namespace BackEnd.Migrations
                         column: x => x.AreaId,
                         principalTable: "Departments",
                         principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "Employees_BranchId_fkey",
+                        column: x => x.BranchId,
+                        principalTable: "Branches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "Employees_EntityId_fkey",
                         column: x => x.EntityId,
@@ -1323,27 +1418,28 @@ namespace BackEnd.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "EmployeeKids",
+                name: "EmployeeRelations",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     EmployeeId = table.Column<int>(type: "integer", nullable: false),
-                    EntityId = table.Column<int>(type: "integer", nullable: false)
+                    RelationType = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Lastname = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    DocumentNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    BirthDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    StartDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    EndDate = table.Column<DateOnly>(type: "date", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("EmployeeKids_pkey", x => x.Id);
+                    table.PrimaryKey("EmployeeRelations_pkey", x => x.Id);
                     table.ForeignKey(
-                        name: "EmployeeKids_EmployeeId_fkey",
+                        name: "EmployeeRelations_EmployeeId_fkey",
                         column: x => x.EmployeeId,
                         principalTable: "Employees",
                         principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "EmployeeKids_EntityId_fkey",
-                        column: x => x.EntityId,
-                        principalTable: "PhysicalPersons",
-                        principalColumn: "EntityId");
                 });
 
             migrationBuilder.CreateTable(
@@ -1422,11 +1518,6 @@ namespace BackEnd.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Accounts_AccountTypeId",
-                table: "Accounts",
-                column: "AccountTypeId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Accounts_BankId",
                 table: "Accounts",
                 column: "BankId");
@@ -1472,9 +1563,10 @@ namespace BackEnd.Migrations
                 column: "SalesOrderId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Bills_StateId",
-                table: "Bills",
-                column: "StateId");
+                name: "IX_Checks_BankMovementId",
+                table: "Checks",
+                column: "BankMovementId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_CreditNoteDetails_CreditNoteId",
@@ -1507,11 +1599,6 @@ namespace BackEnd.Migrations
                 column: "CustomerId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_CustomerQuotes_StateId",
-                table: "CustomerQuotes",
-                column: "StateId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_CustomerQuotes_UserId",
                 table: "CustomerQuotes",
                 column: "UserId");
@@ -1528,19 +1615,36 @@ namespace BackEnd.Migrations
                 column: "BossId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_EmployeeKids_EmployeeId",
-                table: "EmployeeKids",
-                column: "EmployeeId");
+                name: "IX_Departments_BranchId",
+                table: "Departments",
+                column: "BranchId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_EmployeeKids_EntityId",
-                table: "EmployeeKids",
-                column: "EntityId");
+                name: "IX_EmployeeRelations_DocumentNumber",
+                table: "EmployeeRelations",
+                column: "DocumentNumber");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EmployeeRelations_EmployeeId_RelationType",
+                table: "EmployeeRelations",
+                columns: new[] { "EmployeeId", "RelationType" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EmployeeRelations_OneActiveSpouse",
+                table: "EmployeeRelations",
+                column: "EmployeeId",
+                unique: true,
+                filter: "\"RelationType\" = 1 AND \"EndDate\" IS NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Employees_AreaId",
                 table: "Employees",
                 column: "AreaId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Employees_BranchId",
+                table: "Employees",
+                column: "BranchId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Employees_EntityId",
@@ -1595,6 +1699,16 @@ namespace BackEnd.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_PaymentOrderBills_PaymentOrderId",
                 table: "PaymentOrderBills",
+                column: "PaymentOrderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PaymentOrderCreditNotes_CreditNoteId",
+                table: "PaymentOrderCreditNotes",
+                column: "CreditNoteId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PaymentOrderCreditNotes_PaymentOrderId",
+                table: "PaymentOrderCreditNotes",
                 column: "PaymentOrderId");
 
             migrationBuilder.CreateIndex(
@@ -1663,11 +1777,6 @@ namespace BackEnd.Migrations
                 column: "GenderId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PhysicalPersons_MaritalStatusId",
-                table: "PhysicalPersons",
-                column: "MaritalStatusId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_PositionByScheduleByEmployee_EmployeeId",
                 table: "PositionByScheduleByEmployee",
                 column: "EmployeeId");
@@ -1703,9 +1812,14 @@ namespace BackEnd.Migrations
                 column: "PurchaseOrderId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PurchaseOrders_StateId",
+                name: "IX_PurchaseOrderDetails_SupplierQuoteDetailId",
+                table: "PurchaseOrderDetails",
+                column: "SupplierQuoteDetailId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseOrders_PurchaseRequestId",
                 table: "PurchaseOrders",
-                column: "StateId");
+                column: "PurchaseRequestId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PurchaseOrders_SupplierId",
@@ -1728,14 +1842,45 @@ namespace BackEnd.Migrations
                 column: "PurchaseRequestId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PurchaseRequests_StateId",
-                table: "PurchaseRequests",
-                column: "StateId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_PurchaseRequests_UserId",
                 table: "PurchaseRequests",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseReturnDetails_ProductId",
+                table: "PurchaseReturnDetails",
+                column: "ProductId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseReturnDetails_PurchaseReturnId",
+                table: "PurchaseReturnDetails",
+                column: "PurchaseReturnId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseReturnReasons_Name",
+                table: "PurchaseReturnReasons",
+                column: "Name",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseReturns_BillId",
+                table: "PurchaseReturns",
+                column: "BillId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseReturns_BranchId",
+                table: "PurchaseReturns",
+                column: "BranchId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseReturns_PurchaseOrderId",
+                table: "PurchaseReturns",
+                column: "PurchaseOrderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseReturns_ReasonId",
+                table: "PurchaseReturns",
+                column: "ReasonId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SalesOrderDetails_ProductId",
@@ -1748,6 +1893,11 @@ namespace BackEnd.Migrations
                 column: "SalesOrderId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_SalesOrders_BranchId",
+                table: "SalesOrders",
+                column: "BranchId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_SalesOrders_CustomerId",
                 table: "SalesOrders",
                 column: "CustomerId");
@@ -1756,11 +1906,6 @@ namespace BackEnd.Migrations
                 name: "IX_SalesOrders_CustomerQuoteId",
                 table: "SalesOrders",
                 column: "CustomerQuoteId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SalesOrders_StateId",
-                table: "SalesOrders",
-                column: "StateId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SalesOrders_UserId",
@@ -1808,24 +1953,15 @@ namespace BackEnd.Migrations
                 column: "PurchaseRequestId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SupplierQuotes_StateId",
-                table: "SupplierQuotes",
-                column: "StateId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_SupplierQuotes_SupplierId",
                 table: "SupplierQuotes",
                 column: "SupplierId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Suppliers_EntityId",
+                name: "Suppliers_Ruc_key",
                 table: "Suppliers",
-                column: "EntityId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Users_EntityId",
-                table: "Users",
-                column: "EntityId");
+                column: "Ruc",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_RoleId",
@@ -1876,7 +2012,7 @@ namespace BackEnd.Migrations
                 name: "CustomerQuoteDetails");
 
             migrationBuilder.DropTable(
-                name: "EmployeeKids");
+                name: "EmployeeRelations");
 
             migrationBuilder.DropTable(
                 name: "EntryDetails");
@@ -1889,6 +2025,9 @@ namespace BackEnd.Migrations
 
             migrationBuilder.DropTable(
                 name: "PaymentOrderBills");
+
+            migrationBuilder.DropTable(
+                name: "PaymentOrderCreditNotes");
 
             migrationBuilder.DropTable(
                 name: "PaymentOrderMovements");
@@ -1909,6 +2048,9 @@ namespace BackEnd.Migrations
                 name: "PurchaseRequestDetails");
 
             migrationBuilder.DropTable(
+                name: "PurchaseReturnDetails");
+
+            migrationBuilder.DropTable(
                 name: "SalesOrderDetails");
 
             migrationBuilder.DropTable(
@@ -1918,13 +2060,7 @@ namespace BackEnd.Migrations
                 name: "SupplierCategories");
 
             migrationBuilder.DropTable(
-                name: "SupplierQuoteDetails");
-
-            migrationBuilder.DropTable(
                 name: "AttendanceTypes");
-
-            migrationBuilder.DropTable(
-                name: "CreditNotes");
 
             migrationBuilder.DropTable(
                 name: "Entries");
@@ -1934,6 +2070,9 @@ namespace BackEnd.Migrations
 
             migrationBuilder.DropTable(
                 name: "EntryModels");
+
+            migrationBuilder.DropTable(
+                name: "CreditNotes");
 
             migrationBuilder.DropTable(
                 name: "BankMovements");
@@ -1954,13 +2093,10 @@ namespace BackEnd.Migrations
                 name: "Schedules");
 
             migrationBuilder.DropTable(
-                name: "Branches");
+                name: "SupplierQuoteDetails");
 
             migrationBuilder.DropTable(
-                name: "Products");
-
-            migrationBuilder.DropTable(
-                name: "Bills");
+                name: "PurchaseReturns");
 
             migrationBuilder.DropTable(
                 name: "AccountantProcesses");
@@ -1987,6 +2123,21 @@ namespace BackEnd.Migrations
                 name: "ScheduleTypes");
 
             migrationBuilder.DropTable(
+                name: "Products");
+
+            migrationBuilder.DropTable(
+                name: "Bills");
+
+            migrationBuilder.DropTable(
+                name: "PurchaseReturnReasons");
+
+            migrationBuilder.DropTable(
+                name: "States");
+
+            migrationBuilder.DropTable(
+                name: "Banks");
+
+            migrationBuilder.DropTable(
                 name: "ProductBrands");
 
             migrationBuilder.DropTable(
@@ -1997,12 +2148,6 @@ namespace BackEnd.Migrations
 
             migrationBuilder.DropTable(
                 name: "SalesOrders");
-
-            migrationBuilder.DropTable(
-                name: "AccountTypes");
-
-            migrationBuilder.DropTable(
-                name: "Banks");
 
             migrationBuilder.DropTable(
                 name: "SupplierQuotes");
@@ -2020,9 +2165,6 @@ namespace BackEnd.Migrations
                 name: "Customers");
 
             migrationBuilder.DropTable(
-                name: "States");
-
-            migrationBuilder.DropTable(
                 name: "Users");
 
             migrationBuilder.DropTable(
@@ -2038,13 +2180,13 @@ namespace BackEnd.Migrations
                 name: "PhysicalPersons");
 
             migrationBuilder.DropTable(
+                name: "Branches");
+
+            migrationBuilder.DropTable(
                 name: "Entities");
 
             migrationBuilder.DropTable(
                 name: "Genders");
-
-            migrationBuilder.DropTable(
-                name: "MaritalStatus");
 
             migrationBuilder.DropTable(
                 name: "EntityTypes");
