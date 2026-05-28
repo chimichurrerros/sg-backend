@@ -5,6 +5,14 @@ namespace BackEnd.Models;
 
 public partial class Employee
 {
+    public enum GenderEnum
+    {
+        Unknown = 0,
+        Male = 1,
+        Female = 2,
+        Other = 3
+    }
+
     public enum MaritalStatusEnum
     {
         Unknown = 0,
@@ -18,9 +26,25 @@ public partial class Employee
 
     public int Id { get; set; }
 
-    public int EntityId { get; set; }
-
     public string FileNumber { get; set; } = null!;
+
+    public string Name { get; set; } = null!;
+
+    public string Lastname { get; set; } = null!;
+
+    public DateOnly BirthDate { get; set; }
+
+    public GenderEnum Gender { get; set; }
+
+    public string DocumentNumber { get; set; } = null!;
+
+    public string? Phone { get; set; }
+
+    public string? Address { get; set; }
+
+    public string? Email { get; set; }
+
+    public bool IsActive { get; set; }
 
     public int AreaId { get; set; }
 
@@ -41,8 +65,6 @@ public partial class Employee
     public virtual ICollection<Department> Departments { get; set; } = new List<Department>();
 
     public virtual ICollection<EmployeeRelation> EmployeeRelations { get; set; } = new List<EmployeeRelation>();
-
-    public virtual PhysicalPerson Entity { get; set; } = null!;
 
     public virtual Employee? InmediatlyBoss { get; set; }
 

@@ -66,35 +66,18 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
 
         try
         {
-            var entity = new Entity
+            var employee = new Employee
             {
-                EntityTypeId = (int)EntityPersonType.Physical,
+                FileNumber = request.FileNumber,
+                Name = request.Name,
+                Lastname = request.Lastname,
+                BirthDate = request.BirthDate,
+                Gender = request.Gender,
                 DocumentNumber = request.DocumentNumber,
                 Phone = request.Phone,
                 Address = request.Address,
                 Email = request.Email,
-                IsActive = request.IsActive
-            };
-
-            _context.Entities.Add(entity);
-            await _context.SaveChangesAsync();
-
-            var physicalPerson = new PhysicalPerson
-            {
-                EntityId = entity.Id,
-                Name = request.Name,
-                Lastname = request.Lastname,
-                BirthDate = request.BirthDate,
-                GenderId = request.GenderId
-            };
-
-            _context.PhysicalPersons.Add(physicalPerson);
-            await _context.SaveChangesAsync();
-
-            var employee = new Employee
-            {
-                EntityId = entity.Id,
-                FileNumber = request.FileNumber,
+                IsActive = request.IsActive,
                 AreaId = request.AreaId,
                 BranchId = request.BranchId,
                 InmediatlyBossId = request.InmediatlyBossId,
@@ -136,14 +119,12 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
     public async Task<Result<EmployeeWrapperDto>> UpdateAsync(int id, UpdateEmployeeRequestDto request)
     {
         var employee = await _context.Employees
-            .Include(e => e.Entity)
-                .ThenInclude(p => p.Entity) // we need the base entity too 
             .FirstOrDefaultAsync(e => e.Id == id);
 
         if (employee == null)
             return Result<EmployeeWrapperDto>.Failure(EmployeeError.EmployeeNotFound, ErrorType.NotFound);
 
-        var validationResult = await ValidateUpdateRequestAsync(request, employee.EntityId);
+        var validationResult = await ValidateUpdateRequestAsync(request, employee.Id);
         if (!validationResult.IsSuccess)
             return Result<EmployeeWrapperDto>.Failure(
                 validationResult.ErrorMessage!,
@@ -158,22 +139,18 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
             employee.FileNumber = request.FileNumber;
             employee.AreaId = request.AreaId;
             employee.BranchId = request.BranchId;
-            employee.InmediatlyBossId = request.InmediatlyBossId;
+            employee.Gender = request.Gender;
             employee.HireDate = request.HireDate;
             employee.MaritalStatus = request.MaritalStatus;
-
-            // Update Base Entity properties
-            employee.Entity.Entity.DocumentNumber = request.DocumentNumber;
-            employee.Entity.Entity.Phone = request.Phone;
-            employee.Entity.Entity.Address = request.Address;
-            employee.Entity.Entity.Email = request.Email;
-            employee.Entity.Entity.IsActive = request.IsActive;
-
-            // Update Physical Person properties
-            employee.Entity.Name = request.Name;
-            employee.Entity.Lastname = request.Lastname;
-            employee.Entity.BirthDate = request.BirthDate;
-            employee.Entity.GenderId = request.GenderId;
+            employee.Name = request.Name;
+            employee.Lastname = request.Lastname;
+            employee.BirthDate = request.BirthDate;
+            employee.Gender = request.Gender;
+            employee.DocumentNumber = request.DocumentNumber;
+            employee.Phone = request.Phone;
+            employee.Address = request.Address;
+            employee.Email = request.Email;
+            employee.IsActive = request.IsActive;
 
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -195,17 +172,15 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
     public async Task<Result> DeleteAsync(int id)
     {
         var employee = await _context.Employees
-            .Include(e => e.Entity)
-                .ThenInclude(p => p.Entity)
             .FirstOrDefaultAsync(e => e.Id == id);
 
         if (employee == null)
             return Result.Failure(EmployeeError.EmployeeNotFound, ErrorType.NotFound);
 
-        if (!employee.Entity.Entity.IsActive)
+        if (!employee.IsActive)
             return Result.Failure(EmployeeError.EmployeeAlreadyInactive, ErrorType.Conflict);
 
-        employee.Entity.Entity.IsActive = false;
+        employee.IsActive = false;
         await _context.SaveChangesAsync();
 
         return Result.Success();
@@ -494,45 +469,44 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
 
         if (string.IsNullOrWhiteSpace(request.DocumentNumber))
         {
-            errors["DocumentNumber"] = [EmployeeError.DocumentNumberRequired];
+            errors["DocumentNumber"] = new[] { EmployeeError.DocumentNumberRequired };
         }
         else
         {
-            var documentExists = await _context.Entities.AnyAsync(e => e.DocumentNumber == request.DocumentNumber);
-            if (documentExists) errors["DocumentNumber"] = [EmployeeError.DocumentNumberAlreadyExists];
+            var documentExists = await _context.Employees.AnyAsync(e => e.DocumentNumber == request.DocumentNumber);
+            if (documentExists) errors["DocumentNumber"] = new[] { EmployeeError.DocumentNumberAlreadyExists };
         }
 
-        if (string.IsNullOrWhiteSpace(request.Name)) errors["Name"] = [EmployeeError.FirstNameRequired];
-        if (string.IsNullOrWhiteSpace(request.Lastname)) errors["Lastname"] = [EmployeeError.LastNameRequired];
-        if (string.IsNullOrWhiteSpace(request.FileNumber)) errors["FileNumber"] = [EmployeeError.FileNumberRequired];
+        if (string.IsNullOrWhiteSpace(request.Name)) errors["Name"] = new[] { EmployeeError.FirstNameRequired };
+        if (string.IsNullOrWhiteSpace(request.Lastname)) errors["Lastname"] = new[] { EmployeeError.LastNameRequired };
+        if (string.IsNullOrWhiteSpace(request.FileNumber)) errors["FileNumber"] = new[] { EmployeeError.FileNumberRequired };
         
         var validArea = await _context.Departments.AnyAsync(d => d.Id == request.AreaId);
-        if (!validArea) errors["AreaId"] = [EmployeeError.InvalidArea];
+        if (!validArea) errors["AreaId"] = new[] { EmployeeError.InvalidArea };
 
         if (request.BranchId.HasValue)
         {
             var validBranch = await _context.Branches.AnyAsync(branch => branch.Id == request.BranchId.Value);
-            if (!validBranch) errors["BranchId"] = [EmployeeError.InvalidBranch];
+            if (!validBranch) errors["BranchId"] = new[] { EmployeeError.InvalidBranch };
         }
 
         var validPosition = await _context.Positions.AnyAsync(position => position.Id == request.PositionId);
-        if (!validPosition) errors["PositionId"] = [EmployeeError.InvalidPosition];
+        if (!validPosition) errors["PositionId"] = new[] { EmployeeError.InvalidPosition };
 
         var validSchedule = await _context.Schedules.AnyAsync(schedule => schedule.Id == request.ScheduleId);
-        if (!validSchedule) errors["ScheduleId"] = [EmployeeError.InvalidSchedule];
+        if (!validSchedule) errors["ScheduleId"] = new[] { EmployeeError.InvalidSchedule };
 
-        if (request.BasicSalary <= 0) errors["BasicSalary"] = [EmployeeError.BasicSalaryMustBeGreaterThanZero];
-        if (request.PositionStartDate < request.HireDate) errors["PositionStartDate"] = [EmployeeError.PositionStartDateBeforeHireDate];
+        if (request.BasicSalary <= 0) errors["BasicSalary"] = new[] { EmployeeError.BasicSalaryMustBeGreaterThanZero };
+        if (request.PositionStartDate < request.HireDate) errors["PositionStartDate"] = new[] { EmployeeError.PositionStartDateBeforeHireDate };
 
-        var validGender = await _context.Genders.AnyAsync(g => g.Id == request.GenderId);
-        if (!validGender) errors["GenderId"] = [EmployeeError.InvalidGender];
+        if (!Enum.IsDefined(typeof(BackEnd.Models.Employee.GenderEnum), request.Gender)) errors["Gender"] = new[] { EmployeeError.InvalidGender };
 
-        if (!Enum.IsDefined(request.MaritalStatus)) errors["MaritalStatus"] = [EmployeeError.InvalidMaritalStatus];
+        if (!Enum.IsDefined(typeof(BackEnd.Models.Employee.MaritalStatusEnum), request.MaritalStatus)) errors["MaritalStatus"] = new[] { EmployeeError.InvalidMaritalStatus };
 
         if (request.InmediatlyBossId.HasValue)
         {
             var validBoss = await _context.Employees.AnyAsync(e => e.Id == request.InmediatlyBossId.Value);
-            if (!validBoss) errors["InmediatlyBossId"] = [EmployeeError.InvalidInmediatlyBoss];
+            if (!validBoss) errors["InmediatlyBossId"] = new[] { EmployeeError.InvalidInmediatlyBoss };
         }
 
         if (errors.Count > 0)
@@ -544,43 +518,42 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
         return Result.Success();
     }
 
-    private async Task<Result> ValidateUpdateRequestAsync(UpdateEmployeeRequestDto request, int currentEntityId)
+    private async Task<Result> ValidateUpdateRequestAsync(UpdateEmployeeRequestDto request, int currentEmployeeId)
     {
         var errors = new Dictionary<string, string[]>();
 
         if (string.IsNullOrWhiteSpace(request.DocumentNumber))
         {
-            errors["DocumentNumber"] = [EmployeeError.DocumentNumberRequired];
+            errors["DocumentNumber"] = new[] { EmployeeError.DocumentNumberRequired };
         }
         else
         {
-            var documentExists = await _context.Entities.AnyAsync(e =>
-                e.DocumentNumber == request.DocumentNumber && e.Id != currentEntityId);
-            if (documentExists) errors["DocumentNumber"] = [EmployeeError.DocumentNumberAlreadyExists];
+            var documentExists = await _context.Employees.AnyAsync(e =>
+                e.DocumentNumber == request.DocumentNumber && e.Id != currentEmployeeId);
+            if (documentExists) errors["DocumentNumber"] = new[] { EmployeeError.DocumentNumberAlreadyExists };
         }
 
-        if (string.IsNullOrWhiteSpace(request.Name)) errors["Name"] = [EmployeeError.FirstNameRequired];
-        if (string.IsNullOrWhiteSpace(request.Lastname)) errors["Lastname"] = [EmployeeError.LastNameRequired];
-        if (string.IsNullOrWhiteSpace(request.FileNumber)) errors["FileNumber"] = [EmployeeError.FileNumberRequired];
+        if (string.IsNullOrWhiteSpace(request.Name)) errors["Name"] = new[] { EmployeeError.FirstNameRequired };
+        if (string.IsNullOrWhiteSpace(request.Lastname)) errors["Lastname"] = new[] { EmployeeError.LastNameRequired };
+        if (string.IsNullOrWhiteSpace(request.FileNumber)) errors["FileNumber"] = new[] { EmployeeError.FileNumberRequired };
 
         var validArea = await _context.Departments.AnyAsync(d => d.Id == request.AreaId);
-        if (!validArea) errors["AreaId"] = [EmployeeError.InvalidArea];
+        if (!validArea) errors["AreaId"] = new[] { EmployeeError.InvalidArea };
 
         if (request.BranchId.HasValue)
         {
             var validBranch = await _context.Branches.AnyAsync(branch => branch.Id == request.BranchId.Value);
-            if (!validBranch) errors["BranchId"] = [EmployeeError.InvalidBranch];
+            if (!validBranch) errors["BranchId"] = new[] { EmployeeError.InvalidBranch };
         }
 
-        var validGender = await _context.Genders.AnyAsync(g => g.Id == request.GenderId);
-        if (!validGender) errors["GenderId"] = [EmployeeError.InvalidGender];
+        if (!Enum.IsDefined(typeof(BackEnd.Models.Employee.GenderEnum), request.Gender)) errors["Gender"] = new[] { EmployeeError.InvalidGender };
 
-        if (!Enum.IsDefined(request.MaritalStatus)) errors["MaritalStatus"] = [EmployeeError.InvalidMaritalStatus];
+        if (!Enum.IsDefined(typeof(BackEnd.Models.Employee.MaritalStatusEnum), request.MaritalStatus)) errors["MaritalStatus"] = new[] { EmployeeError.InvalidMaritalStatus };
 
         if (request.InmediatlyBossId.HasValue)
         {
             var validBoss = await _context.Employees.AnyAsync(e => e.Id == request.InmediatlyBossId.Value);
-            if (!validBoss) errors["InmediatlyBossId"] = [EmployeeError.InvalidInmediatlyBoss];
+            if (!validBoss) errors["InmediatlyBossId"] = new[] { EmployeeError.InvalidInmediatlyBoss };
         }
 
         if (errors.Count > 0)
@@ -606,14 +579,14 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
             return Result.Failure(EmployeeError.EmployeeNotFound, ErrorType.NotFound);
 
         var validPosition = await _context.Positions.AnyAsync(position => position.Id == request.PositionId);
-        if (!validPosition) errors["PositionId"] = [EmployeeError.InvalidPosition];
+        if (!validPosition) errors["PositionId"] = new[] { EmployeeError.InvalidPosition };
 
         var validSchedule = await _context.Schedules.AnyAsync(schedule => schedule.Id == request.ScheduleId);
-        if (!validSchedule) errors["ScheduleId"] = [EmployeeError.InvalidSchedule];
+        if (!validSchedule) errors["ScheduleId"] = new[] { EmployeeError.InvalidSchedule };
 
-        if (request.BasicSalary <= 0) errors["BasicSalary"] = [EmployeeError.BasicSalaryMustBeGreaterThanZero];
+        if (request.BasicSalary <= 0) errors["BasicSalary"] = new[] { EmployeeError.BasicSalaryMustBeGreaterThanZero };
 
-        if (request.StartDate < employee.HireDate) errors["StartDate"] = [EmployeeError.PositionStartDateBeforeHireDate];
+        if (request.StartDate < employee.HireDate) errors["StartDate"] = new[] { EmployeeError.PositionStartDateBeforeHireDate };
 
         var currentOpenHistory = await _context.PositionByScheduleByEmployees
             .AsNoTracking()
@@ -623,7 +596,7 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
             .FirstOrDefaultAsync();
 
         if (currentOpenHistory != null && request.StartDate <= currentOpenHistory.StartDate)
-            errors["StartDate"] = [EmployeeError.PositionStartDateMustBeAfterCurrent];
+            errors["StartDate"] = new[] { EmployeeError.PositionStartDateMustBeAfterCurrent };
 
         if (errors.Count > 0)
         {
@@ -642,20 +615,20 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
         if (!employeeExists)
             return Result.Failure(EmployeeError.EmployeeNotFound, ErrorType.NotFound);
 
-        if (!Enum.IsDefined(request.RelationType))
-            errors["RelationType"] = [EmployeeError.FamilyRelationTypeInvalid];
+        if (!Enum.IsDefined(typeof(EmployeeRelation.RelationTypeEnum), request.RelationType))
+            errors["RelationType"] = new[] { EmployeeError.FamilyRelationTypeInvalid };
 
-        if (string.IsNullOrWhiteSpace(request.Name)) errors["Name"] = [EmployeeError.FamilyNameRequired];
-        if (string.IsNullOrWhiteSpace(request.Lastname)) errors["Lastname"] = [EmployeeError.FamilyLastnameRequired];
-        if (string.IsNullOrWhiteSpace(request.DocumentNumber)) errors["DocumentNumber"] = [EmployeeError.FamilyDocumentRequired];
+        if (string.IsNullOrWhiteSpace(request.Name)) errors["Name"] = new[] { EmployeeError.FamilyNameRequired };
+        if (string.IsNullOrWhiteSpace(request.Lastname)) errors["Lastname"] = new[] { EmployeeError.FamilyLastnameRequired };
+        if (string.IsNullOrWhiteSpace(request.DocumentNumber)) errors["DocumentNumber"] = new[] { EmployeeError.FamilyDocumentRequired };
 
         if (request.EndDate.HasValue && request.EndDate.Value < request.StartDate)
-            errors["EndDate"] = [EmployeeError.FamilyEndDateInvalid];
+            errors["EndDate"] = new[] { EmployeeError.FamilyEndDateInvalid };
 
         var duplicatedDocument = await _context.EmployeeRelations.AsNoTracking().AnyAsync(relation =>
             relation.EmployeeId == employeeId && relation.DocumentNumber == request.DocumentNumber.Trim());
 
-        if (duplicatedDocument) errors["DocumentNumber"] = [EmployeeError.FamilyDocumentAlreadyExists];
+        if (duplicatedDocument) errors["DocumentNumber"] = new[] { EmployeeError.FamilyDocumentAlreadyExists };
 
         if (request.RelationType == EmployeeRelation.RelationTypeEnum.Spouse)
         {
@@ -668,7 +641,7 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
 
             var newSpouseIsActive = request.EndDate == null;
             if (hasActiveSpouse && newSpouseIsActive)
-                errors["RelationType"] = [EmployeeError.EmployeeCanOnlyHaveOneActiveSpouse];
+                errors["RelationType"] = new[] { EmployeeError.EmployeeCanOnlyHaveOneActiveSpouse };
         }
 
         if (errors.Count > 0)
@@ -714,14 +687,14 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
             return Result.Failure(EmployeeError.PositionHistoryNotEditable, ErrorType.Conflict);
 
         var validPosition = await _context.Positions.AnyAsync(position => position.Id == request.PositionId);
-        if (!validPosition) errors["PositionId"] = [EmployeeError.InvalidPosition];
+        if (!validPosition) errors["PositionId"] = new[] { EmployeeError.InvalidPosition };
 
         var validSchedule = await _context.Schedules.AnyAsync(schedule => schedule.Id == request.ScheduleId);
-        if (!validSchedule) errors["ScheduleId"] = [EmployeeError.InvalidSchedule];
+        if (!validSchedule) errors["ScheduleId"] = new[] { EmployeeError.InvalidSchedule };
 
-        if (request.BasicSalary <= 0) errors["BasicSalary"] = [EmployeeError.BasicSalaryMustBeGreaterThanZero];
+        if (request.BasicSalary <= 0) errors["BasicSalary"] = new[] { EmployeeError.BasicSalaryMustBeGreaterThanZero };
 
-        if (request.StartDate < employee.HireDate) errors["StartDate"] = [EmployeeError.PositionStartDateBeforeHireDate];
+        if (request.StartDate < employee.HireDate) errors["StartDate"] = new[] { EmployeeError.PositionStartDateBeforeHireDate };
 
         if (errors.Count > 0)
         {
@@ -745,20 +718,20 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
         if (relation == null)
             return Result.Failure(EmployeeError.FamilyRelationNotFound, ErrorType.NotFound);
 
-        if (!Enum.IsDefined(request.RelationType))
-            errors["RelationType"] = [EmployeeError.FamilyRelationTypeInvalid];
+        if (!Enum.IsDefined(typeof(EmployeeRelation.RelationTypeEnum), request.RelationType))
+            errors["RelationType"] = new[] { EmployeeError.FamilyRelationTypeInvalid };
 
-        if (string.IsNullOrWhiteSpace(request.Name)) errors["Name"] = [EmployeeError.FamilyNameRequired];
-        if (string.IsNullOrWhiteSpace(request.Lastname)) errors["Lastname"] = [EmployeeError.FamilyLastnameRequired];
-        if (string.IsNullOrWhiteSpace(request.DocumentNumber)) errors["DocumentNumber"] = [EmployeeError.FamilyDocumentRequired];
+        if (string.IsNullOrWhiteSpace(request.Name)) errors["Name"] = new[] { EmployeeError.FamilyNameRequired };
+        if (string.IsNullOrWhiteSpace(request.Lastname)) errors["Lastname"] = new[] { EmployeeError.FamilyLastnameRequired };
+        if (string.IsNullOrWhiteSpace(request.DocumentNumber)) errors["DocumentNumber"] = new[] { EmployeeError.FamilyDocumentRequired };
 
         if (request.EndDate.HasValue && request.EndDate.Value < request.StartDate)
-            errors["EndDate"] = [EmployeeError.FamilyEndDateInvalid];
+            errors["EndDate"] = new[] { EmployeeError.FamilyEndDateInvalid };
 
         var duplicatedDocument = await _context.EmployeeRelations.AsNoTracking().AnyAsync(rel =>
             rel.EmployeeId == employeeId && rel.DocumentNumber == request.DocumentNumber.Trim() && rel.Id != relationId);
 
-        if (duplicatedDocument) errors["DocumentNumber"] = [EmployeeError.FamilyDocumentAlreadyExists];
+        if (duplicatedDocument) errors["DocumentNumber"] = new[] { EmployeeError.FamilyDocumentAlreadyExists };
 
         if (request.RelationType == EmployeeRelation.RelationTypeEnum.Spouse && request.EndDate == null)
         {
@@ -771,7 +744,7 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
                     && rel.Id != relationId);
 
             if (hasOtherActiveSpouse)
-                errors["RelationType"] = [EmployeeError.EmployeeCanOnlyHaveOneActiveSpouse];
+                errors["RelationType"] = new[] { EmployeeError.EmployeeCanOnlyHaveOneActiveSpouse };
         }
 
         if (errors.Count > 0)

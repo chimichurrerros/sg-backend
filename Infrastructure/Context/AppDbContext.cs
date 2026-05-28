@@ -69,8 +69,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<FormulaType> FormulaTypes { get; set; }
 
-    public virtual DbSet<Gender> Genders { get; set; }
-
     public virtual DbSet<LegalPerson> LegalPersons { get; set; }
 
     // public virtual DbSet<Lote> Lotes { get; set; }
@@ -424,18 +422,21 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("Employees_pkey");
 
+            entity.Property(e => e.Address).HasMaxLength(255);
+            entity.Property(e => e.DocumentNumber).HasMaxLength(50);
+            entity.Property(e => e.Email).HasMaxLength(150);
             entity.Property(e => e.FileNumber).HasMaxLength(50);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.Lastname).HasMaxLength(100);
+            entity.Property(e => e.Gender).HasConversion<int>();
             entity.Property(e => e.MaritalStatus).HasConversion<int>();
+            entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.Phone).HasMaxLength(50);
 
             entity.HasOne(d => d.Area).WithMany(p => p.Employees)
                 .HasForeignKey(d => d.AreaId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("Employees_AreaId_fkey");
-
-            entity.HasOne(d => d.Entity).WithMany(p => p.Employees)
-                .HasForeignKey(d => d.EntityId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Employees_EntityId_fkey");
 
             entity.HasOne(d => d.InmediatlyBoss).WithMany(p => p.InverseInmediatlyBoss)
                 .HasForeignKey(d => d.InmediatlyBossId)
@@ -559,13 +560,6 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<FormulaType>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("FormulaTypes_pkey");
-
-            entity.Property(e => e.Name).HasMaxLength(50);
-        });
-
-        modelBuilder.Entity<Gender>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("Genders_pkey");
 
             entity.Property(e => e.Name).HasMaxLength(50);
         });
@@ -751,12 +745,6 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey<PhysicalPerson>(d => d.EntityId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PhysicalPersons_EntityId_fkey");
-
-            entity.HasOne(d => d.Gender).WithMany(p => p.PhysicalPeople)
-                .HasForeignKey(d => d.GenderId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("PhysicalPersons_GenderId_fkey");
-
         });
 
         modelBuilder.Entity<Position>(entity =>
