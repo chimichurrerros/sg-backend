@@ -4,6 +4,7 @@ using BackEnd.Services;
 using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using BackEnd.Extensions;
 
 namespace BackEnd.Controllers.CreditNote;
 
@@ -23,10 +24,10 @@ public class CreditNoteController(CreditNoteService creditNoteService) : Control
             return Created($"/api/credit-notes/{result.Value!.CreditNote.Id}", result.Value);
 
         if (result.ErrorType == ErrorType.Validation)
-            return BadRequest(result.ErrorMessage);
+            return this.HandleNotFoundProblem(result);
 
         if (result.ErrorType == ErrorType.NotFound)
-            return NotFound(result.ErrorMessage);
+            return this.HandleNotFoundProblem(result);
 
         return StatusCode(500);
     }
@@ -39,7 +40,7 @@ public class CreditNoteController(CreditNoteService creditNoteService) : Control
             return Ok(result.Value);
 
         if (result.ErrorType == ErrorType.NotFound)
-            return NotFound(result.ErrorMessage);
+            return this.HandleNotFoundProblem(result);
 
         return StatusCode(500);
     }
