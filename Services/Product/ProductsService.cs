@@ -77,6 +77,46 @@ public class ProductsService(AppDbContext context, IMapper mapper)
             query = query.Where(p => p.Stocks.Sum(s => s.Quantity) <= queryDto.MaxQuantity.Value);
         }
 
+        if (queryDto.Id.HasValue)
+        {
+            query = query.Where(p => p.Id == queryDto.Id.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryDto.Description))
+        {
+            query = query.Where(p => p.Description.ToLower().Contains(queryDto.Description.ToLower()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryDto.Barcode))
+        {
+            query = query.Where(p => p.Barcode.ToLower().Contains(queryDto.Barcode.ToLower()));
+        }
+
+        if (queryDto.MinCost.HasValue)
+        {
+            query = query.Where(p => p.Cost >= queryDto.MinCost.Value);
+        }
+
+        if (queryDto.MaxCost.HasValue)
+        {
+            query = query.Where(p => p.Cost <= queryDto.MaxCost.Value);
+        }
+
+        if (queryDto.TaxRate.HasValue)
+        {
+            query = query.Where(p => p.TaxRate == queryDto.TaxRate.Value);
+        }
+
+        if (queryDto.MinMinimumStock.HasValue)
+        {
+            query = query.Where(p => p.MinimumStock >= queryDto.MinMinimumStock.Value);
+        }
+
+        if (queryDto.MaxMinimumStock.HasValue)
+        {
+            query = query.Where(p => p.MinimumStock <= queryDto.MaxMinimumStock.Value);
+        }
+
         var totalElements = await query.CountAsync();
 
         var products = await query

@@ -26,20 +26,30 @@ public class ProductBrandsService(AppDbContext context, IMapper mapper)
         return Result<ListProductBrandsWrapperDto>.Success(new ListProductBrandsWrapperDto { ProductBrands = brands });
     }
 
-    public async Task<Result<ListProductBrandsWrapperDto>> GetListAsync(PaginationRequestDto pagination)
+    public async Task<Result<ListProductBrandsWrapperDto>> GetListAsync(ProductBrandQueryDto queryDto)
     {
         var query = _context.ProductBrands.AsNoTracking();
         
+        if (queryDto.Id.HasValue)
+        {
+            query = query.Where(b => b.Id == queryDto.Id.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryDto.Name))
+        {
+            query = query.Where(b => b.Name.ToLower().Contains(queryDto.Name.ToLower()));
+        }
+
         var totalElements = await query.CountAsync();
         
         var brands = await query
             .OrderBy(v => v.Id)
-            .Skip((pagination.Page - 1) * pagination.PageSize)
-            .Take(pagination.PageSize)
+            .Skip((queryDto.Page - 1) * queryDto.PageSize)
+            .Take(queryDto.PageSize)
             .ProjectTo<ProductBrandResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
-        var _pagination = new Pagination(pagination.Page, pagination.PageSize, totalElements);
+        var _pagination = new Pagination(queryDto.Page, queryDto.PageSize, totalElements);
             
         return Result<ListProductBrandsWrapperDto>.Success(new ListProductBrandsWrapperDto { ProductBrands = brands, Pagination = _pagination });
     }

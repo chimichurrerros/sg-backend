@@ -26,20 +26,30 @@ public class ProductCategoriesService(AppDbContext context, IMapper mapper)
         return Result<ListProductCategoriesWrapperDto>.Success(new ListProductCategoriesWrapperDto { ProductCategories = categories });
     }
 
-    public async Task<Result<ListProductCategoriesWrapperDto>> GetListAsync(PaginationRequestDto pagination)
+    public async Task<Result<ListProductCategoriesWrapperDto>> GetListAsync(ProductCategoryQueryDto queryDto)
     {
         var query = _context.ProductCategories.AsNoTracking();
         
+        if (queryDto.Id.HasValue)
+        {
+            query = query.Where(c => c.Id == queryDto.Id.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryDto.Name))
+        {
+            query = query.Where(c => c.Name.ToLower().Contains(queryDto.Name.ToLower()));
+        }
+
         var totalElements = await query.CountAsync();
         
         var categories = await query
             .OrderBy(v => v.Id)
-            .Skip((pagination.Page - 1) * pagination.PageSize)
-            .Take(pagination.PageSize)
+            .Skip((queryDto.Page - 1) * queryDto.PageSize)
+            .Take(queryDto.PageSize)
             .ProjectTo<ProductCategoryResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
-        var _pagination = new Pagination(pagination.Page, pagination.PageSize, totalElements);
+        var _pagination = new Pagination(queryDto.Page, queryDto.PageSize, totalElements);
             
         return Result<ListProductCategoriesWrapperDto>.Success(new ListProductCategoriesWrapperDto { ProductCategories = categories, Pagination = _pagination });
     }

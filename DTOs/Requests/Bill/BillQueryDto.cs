@@ -9,4 +9,7 @@ public class BillQueryDto : PaginationRequestDto
     public int? CustomerId { get; set; }
     public string? Number { get; set; }
     public DateOnly? Date { get; set; }
+    public DateOnly? StartDate { get; set; }
+    public DateOnly? EndDate { get; set; }
+    public string? CustomerRuc { get; set; }
 }
