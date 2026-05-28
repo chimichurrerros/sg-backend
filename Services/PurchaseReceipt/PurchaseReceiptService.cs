@@ -89,8 +89,8 @@ public class PurchaseReceiptService(
 
             var allReceived = purchaseOrder.PurchaseOrderDetails.All(d => d.QuantityReceived >= d.QuantityOrdered);
             purchaseOrder.State = allReceived
-                ? PurchaseOrder.PurchaseOrderStateEnum.Received
-                : PurchaseOrder.PurchaseOrderStateEnum.PartiallyReceived;
+                ? PurchaseOrderStateEnum.Received
+                : PurchaseOrderStateEnum.PartiallyReceived;
 
             _context.PurchaseOrders.Update(purchaseOrder);
 

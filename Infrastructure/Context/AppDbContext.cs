@@ -1000,6 +1000,10 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("SalesOrders_UserId_fkey");
+            
+            entity.HasOne(d => d.Branch).WithMany()
+                .HasForeignKey(d => d.BranchId)
+                .HasConstraintName("SalesOrders_BranchId_fkey");
         });
 
         modelBuilder.Entity<SalesOrderDetail>(entity =>
@@ -1127,7 +1131,6 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Price).HasPrecision(15, 2);
             entity.Property(e => e.QuantityAvailable).HasPrecision(10, 2);
-            entity.Property(e => e.TaxRate).HasPrecision(5, 2);
 
             entity.HasOne(d => d.Product).WithMany(p => p.SupplierQuoteDetails)
                 .HasForeignKey(d => d.ProductId)

@@ -8,6 +8,7 @@ public class CustomerMapper : AutoMapper.Profile
     public CustomerMapper()
     {
         CreateMap<Customer, CustomerResponseDto>();
+        CreateMap<CustomerResponseDto, Customer>();
 
         CreateMap<Customer, CustomerWrapperDto>()
             .ForMember(dest => dest.Customer,

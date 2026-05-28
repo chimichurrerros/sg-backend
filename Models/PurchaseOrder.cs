@@ -1,19 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace BackEnd.Models;
 
 public partial class PurchaseOrder
 {
-    public enum PurchaseOrderStateEnum
-    {
-        Pending = 1,
-        Confirmed = 2,
-        PartiallyReceived = 3,
-        Received = 4,
-        Cancelled = 5
-    }
-
     public int Id { get; set; }
 
     public int SupplierId { get; set; }

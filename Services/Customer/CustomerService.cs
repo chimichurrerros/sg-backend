@@ -17,8 +17,7 @@ public class CustomerService(AppDbContext context, IMapper mapper)
 
     public async Task<Result<ListCustomersWrapperDto>> GetAllAsync()
     {
-        var products = await _context.Products
-            .AsNoTracking()
+        var products = await _context.Customers
             .ProjectTo<CustomerResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 

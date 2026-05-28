@@ -35,7 +35,7 @@ public class PurchaseReturnResponseDto
     public string? Observation { get; set; }
     public decimal Total { get; set; }
     public decimal TaxTotal { get; set; }
-    public global::BackEnd.Models.PurchaseReturn.PurchaseReturnStateEnum State { get; set; }
+    public PurchaseReturnStateEnum State { get; set; }
     public List<PurchaseReturnDetailResponseDto> Details { get; set; } = [];
 }
 

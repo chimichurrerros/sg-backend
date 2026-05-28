@@ -161,7 +161,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
                     Observation = request.Observation,
                     Total = 0,
                     TaxTotal = 0,
-                    State = PurchaseReturn.PurchaseReturnStateEnum.Issued
+                    State = PurchaseReturnStateEnum.Issued
                 };
 
                 _context.PurchaseReturns.Add(purchaseReturn);
@@ -446,7 +446,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
                 Observation = retRequest.Observation,
                 Total = 0,
                 TaxTotal = 0,
-                State = PurchaseReturn.PurchaseReturnStateEnum.Issued
+                State = PurchaseReturnStateEnum.Issued
             };
 
             _context.PurchaseReturns.Add(purchaseReturn);

@@ -37,7 +37,7 @@ public class SalesOrderService(
         if (request.Products.Count == 0)
             return Result<SalesOrderWrapperDto>.Failure(SalesOrderError.DetailsRequired, ErrorType.Validation);
 
-        var customerIdResult = await ResolveCustomerIdAsync(request.Customer);
+        var customerIdResult = await ResolveCustomerIdAsync(request.Customer!);
         if (!customerIdResult.IsSuccess)
             return Result<SalesOrderWrapperDto>.Failure(customerIdResult.ErrorMessage!, customerIdResult.ErrorType);
 
@@ -72,7 +72,8 @@ public class SalesOrderService(
             AccountId = request.Sale.AccountId ?? 0,
             MovementType = movementType,
             BranchId = request.Sale.BranchId ?? request.Sale.CashierNumber ?? 0,
-            Details = details
+            Details = details,
+            ImportValue = request.Totals.ImportValue
         };
 
         return await CreateAsync(mappedRequest, userId);
@@ -113,7 +114,9 @@ public class SalesOrderService(
                 SalesOrderState = request.SalesOrderState,
                 PaymentMethod = request.PaymentMethod,
                 SaleCondition = request.SaleCondition,
-                Total = 0 // Will compute
+                BranchId = branchIdResult.Value,
+                Total = 0, // Will compute
+                ImportValue = request.ImportValue
             };
 
             _context.SalesOrders.Add(salesOrder);

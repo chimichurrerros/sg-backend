@@ -93,4 +93,27 @@ public class ProductsController(ProductsService productsService) : ControllerBas
 
         return StatusCode(500);
     }
+
+    [HttpGet("{id}/suppliers")]
+    public async Task<ActionResult<ProductWrapperDto>> GetSuppliers(int id)
+    {
+        var result = await _productsService.GetAllSuppliers(id);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        return StatusCode(500);
+    }
+
+    [HttpGet("by-branch/{branchId}")]
+    public async Task<ActionResult<ListProductsStockWrapperDto>> GetProductsByBranch(int branchId)
+    {
+        var result = await _productsService.GetByBranchIdAsync(branchId);
+        if (result.IsSuccess)
+            return Ok(result.Value);
+        return StatusCode(500);
+    }
 }

@@ -63,7 +63,9 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
 
     public async Task<Result<BankMovementWrapperDto>> CreateAsync(BankMovementRequestDto request)
 {
-    var account = await _context.Accounts.FindAsync(request.AccountId);
+    var account = await _context.Accounts
+    .Include(a => a.Bank)
+    .FirstOrDefaultAsync(a => a.Id == request.AccountId);
     if (account == null)
         return Result<BankMovementWrapperDto>.Failure("Cuenta no encontrada", ErrorType.NotFound);
 
@@ -94,14 +96,23 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
     if (request.CheckDetails != null)
     {
         var newCheck = _mapper.Map<Check>(request.CheckDetails);
-        newCheck.Status = CheckStatusEnum.Pending; // Nace pendiente de conciliación
-        
-        // Entity Framework es inteligente: al asignarlo a la propiedad de navegación,
-        // automáticamente le pondrá el BankMovementId correcto cuando guarde.
-        newMovement.Check = newCheck; 
+        newCheck.AccountId = newMovement.AccountId;
+        newCheck.Amount = newMovement.Amount;
+        newCheck.Status = CheckStatusEnum.Pending;
+
+        if (newMovement.MovementType == BankMovementTypeEnum.Debit)
+        {
+            newCheck.IssuingBank = account.Bank?.Name ?? "";
+        }
+        else
+        {
+            newCheck.Receiver = account.Name;
+        }
+
+        newMovement.Check = newCheck;
     }
 
-    _context.BankMovements.Add(newMovement);
+    _context.BankMovements.Add(newMovement);   
     await _context.SaveChangesAsync();
 
         return await GetByIdAsync(newMovement.Id);

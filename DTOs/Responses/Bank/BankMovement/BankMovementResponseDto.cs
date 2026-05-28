@@ -5,8 +5,8 @@ namespace BackEnd.DTOs.Responses.Bank.BankMovement;
 public class BankMovementResponseDto
 {
     public int Id { get; set; }
-    public int BankAccountId { get; set; }
     public decimal Amount { get; set; }
+    public int AccountId { get; set; }
     public string Description { get; set; } = null!;
     public DateTime Date { get; set; }
     public BankMovementTypeEnum MovementType { get; set; }
