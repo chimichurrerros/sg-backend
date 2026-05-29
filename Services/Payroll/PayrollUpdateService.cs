@@ -23,10 +23,10 @@ public class PayrollUpdateService(AppDbContext context, FormulaEvaluatorService 
             .Select(payrollUpdate => new PayrollUpdateResponseDto
             {
                 Id = payrollUpdate.Id,
-                PayrollTypeId = payrollUpdate.PayrollTypeId,
-                PayrollTypeName = payrollUpdate.PayrollType.Name,
-                FormulaTypeId = payrollUpdate.FormulaTypeId,
-                FormulaTypeName = payrollUpdate.FormulaType.Name,
+                PayrollTypeId = (int)payrollUpdate.PayrollTypeId,
+                PayrollTypeName = GetPayrollTypeName(payrollUpdate.PayrollTypeId),
+                FormulaTypeId = (int)payrollUpdate.FormulaTypeId,
+                FormulaTypeName = GetFormulaTypeName(payrollUpdate.FormulaTypeId),
                 Name = payrollUpdate.Name,
                 Formula = payrollUpdate.Formula,
                 IpsDeductible = payrollUpdate.IpsDeductible
@@ -45,8 +45,8 @@ public class PayrollUpdateService(AppDbContext context, FormulaEvaluatorService 
         var payrollUpdate = new PayrollUpdate
         {
             Name = request.Name.Trim(),
-            PayrollTypeId = request.PayrollTypeId,
-            FormulaTypeId = request.FormulaTypeId,
+            PayrollTypeId = (PayrollUpdate.PayrollTypeEnum)request.PayrollTypeId,
+            FormulaTypeId = (PayrollUpdate.FormulaTypeEnum)request.FormulaTypeId,
             Formula = request.Formula.Trim(),
             IpsDeductible = request.IpsDeductible
         };
@@ -68,28 +68,22 @@ public class PayrollUpdateService(AppDbContext context, FormulaEvaluatorService 
         if (string.IsNullOrWhiteSpace(request.Formula))
             errors["Formula"] = [PayrollUpdateError.FormulaRequired];
 
-        var payrollType = await _context.PayrollTypes
-            .AsNoTracking()
-            .FirstOrDefaultAsync(payrollType => payrollType.Id == request.PayrollTypeId);
-
-        if (payrollType == null)
+        if (!Enum.IsDefined(typeof(PayrollUpdate.PayrollTypeEnum), request.PayrollTypeId))
             errors["PayrollTypeId"] = [PayrollUpdateError.InvalidPayrollType];
 
-        var formulaType = await _context.FormulaTypes
-            .AsNoTracking()
-            .FirstOrDefaultAsync(formulaType => formulaType.Id == request.FormulaTypeId);
-
-        if (formulaType == null)
+        if (!Enum.IsDefined(typeof(PayrollUpdate.FormulaTypeEnum), request.FormulaTypeId))
             errors["FormulaTypeId"] = [PayrollUpdateError.InvalidFormulaType];
 
-        if (errors.Count == 0 && formulaType != null)
+        if (errors.Count == 0)
         {
-            if (IsFixedFormulaType(formulaType.Name))
+            var formulaType = (PayrollUpdate.FormulaTypeEnum)request.FormulaTypeId;
+
+            if (formulaType == PayrollUpdate.FormulaTypeEnum.Fixed)
             {
                 if (!decimal.TryParse(request.Formula, NumberStyles.Number, CultureInfo.InvariantCulture, out _))
                     errors["Formula"] = [PayrollUpdateError.FixedFormulaMustBeNumeric];
             }
-            else if (IsCalculatedFormulaType(formulaType.Name))
+            else if (formulaType == PayrollUpdate.FormulaTypeEnum.Calculated)
             {
                 if (!TryValidateCalculatedFormula(request.Formula))
                     errors["Formula"] = [PayrollUpdateError.CalculatedFormulaIsInvalid];
@@ -135,10 +129,10 @@ public class PayrollUpdateService(AppDbContext context, FormulaEvaluatorService 
             .Select(payrollUpdate => new PayrollUpdateResponseDto
             {
                 Id = payrollUpdate.Id,
-                PayrollTypeId = payrollUpdate.PayrollTypeId,
-                PayrollTypeName = payrollUpdate.PayrollType.Name,
-                FormulaTypeId = payrollUpdate.FormulaTypeId,
-                FormulaTypeName = payrollUpdate.FormulaType.Name,
+                PayrollTypeId = (int)payrollUpdate.PayrollTypeId,
+                PayrollTypeName = GetPayrollTypeName(payrollUpdate.PayrollTypeId),
+                FormulaTypeId = (int)payrollUpdate.FormulaTypeId,
+                FormulaTypeName = GetFormulaTypeName(payrollUpdate.FormulaTypeId),
                 Name = payrollUpdate.Name,
                 Formula = payrollUpdate.Formula,
                 IpsDeductible = payrollUpdate.IpsDeductible
@@ -146,15 +140,23 @@ public class PayrollUpdateService(AppDbContext context, FormulaEvaluatorService 
             .FirstOrDefaultAsync();
     }
 
-    private static bool IsFixedFormulaType(string name)
+    private static string GetPayrollTypeName(PayrollUpdate.PayrollTypeEnum payrollTypeId)
     {
-        var normalizedName = name.Trim().ToLowerInvariant();
-        return normalizedName.Contains("fij") || normalizedName.Contains("fix");
+        return payrollTypeId switch
+        {
+            PayrollUpdate.PayrollTypeEnum.Earnings => "Earnings",
+            PayrollUpdate.PayrollTypeEnum.Deductions => "Deductions",
+            _ => "Unknown"
+        };
     }
 
-    private static bool IsCalculatedFormulaType(string name)
+    private static string GetFormulaTypeName(PayrollUpdate.FormulaTypeEnum formulaTypeId)
     {
-        var normalizedName = name.Trim().ToLowerInvariant();
-        return normalizedName.Contains("calc");
+        return formulaTypeId switch
+        {
+            PayrollUpdate.FormulaTypeEnum.Fixed => "Fixed",
+            PayrollUpdate.FormulaTypeEnum.Calculated => "Calculated",
+            _ => "Unknown"
+        };
     }
 }

@@ -69,8 +69,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<EntryModelDetail> EntryModelDetails { get; set; }
 
-    public virtual DbSet<FormulaType> FormulaTypes { get; set; }
-
     public virtual DbSet<LegalPerson> LegalPersons { get; set; }
 
     // public virtual DbSet<Lote> Lotes { get; set; }
@@ -91,8 +89,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<PayrollStatus> PayrollStatuses { get; set; }
 
-    public virtual DbSet<PayrollType> PayrollTypes { get; set; }
-
     public virtual DbSet<PayrollUpdate> PayrollUpdates { get; set; }
 
     public virtual DbSet<PhysicalPerson> PhysicalPersons { get; set; }
@@ -100,8 +96,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Position> Positions { get; set; }
 
     public virtual DbSet<PositionByScheduleByEmployee> PositionByScheduleByEmployees { get; set; }
-
-    public virtual DbSet<ProcessType> ProcessTypes { get; set; }
 
     public virtual DbSet<Product> Products { get; set; }
 
@@ -579,13 +573,6 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("EntryModelDetails_EntryModelId_fkey");
         });
 
-        modelBuilder.Entity<FormulaType>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("FormulaTypes_pkey");
-
-            entity.Property(e => e.Name).HasMaxLength(50);
-        });
-
         modelBuilder.Entity<LegalPerson>(entity =>
         {
             entity.HasKey(e => e.EntityId).HasName("LegalPersons_pkey");
@@ -693,11 +680,6 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.PayrollStatusId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PayrollProcesses_PayrollStatusId_fkey");
-
-            entity.HasOne(d => d.ProcessType).WithMany(p => p.PayrollProcesses)
-                .HasForeignKey(d => d.ProcessTypeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("PayrollProcesses_ProcessTypeId_fkey");
         });
 
         modelBuilder.Entity<PayrollProcessDetail>(entity =>
@@ -731,28 +713,11 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(50);
         });
 
-        modelBuilder.Entity<PayrollType>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PayrollTypes_pkey");
-
-            entity.Property(e => e.Name).HasMaxLength(50);
-        });
-
         modelBuilder.Entity<PayrollUpdate>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PayrollUpdates_pkey");
 
             entity.Property(e => e.Name).HasMaxLength(100);
-
-            entity.HasOne(d => d.FormulaType).WithMany(p => p.PayrollUpdates)
-                .HasForeignKey(d => d.FormulaTypeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("PayrollUpdates_FormulaTypeId_fkey");
-
-            entity.HasOne(d => d.PayrollType).WithMany(p => p.PayrollUpdates)
-                .HasForeignKey(d => d.PayrollTypeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("PayrollUpdates_PayrollTypeId_fkey");
         });
 
         modelBuilder.Entity<PhysicalPerson>(entity =>
@@ -799,13 +764,6 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ScheduleId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PositionByScheduleByEmployee_ScheduleId_fkey");
-        });
-
-        modelBuilder.Entity<ProcessType>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("ProcessTypes_pkey");
-
-            entity.Property(e => e.Name).HasMaxLength(50);
         });
 
         modelBuilder.Entity<Product>(entity =>
