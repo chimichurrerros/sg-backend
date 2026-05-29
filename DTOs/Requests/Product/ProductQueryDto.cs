@@ -15,6 +15,7 @@ public class ProductQueryDto : PaginationRequestDto
     public decimal? MinQuantity { get; set; }
     public decimal? MaxQuantity { get; set; }
     public int? Id { get; set; }
+    public bool? IsDeleted { get; set; } = null;
     public string? Description { get; set; }
     public string? Barcode { get; set; }
     public decimal? MinCost { get; set; }

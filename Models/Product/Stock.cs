@@ -11,7 +11,7 @@ public partial class Stock
     
     public int BranchId { get; set; }
 
-    public decimal Quantity { get; set; }
+    public decimal? Quantity { get; set; }
 
     public virtual Product Product { get; set; } = null!;
     

@@ -44,6 +44,7 @@ public class ProductStockResponseDto
     public decimal Price { get; set; }
     public decimal Cost { get; set; }
     public decimal TaxRate { get; set; }
+    public bool IsDeleted { get; set; } = false;
     public decimal MinimumStock { get; set; }
     // Stock field
     public decimal Quantity { get; set; }

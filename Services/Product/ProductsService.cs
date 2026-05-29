@@ -21,7 +21,7 @@ public class ProductsService(AppDbContext context, IMapper mapper)
     {
         var products = await _context.Products
             .AsNoTracking()
-            .Where(p => p.IsService != true && !p.IsDeleted)
+            .Where(p => p.IsService != true)
             .ProjectTo<ProductResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
@@ -30,7 +30,7 @@ public class ProductsService(AppDbContext context, IMapper mapper)
 
     public async Task<Result<ListProductsWrapperDto>> GetListAsync(ProductQueryDto queryDto)
     {
-        var query = _context.Products.AsNoTracking().Where(p => p.IsService != true && !p.IsDeleted);
+        var query = _context.Products.AsNoTracking().Where(p => p.IsService != true);
 
         if (!string.IsNullOrWhiteSpace(queryDto.Name))
         {
@@ -112,6 +112,12 @@ public class ProductsService(AppDbContext context, IMapper mapper)
             query = query.Where(p => p.MinimumStock >= queryDto.MinMinimumStock.Value);
         }
 
+        if (queryDto.IsDeleted.HasValue)
+        {
+            query = query.Where(p => p.IsDeleted == queryDto.IsDeleted.Value);
+        }
+    
+
         if (queryDto.MaxMinimumStock.HasValue)
         {
             query = query.Where(p => p.MinimumStock <= queryDto.MaxMinimumStock.Value);
@@ -135,7 +141,7 @@ public class ProductsService(AppDbContext context, IMapper mapper)
     {
         var product = await _context.Products
             .AsNoTracking()
-            .Where(u => u.Id == id && u.IsService != true && !u.IsDeleted)
+            .Where(u => u.Id == id && u.IsService != true)
             .ProjectTo<ProductResponseDto>(_mapper.ConfigurationProvider)
             .FirstOrDefaultAsync();
 
