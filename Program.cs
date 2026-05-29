@@ -66,14 +66,25 @@ builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProv
 builder.Services.AddAuthorization();
 // ------------------------------------------------------------------------------------------------------
 // CORS configuracion
+var allowedOrigins = builder.Configuration.GetValue<string>("AllowedOrigins")
+    ?? "http://localhost:5173";
+var explicitOrigins = allowedOrigins.Split(';', StringSplitOptions.RemoveEmptyEntries);
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("DevPolicy", policy =>
+    options.AddPolicy("CorsPolicy", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials();
+        policy.SetIsOriginAllowed(origin =>
+        {
+            if (explicitOrigins.Contains(origin))
+                return true;
+            var uri = new Uri(origin);
+            return uri.Host.Equals("mbeju.xyz", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.EndsWith(".mbeju.xyz", StringComparison.OrdinalIgnoreCase);
+        })
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials();
     });
 });
 // ------------------------------------------------------------------------------------------------------
@@ -143,10 +154,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseCors("DevPolicy");
-}
+app.UseCors("CorsPolicy");
 
 app.UseSwagger();
 app.UseSwaggerUI(options =>
