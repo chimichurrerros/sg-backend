@@ -12,7 +12,7 @@ namespace BackEnd.Controllers.User;
 
 [Route("api/users")]
 [ApiController]
-[Authorize(Roles = "Admin")] // Use this if you want this controller to be accessible only by admins.
+[Authorize(Roles = "ADMIN")] // Use this if you want this controller to be accessible only by admins.
 // Use this if you want this controller to be accessible only by admins. 
 // [Authorize(Roles = "Admin")]
 public class UserController(UserService usuarioService) : ControllerBase
