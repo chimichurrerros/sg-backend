@@ -14,4 +14,6 @@ public partial class Branch
     public virtual ICollection<Stock> Stocks { get; set; } = new List<Stock>();
 
     public virtual ICollection<Employee> Employees { get; set; } = new List<Employee>();
+
+    public virtual ICollection<BranchDepartment> BranchDepartments { get; set; } = new List<BranchDepartment>();
 }

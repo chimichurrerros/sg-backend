@@ -53,13 +53,6 @@ public class DepartmentService(AppDbContext context, IMapper mapper)
 
     public async Task<Result<DepartmentWrapperDto>> CreateAsync(DepartmentRequestDto request)
     {
-        if (request.BossId.HasValue)
-        {
-            var bossExists = await _context.Employees.AnyAsync(e => e.Id == request.BossId.Value);
-            if (!bossExists)
-                return Result<DepartmentWrapperDto>.Failure("El jefe especificado no existe.", ErrorType.NotFound);
-        }
-
         var department = _mapper.Map<Department>(request);
 
         _context.Departments.Add(department);
@@ -74,13 +67,6 @@ public class DepartmentService(AppDbContext context, IMapper mapper)
 
         if (department == null)
             return Result<DepartmentWrapperDto>.Failure(ApplicationError.NotFound, ErrorType.NotFound);
-
-        if (request.BossId.HasValue)
-        {
-            var bossExists = await _context.Employees.AnyAsync(e => e.Id == request.BossId.Value);
-            if (!bossExists)
-                return Result<DepartmentWrapperDto>.Failure("El jefe especificado no existe.", ErrorType.NotFound);
-        }
 
         _mapper.Map(request, department);
         _context.Departments.Update(department);
@@ -108,7 +94,6 @@ public class DepartmentService(AppDbContext context, IMapper mapper)
         return (sortBy ?? "id").ToLowerInvariant() switch
         {
             "name" => desc ? query.OrderByDescending(d => d.Name) : query.OrderBy(d => d.Name),
-            "bossid" => desc ? query.OrderByDescending(d => d.BossId) : query.OrderBy(d => d.BossId),
             _ => desc ? query.OrderByDescending(d => d.Id) : query.OrderBy(d => d.Id)
         };
     }
