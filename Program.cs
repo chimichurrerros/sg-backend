@@ -56,6 +56,9 @@ builder.Services.AddScoped<PurchaseReturnService>();
 builder.Services.AddScoped<BankService>();
 builder.Services.AddScoped<PaymentOrderService>();
 builder.Services.AddScoped<CreditNoteService>();
+builder.Services.AddScoped<DepartmentService>();
+builder.Services.AddScoped<PositionService>();
+builder.Services.AddScoped<ScheduleService>();
 builder.Services.AddScoped<IEmployeeAssignmentService, EmployeeAssignmentService>();
 // ------------------------------------------------------------------------------------------------------
 // Authorization configuration

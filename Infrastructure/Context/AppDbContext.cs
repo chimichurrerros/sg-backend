@@ -129,8 +129,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Schedule> Schedules { get; set; }
 
-    public virtual DbSet<ScheduleType> ScheduleTypes { get; set; }
-
     public virtual DbSet<State> States { get; set; }
 
     public virtual DbSet<Stock> Stocks { get; set; }
@@ -1027,18 +1025,9 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("Schedules_pkey");
 
             entity.Property(e => e.NumberOfHours).HasPrecision(5, 2);
-
-            entity.HasOne(d => d.ScheduleType).WithMany(p => p.Schedules)
-                .HasForeignKey(d => d.ScheduleTypeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Schedules_ScheduleTypeId_fkey");
-        });
-
-        modelBuilder.Entity<ScheduleType>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("ScheduleTypes_pkey");
-
-            entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.ScheduleType)
+                .HasColumnName("ScheduleTypeId")
+                .HasConversion<int>();
         });
 
         modelBuilder.Entity<State>(entity =>

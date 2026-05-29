@@ -1881,34 +1881,14 @@ namespace BackEnd.Migrations
                         .HasPrecision(5, 2)
                         .HasColumnType("numeric(5,2)");
 
-                    b.Property<int>("ScheduleTypeId")
-                        .HasColumnType("integer");
+                    b.Property<int>("ScheduleType")
+                        .HasColumnType("integer")
+                        .HasColumnName("ScheduleTypeId");
 
                     b.HasKey("Id")
                         .HasName("Schedules_pkey");
 
-                    b.HasIndex("ScheduleTypeId");
-
                     b.ToTable("Schedules");
-                });
-
-            modelBuilder.Entity("BackEnd.Models.ScheduleType", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.HasKey("Id")
-                        .HasName("ScheduleTypes_pkey");
-
-                    b.ToTable("ScheduleTypes");
                 });
 
             modelBuilder.Entity("BackEnd.Models.State", b =>
@@ -2835,17 +2815,6 @@ namespace BackEnd.Migrations
                     b.Navigation("SalesOrder");
                 });
 
-            modelBuilder.Entity("BackEnd.Models.Schedule", b =>
-                {
-                    b.HasOne("BackEnd.Models.ScheduleType", "ScheduleType")
-                        .WithMany("Schedules")
-                        .HasForeignKey("ScheduleTypeId")
-                        .IsRequired()
-                        .HasConstraintName("Schedules_ScheduleTypeId_fkey");
-
-                    b.Navigation("ScheduleType");
-                });
-
             modelBuilder.Entity("BackEnd.Models.Stock", b =>
                 {
                     b.HasOne("BackEnd.Models.Branch", "Branch")
@@ -3171,11 +3140,6 @@ namespace BackEnd.Migrations
             modelBuilder.Entity("BackEnd.Models.Schedule", b =>
                 {
                     b.Navigation("PositionByScheduleByEmployees");
-                });
-
-            modelBuilder.Entity("BackEnd.Models.ScheduleType", b =>
-                {
-                    b.Navigation("Schedules");
                 });
 
             modelBuilder.Entity("BackEnd.Models.State", b =>

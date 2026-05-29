@@ -7,6 +7,7 @@ public class EmployeePositionHistoryResponseDto
     public int PositionId { get; set; }
     public string PositionName { get; set; } = null!;
     public int ScheduleId { get; set; }
+    public BackEnd.Models.ScheduleTypeEnum ScheduleType { get; set; }
     public string ScheduleName { get; set; } = null!;
     public decimal BasicSalary { get; set; }
     public DateOnly StartDate { get; set; }

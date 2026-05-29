@@ -204,7 +204,13 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
                 PositionId = history.PositionId,
                 PositionName = history.Position.Name,
                 ScheduleId = history.ScheduleId,
-                ScheduleName = history.Schedule.ScheduleType.Name,
+                ScheduleType = history.Schedule.ScheduleType,
+                ScheduleName = history.Schedule.ScheduleType == ScheduleTypeEnum.Morning ? "Turno Mañana" :
+                    history.Schedule.ScheduleType == ScheduleTypeEnum.Afternoon ? "Turno Tarde" :
+                    history.Schedule.ScheduleType == ScheduleTypeEnum.Night ? "Turno Noche" :
+                    history.Schedule.ScheduleType == ScheduleTypeEnum.FullTime ? "Jornada Completa" :
+                    history.Schedule.ScheduleType == ScheduleTypeEnum.PartTime ? "Medio Tiempo" :
+                    "Desconocido",
                 BasicSalary = history.BasicSalary,
                 StartDate = history.StartDate,
                 EndDate = history.EndDate
@@ -263,7 +269,13 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
                     PositionId = history.PositionId,
                     PositionName = history.Position.Name,
                     ScheduleId = history.ScheduleId,
-                    ScheduleName = history.Schedule.ScheduleType.Name,
+                    ScheduleType = history.Schedule.ScheduleType,
+                    ScheduleName = history.Schedule.ScheduleType == ScheduleTypeEnum.Morning ? "Turno Mañana" :
+                        history.Schedule.ScheduleType == ScheduleTypeEnum.Afternoon ? "Turno Tarde" :
+                        history.Schedule.ScheduleType == ScheduleTypeEnum.Night ? "Turno Noche" :
+                        history.Schedule.ScheduleType == ScheduleTypeEnum.FullTime ? "Jornada Completa" :
+                        history.Schedule.ScheduleType == ScheduleTypeEnum.PartTime ? "Medio Tiempo" :
+                        "Desconocido",
                     BasicSalary = history.BasicSalary,
                     StartDate = history.StartDate,
                     EndDate = history.EndDate
@@ -307,7 +319,13 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
                 PositionId = history.PositionId,
                 PositionName = history.Position.Name,
                 ScheduleId = history.ScheduleId,
-                ScheduleName = history.Schedule.ScheduleType.Name,
+                ScheduleType = history.Schedule.ScheduleType,
+                ScheduleName = history.Schedule.ScheduleType == ScheduleTypeEnum.Morning ? "Turno Mañana" :
+                    history.Schedule.ScheduleType == ScheduleTypeEnum.Afternoon ? "Turno Tarde" :
+                    history.Schedule.ScheduleType == ScheduleTypeEnum.Night ? "Turno Noche" :
+                    history.Schedule.ScheduleType == ScheduleTypeEnum.FullTime ? "Jornada Completa" :
+                    history.Schedule.ScheduleType == ScheduleTypeEnum.PartTime ? "Medio Tiempo" :
+                    "Desconocido",
                 BasicSalary = history.BasicSalary,
                 StartDate = history.StartDate,
                 EndDate = history.EndDate
