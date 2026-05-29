@@ -21,7 +21,7 @@ public class ProductsService(AppDbContext context, IMapper mapper)
     {
         var products = await _context.Products
             .AsNoTracking()
-            .Where(p => p.IsService != true)
+            .Where(p => p.IsService != true && !p.IsDeleted)
             .ProjectTo<ProductResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
@@ -30,7 +30,7 @@ public class ProductsService(AppDbContext context, IMapper mapper)
 
     public async Task<Result<ListProductsWrapperDto>> GetListAsync(ProductQueryDto queryDto)
     {
-        var query = _context.Products.AsNoTracking().Where(p => p.IsService != true);
+        var query = _context.Products.AsNoTracking().Where(p => p.IsService != true && !p.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(queryDto.Name))
         {
@@ -135,7 +135,7 @@ public class ProductsService(AppDbContext context, IMapper mapper)
     {
         var product = await _context.Products
             .AsNoTracking()
-            .Where(u => u.Id == id && u.IsService != true)
+            .Where(u => u.Id == id && u.IsService != true && !u.IsDeleted)
             .ProjectTo<ProductResponseDto>(_mapper.ConfigurationProvider)
             .FirstOrDefaultAsync();
 
@@ -175,12 +175,13 @@ public class ProductsService(AppDbContext context, IMapper mapper)
 
     public async Task<Result> DeleteAsync(int id)
     {
-        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id || p.IsService != true);
+        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id && p.IsService != true);
 
-        if (product == null)
+        if (product == null || product.IsDeleted)
             return Result.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
-        _context.Products.Remove(product);
+        product.IsDeleted = true;
+        _context.Products.Update(product);
         await _context.SaveChangesAsync();
 
         return Result.Success();

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace BackEnd.Models;
@@ -10,4 +10,6 @@ public partial class ProductBrand
     public string Name { get; set; } = null!;
 
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+
+    public bool IsDeleted { get; set; } = false;
 }

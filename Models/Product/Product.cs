@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace BackEnd.Models;
@@ -26,6 +26,8 @@ public partial class Product
     public decimal Cost { get; set; }
 
     public decimal TaxRate { get; set; } = 10m;
+
+    public bool IsDeleted { get; set; } = false;
 
 
 

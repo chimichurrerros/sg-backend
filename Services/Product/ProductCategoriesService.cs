@@ -20,6 +20,7 @@ public class ProductCategoriesService(AppDbContext context, IMapper mapper)
     {
         var categories = await _context.ProductCategories
             .AsNoTracking()
+            .Where(c => !c.IsDeleted)
             .ProjectTo<ProductCategoryResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
@@ -28,7 +29,7 @@ public class ProductCategoriesService(AppDbContext context, IMapper mapper)
 
     public async Task<Result<ListProductCategoriesWrapperDto>> GetListAsync(ProductCategoryQueryDto queryDto)
     {
-        var query = _context.ProductCategories.AsNoTracking();
+        var query = _context.ProductCategories.AsNoTracking().Where(c => !c.IsDeleted);
         
         if (queryDto.Id.HasValue)
         {
@@ -58,7 +59,7 @@ public class ProductCategoriesService(AppDbContext context, IMapper mapper)
     {
         var category = await _context.ProductCategories
             .AsNoTracking()
-            .Where(u => u.Id == id)
+            .Where(u => u.Id == id && !u.IsDeleted)
             .ProjectTo<ProductCategoryResponseDto>(_mapper.ConfigurationProvider)
             .FirstOrDefaultAsync();
 
@@ -96,10 +97,11 @@ public class ProductCategoriesService(AppDbContext context, IMapper mapper)
     {
         var category = await _context.ProductCategories.FindAsync(id);
         
-        if (category == null)
+        if (category == null || category.IsDeleted)
             return Result.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
-        _context.ProductCategories.Remove(category);
+        category.IsDeleted = true;
+        _context.ProductCategories.Update(category);
         await _context.SaveChangesAsync();
         
         return Result.Success();

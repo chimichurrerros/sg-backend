@@ -20,6 +20,7 @@ public class ProductBrandsService(AppDbContext context, IMapper mapper)
     {
         var brands = await _context.ProductBrands
             .AsNoTracking()
+            .Where(b => !b.IsDeleted)
             .ProjectTo<ProductBrandResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
@@ -28,7 +29,7 @@ public class ProductBrandsService(AppDbContext context, IMapper mapper)
 
     public async Task<Result<ListProductBrandsWrapperDto>> GetListAsync(ProductBrandQueryDto queryDto)
     {
-        var query = _context.ProductBrands.AsNoTracking();
+        var query = _context.ProductBrands.AsNoTracking().Where(b => !b.IsDeleted);
         
         if (queryDto.Id.HasValue)
         {
@@ -58,7 +59,7 @@ public class ProductBrandsService(AppDbContext context, IMapper mapper)
     {
         var brand = await _context.ProductBrands
             .AsNoTracking()
-            .Where(u => u.Id == id)
+            .Where(u => u.Id == id && !u.IsDeleted)
             .ProjectTo<ProductBrandResponseDto>(_mapper.ConfigurationProvider)
             .FirstOrDefaultAsync();
 
@@ -96,10 +97,11 @@ public class ProductBrandsService(AppDbContext context, IMapper mapper)
     {
         var brand = await _context.ProductBrands.FindAsync(id);
         
-        if (brand == null)
+        if (brand == null || brand.IsDeleted)
             return Result.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
-        _context.ProductBrands.Remove(brand);
+        brand.IsDeleted = true;
+        _context.ProductBrands.Update(brand);
         await _context.SaveChangesAsync();
         
         return Result.Success();
