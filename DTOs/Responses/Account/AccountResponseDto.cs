@@ -12,6 +12,7 @@ public class AccountResponseDto
     public decimal CurrentBalance { get; set; }
     public decimal AvailableBalance { get; set; }
     public string AccountNumber { get; set; } = null!;
+    public bool IsActive { get; set; }
 }
 
 public class AccountWrapperDto
