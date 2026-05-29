@@ -6,7 +6,6 @@ public class DepartmentResponseDto
 {
     public int Id { get; set; }
     public string Name { get; set; } = null!;
-    public int? BossId { get; set; }
 }
 
 public class DepartmentWrapperDto

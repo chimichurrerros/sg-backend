@@ -37,6 +37,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Branch> Branches { get; set; }
 
+    public virtual DbSet<BranchDepartment> BranchDepartments { get; set; }
+
     public virtual DbSet<Check> Checks { get; set; }
 
     public virtual DbSet<CreditNote> CreditNotes { get; set; }
@@ -415,10 +417,27 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("Departments_pkey");
 
             entity.Property(e => e.Name).HasMaxLength(100);
+        });
 
-            entity.HasOne(d => d.Boss).WithMany(p => p.Departments)
+        modelBuilder.Entity<BranchDepartment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("BranchDepartments_pkey");
+
+            entity.HasIndex(e => new { e.BranchId, e.DepartmentId }).IsUnique();
+
+            entity.HasOne(d => d.Branch).WithMany(p => p.BranchDepartments)
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("BranchDepartments_BranchId_fkey");
+
+            entity.HasOne(d => d.Department).WithMany(p => p.BranchDepartments)
+                .HasForeignKey(d => d.DepartmentId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("BranchDepartments_DepartmentId_fkey");
+
+            entity.HasOne(d => d.Boss).WithMany()
                 .HasForeignKey(d => d.BossId)
-                .HasConstraintName("FkDepartmentsBoss");
+                .HasConstraintName("BranchDepartments_BossId_fkey");
         });
 
         modelBuilder.Entity<Employee>(entity =>
