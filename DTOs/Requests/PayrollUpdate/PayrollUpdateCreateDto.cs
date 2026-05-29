@@ -12,8 +12,7 @@ public class PayrollUpdateCreateDto
 
     public int FormulaTypeId { get; set; }
 
-    [Required(ErrorMessage = PayrollUpdateError.FormulaRequired)]
-    public string Formula { get; set; } = null!;
+    public string? Formula { get; set; }
 
     public bool IpsDeductible { get; set; }
 }

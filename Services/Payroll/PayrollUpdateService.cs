@@ -42,13 +42,18 @@ public class PayrollUpdateService(AppDbContext context, FormulaEvaluatorService 
         if (!validation.IsSuccess)
             return Result<PayrollUpdateResponseDto>.Failure(validation.ErrorMessage!, validation.Errors!, ErrorType.Validation);
 
+        var formulaType = (PayrollUpdate.FormulaTypeEnum)request.FormulaTypeId;
+        var payrollType = (PayrollUpdate.PayrollTypeEnum)request.PayrollTypeId;
+
         var payrollUpdate = new PayrollUpdate
         {
             Name = request.Name.Trim(),
-            PayrollTypeId = (PayrollUpdate.PayrollTypeEnum)request.PayrollTypeId,
-            FormulaTypeId = (PayrollUpdate.FormulaTypeEnum)request.FormulaTypeId,
-            Formula = request.Formula.Trim(),
-            IpsDeductible = request.IpsDeductible
+            PayrollTypeId = payrollType,
+            FormulaTypeId = formulaType,
+            Formula = formulaType == PayrollUpdate.FormulaTypeEnum.Fixed
+                ? null
+                : request.Formula!.Trim(),
+            IpsDeductible = payrollType == PayrollUpdate.PayrollTypeEnum.Deductions ? false : request.IpsDeductible
         };
 
         _context.PayrollUpdates.Add(payrollUpdate);
@@ -65,9 +70,6 @@ public class PayrollUpdateService(AppDbContext context, FormulaEvaluatorService 
         if (string.IsNullOrWhiteSpace(request.Name))
             errors["Name"] = [PayrollUpdateError.NameRequired];
 
-        if (string.IsNullOrWhiteSpace(request.Formula))
-            errors["Formula"] = [PayrollUpdateError.FormulaRequired];
-
         if (!Enum.IsDefined(typeof(PayrollUpdate.PayrollTypeEnum), request.PayrollTypeId))
             errors["PayrollTypeId"] = [PayrollUpdateError.InvalidPayrollType];
 
@@ -80,12 +82,13 @@ public class PayrollUpdateService(AppDbContext context, FormulaEvaluatorService 
 
             if (formulaType == PayrollUpdate.FormulaTypeEnum.Fixed)
             {
-                if (!decimal.TryParse(request.Formula, NumberStyles.Number, CultureInfo.InvariantCulture, out _))
-                    errors["Formula"] = [PayrollUpdateError.FixedFormulaMustBeNumeric];
+                return Result.Success();
             }
             else if (formulaType == PayrollUpdate.FormulaTypeEnum.Calculated)
             {
-                if (!TryValidateCalculatedFormula(request.Formula))
+                if (string.IsNullOrWhiteSpace(request.Formula))
+                    errors["Formula"] = [PayrollUpdateError.FormulaRequiredForCalculated];
+                else if (!TryValidateCalculatedFormula(request.Formula))
                     errors["Formula"] = [PayrollUpdateError.CalculatedFormulaIsInvalid];
             }
         }
@@ -144,8 +147,8 @@ public class PayrollUpdateService(AppDbContext context, FormulaEvaluatorService 
     {
         return payrollTypeId switch
         {
-            PayrollUpdate.PayrollTypeEnum.Earnings => "Earnings",
-            PayrollUpdate.PayrollTypeEnum.Deductions => "Deductions",
+            PayrollUpdate.PayrollTypeEnum.Earnings => "Haberes",
+            PayrollUpdate.PayrollTypeEnum.Deductions => "Descuentos",
             _ => "Unknown"
         };
     }
@@ -154,8 +157,8 @@ public class PayrollUpdateService(AppDbContext context, FormulaEvaluatorService 
     {
         return formulaTypeId switch
         {
-            PayrollUpdate.FormulaTypeEnum.Fixed => "Fixed",
-            PayrollUpdate.FormulaTypeEnum.Calculated => "Calculated",
+            PayrollUpdate.FormulaTypeEnum.Fixed => "Fijo",
+            PayrollUpdate.FormulaTypeEnum.Calculated => "Calculado",
             _ => "Unknown"
         };
     }

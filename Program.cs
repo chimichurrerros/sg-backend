@@ -61,6 +61,7 @@ builder.Services.AddScoped<PositionService>();
 builder.Services.AddScoped<ScheduleService>();
 builder.Services.AddSingleton<FormulaEvaluatorService>();
 builder.Services.AddScoped<PayrollUpdateService>();
+builder.Services.AddScoped<PayrollProcessingService>();
 builder.Services.AddScoped<IEmployeeAssignmentService, EmployeeAssignmentService>();
 // ------------------------------------------------------------------------------------------------------
 // Authorization configuration
