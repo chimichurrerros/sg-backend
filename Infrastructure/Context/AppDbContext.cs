@@ -87,6 +87,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<PayrollProcessDetail> PayrollProcessDetails { get; set; }
 
+    public virtual DbSet<ManualConceptIncident> ManualConceptIncidents { get; set; }
+
     public virtual DbSet<PayrollStatus> PayrollStatuses { get; set; }
 
     public virtual DbSet<PayrollUpdate> PayrollUpdates { get; set; }
@@ -702,6 +704,30 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.PayrollUpdateId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PayrollProcessDetails_PayrollUpdateId_fkey");
+        });
+
+        modelBuilder.Entity<ManualConceptIncident>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("ManualConceptIncidents_pkey");
+
+            entity.Property(e => e.Amount).HasPrecision(15, 2);
+            entity.Property(e => e.OccurrenceDate).HasColumnType("date");
+            entity.Property(e => e.Status).HasConversion<int>();
+
+            entity.HasOne(d => d.Employee).WithMany()
+                .HasForeignKey(d => d.EmployeeId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("ManualConceptIncidents_EmployeeId_fkey");
+
+            entity.HasOne(d => d.PayrollUpdate).WithMany()
+                .HasForeignKey(d => d.PayrollUpdateId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("ManualConceptIncidents_PayrollUpdateId_fkey");
+
+            entity.HasOne(d => d.PayrollProcess).WithMany()
+                .HasForeignKey(d => d.PayrollProcessId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("ManualConceptIncidents_PayrollProcessId_fkey");
         });
 
         modelBuilder.Entity<PayrollStatus>(entity =>

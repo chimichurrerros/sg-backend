@@ -14,6 +14,100 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
     private readonly AppDbContext _context = context;
     private readonly FormulaEvaluatorService _formulaEvaluator = formulaEvaluator;
 
+    public async Task<Result<ManualConceptIncidentResponseDto>> CreateManualConceptIncidentAsync(ManualConceptIncidentCreateDto request)
+    {
+        var employee = await _context.Employees
+            .AsNoTracking()
+            .FirstOrDefaultAsync(employee => employee.Id == request.EmployeeId);
+
+        if (employee is null)
+            return Result<ManualConceptIncidentResponseDto>.Failure("The requested employee was not found", ErrorType.NotFound);
+
+        var payrollUpdate = await _context.PayrollUpdates
+            .AsNoTracking()
+            .FirstOrDefaultAsync(payrollUpdate => payrollUpdate.Id == request.PayrollUpdateId);
+
+        if (payrollUpdate is null)
+            return Result<ManualConceptIncidentResponseDto>.Failure(PayrollUpdateError.PayrollUpdateNotFound, ErrorType.NotFound);
+
+        if (payrollUpdate.FormulaTypeId != PayrollUpdate.FormulaTypeEnum.Fixed)
+            return Result<ManualConceptIncidentResponseDto>.Failure(ManualConceptIncidentError.ManualConceptMustBeFixed, ErrorType.Validation);
+
+        var incident = new ManualConceptIncident
+        {
+            EmployeeId = request.EmployeeId,
+            PayrollUpdateId = request.PayrollUpdateId,
+            Amount = request.Amount,
+            OccurrenceDate = request.OccurrenceDate,
+            Status = ManualConceptIncident.ManualConceptStatus.Pending,
+            PayrollProcessId = null
+        };
+
+        _context.ManualConceptIncidents.Add(incident);
+        await _context.SaveChangesAsync();
+
+        return Result<ManualConceptIncidentResponseDto>.Success(new ManualConceptIncidentResponseDto
+        {
+            Id = incident.Id,
+            EmployeeId = employee.Id,
+            EmployeeFullName = $"{employee.Name} {employee.Lastname}",
+            PayrollUpdateId = payrollUpdate.Id,
+            ConceptName = payrollUpdate.Name,
+            PayrollTypeName = GetManualPayrollTypeName(payrollUpdate.PayrollTypeId),
+            Amount = incident.Amount,
+            OccurrenceDate = incident.OccurrenceDate,
+            StatusName = nameof(ManualConceptIncident.ManualConceptStatus.Pending),
+            PayrollProcessId = incident.PayrollProcessId
+        });
+    }
+
+    public async Task<Result<List<ManualConceptIncidentResponseDto>>> GetPendingManualConceptIncidentsAsync()
+    {
+        var incidents = await _context.ManualConceptIncidents
+            .AsNoTracking()
+            .Where(incident => incident.Status == ManualConceptIncident.ManualConceptStatus.Pending)
+            .OrderBy(incident => incident.OccurrenceDate)
+            .ThenBy(incident => incident.Employee.Name)
+            .ThenBy(incident => incident.PayrollUpdate.Name)
+            .Select(incident => new ManualConceptIncidentResponseDto
+            {
+                Id = incident.Id,
+                EmployeeId = incident.EmployeeId,
+                EmployeeFullName = incident.Employee.Name + " " + incident.Employee.Lastname,
+                PayrollUpdateId = incident.PayrollUpdateId,
+                ConceptName = incident.PayrollUpdate.Name,
+                PayrollTypeName = GetManualPayrollTypeName(incident.PayrollUpdate.PayrollTypeId),
+                Amount = incident.Amount,
+                OccurrenceDate = incident.OccurrenceDate,
+                StatusName = nameof(ManualConceptIncident.ManualConceptStatus.Pending),
+                PayrollProcessId = incident.PayrollProcessId
+            })
+            .ToListAsync();
+
+        return Result<List<ManualConceptIncidentResponseDto>>.Success(incidents);
+    }
+
+    public async Task<Result> UpdatePayrollProcessStatusAsync(int payrollProcessId, UpdatePayrollProcessStatusRequestDto request)
+    {
+        var process = await _context.PayrollProcesses.FirstOrDefaultAsync(payrollProcess => payrollProcess.Id == payrollProcessId);
+        if (process is null)
+            return Result.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
+
+        var status = await _context.PayrollStatuses.FirstOrDefaultAsync(status => status.Id == request.PayrollStatusId);
+        if (status is null)
+            return Result.Failure(PayrollProcessError.PayrollProcessStatusNotFound, ErrorType.NotFound);
+
+        process.PayrollStatusId = status.Id;
+
+        if (IsFinalPayrollStatus(status.Name))
+        {
+            await AssignPendingManualConceptIncidentsAsync(process.Id);
+        }
+
+        await _context.SaveChangesAsync();
+        return Result.Success();
+    }
+
     public async Task<Result<PayrollManualDetailResponseDto>> UpsertManualDetailAsync(int payrollProcessId, PayrollManualInputDto request)
     {
         var process = await _context.PayrollProcesses.FirstOrDefaultAsync(payrollProcess => payrollProcess.Id == payrollProcessId);
@@ -169,6 +263,23 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             .OrderBy(employee => employee.Id)
             .ToListAsync();
 
+        var employeeIds = employees.Select(employee => employee.Id).ToList();
+
+        var pendingIncidents = await _context.ManualConceptIncidents
+            .Where(incident =>
+                incident.Status == ManualConceptIncident.ManualConceptStatus.Pending &&
+                employeeIds.Contains(incident.EmployeeId) &&
+                (incident.PayrollProcessId == null || incident.PayrollProcessId == process.Id))
+            .OrderBy(incident => incident.EmployeeId)
+            .ThenBy(incident => incident.PayrollUpdateId)
+            .ThenBy(incident => incident.OccurrenceDate)
+            .ThenBy(incident => incident.Id)
+            .ToListAsync();
+
+        var incidentsByEmployeeAndUpdate = pendingIncidents
+            .GroupBy(incident => (incident.EmployeeId, incident.PayrollUpdateId))
+            .ToDictionary(group => group.Key, group => group.ToList());
+
         var existingDetails = await _context.PayrollProcessDetails
             .Where(detail => detail.PayrollProcessId == process.Id)
             .ToListAsync();
@@ -212,7 +323,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
 
                 foreach (var update in earningsUpdates)
                 {
-                    var amount = await ResolvePayrollUpdateAmountAsync(process.Id, employee, update, variables, detailsByKey);
+                    var amount = await ResolvePayrollUpdateAmountAsync(process.Id, employee, update, variables, detailsByKey, incidentsByEmployeeAndUpdate);
 
                     totalHaberes += amount;
 
@@ -228,7 +339,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
 
                 foreach (var update in deductionsUpdates)
                 {
-                    var amount = await ResolvePayrollUpdateAmountAsync(process.Id, employee, update, variables, detailsByKey);
+                    var amount = await ResolvePayrollUpdateAmountAsync(process.Id, employee, update, variables, detailsByKey, incidentsByEmployeeAndUpdate);
 
                     totalDescuentos += amount;
 
@@ -260,6 +371,8 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             response.EmployeesProcessed = response.Employees.Count;
 
             process.PayrollStatusId = processedStatusId.Value;
+
+            await LinkPendingIncidentsToProcessAsync(process.Id, pendingIncidents);
 
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -293,17 +406,41 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         Employee employee,
         PayrollUpdate payrollUpdate,
         Dictionary<string, decimal> variables,
-        Dictionary<(int EmployeeId, int PayrollUpdateId), PayrollProcessDetail> detailsByKey)
+        Dictionary<(int EmployeeId, int PayrollUpdateId), PayrollProcessDetail> detailsByKey,
+        Dictionary<(int EmployeeId, int PayrollUpdateId), List<ManualConceptIncident>> incidentsByEmployeeAndUpdate)
     {
         var key = (employee.Id, payrollUpdate.Id);
         var existingDetail = detailsByKey.TryGetValue(key, out var detail) ? detail : null;
 
         if (payrollUpdate.FormulaTypeId == PayrollUpdate.FormulaTypeEnum.Fixed)
         {
-            if (existingDetail is null)
+            if (!incidentsByEmployeeAndUpdate.TryGetValue(key, out var incidents) || incidents.Count == 0)
                 throw new InvalidOperationException($"{PayrollProcessError.ManualAmountRequired} ({payrollUpdate.Name} - {employee.Name} {employee.Lastname})");
 
-            return existingDetail.Amount;
+            var manualAmount = incidents.Sum(incident => incident.Amount);
+
+            if (existingDetail is null)
+            {
+                existingDetail = new PayrollProcessDetail
+                {
+                    PayrollProcessId = payrollProcessId,
+                    EmployeeId = employee.Id,
+                    PayrollUpdateId = payrollUpdate.Id,
+                    Amount = manualAmount
+                };
+
+                _context.PayrollProcessDetails.Add(existingDetail);
+                detailsByKey[key] = existingDetail;
+            }
+            else
+            {
+                existingDetail.Amount = manualAmount;
+            }
+
+            foreach (var incident in incidents)
+                incident.PayrollProcessId = payrollProcessId;
+
+            return manualAmount;
         }
 
         if (string.IsNullOrWhiteSpace(payrollUpdate.Formula))
@@ -330,6 +467,37 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         }
 
         return amount;
+    }
+
+    private async Task LinkPendingIncidentsToProcessAsync(int payrollProcessId, List<ManualConceptIncident> pendingIncidents)
+    {
+        if (pendingIncidents.Count == 0)
+            return;
+
+        foreach (var incident in pendingIncidents)
+        {
+            incident.PayrollProcessId = payrollProcessId;
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private async Task AssignPendingManualConceptIncidentsAsync(int payrollProcessId)
+    {
+        var incidents = await _context.ManualConceptIncidents
+            .Where(incident => incident.PayrollProcessId == payrollProcessId && incident.Status == ManualConceptIncident.ManualConceptStatus.Pending)
+            .ToListAsync();
+
+        foreach (var incident in incidents)
+        {
+            incident.Status = ManualConceptIncident.ManualConceptStatus.Assigned;
+        }
+    }
+
+    private static bool IsFinalPayrollStatus(string statusName)
+    {
+        return statusName.Equals("Cerrado", StringComparison.OrdinalIgnoreCase)
+            || statusName.Equals("Pagado", StringComparison.OrdinalIgnoreCase);
     }
 
     private void UpsertDetail(
