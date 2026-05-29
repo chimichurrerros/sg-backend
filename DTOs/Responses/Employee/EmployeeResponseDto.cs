@@ -18,6 +18,7 @@ public class EmployeeResponseDto
     public string? Email { get; set; }
     public bool IsActive { get; set; }
     public int AreaId { get; set; }
+    public string AreaName { get; set; } = null!;
     public int? BranchId { get; set; }
     public int? InmediatlyBossId { get; set; }
     public DateOnly HireDate { get; set; }
@@ -26,6 +27,10 @@ public class EmployeeResponseDto
     // From PositionByScheduleByEmployee (latest)
     public decimal? BaseSalary { get; set; }
     public DateOnly? PositionStartDate { get; set; }
+    public int? PositionId { get; set; }
+    public string? PositionName { get; set; }
+    public int? ScheduleId { get; set; }
+    public string? ScheduleName { get; set; }
 
 }
 
