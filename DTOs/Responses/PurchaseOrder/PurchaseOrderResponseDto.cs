@@ -23,12 +23,13 @@ public class PurchaseOrderResponseDto
     public int Id { get; set; }
     public int PurchaseRequestId { get; set; }
     public int SupplierId { get; set; }
+    public BackEnd.DTOs.Responses.Supplier.SupplierResponseDto? Supplier { get; set; }
     public string? SupplierName { get; set; }
     public int? SupplierQuoteId { get; set; }
     public string Number { get; set; } = null!;
     public DateTime Date { get; set; }
     public decimal Total { get; set; }
-    public BackEnd.Models.PurchaseOrder.PurchaseOrderStateEnum State { get; set; }
+    public PurchaseOrderStateEnum State { get; set; }
     public List<PurchaseOrderDetailResponseDto> Details { get; set; } = [];
 }
 

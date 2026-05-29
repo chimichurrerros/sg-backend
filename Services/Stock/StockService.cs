@@ -82,7 +82,7 @@ public class StockService(AppDbContext context, IMapper mapper)
         return await GetByIdAsync(stock.Id);
     }
 
-    public async Task<Result> DecreaseStockAsync(int productId, int branchId, decimal quantity)
+    public async Task<Result> DecreaseStockAsync(int productId, int branchId, decimal? quantity)
     {
         if (quantity <= 0)
             return Result.Failure(StockError.QuantityMustBeGreaterThanZero, ErrorType.Validation);
@@ -96,14 +96,17 @@ public class StockService(AppDbContext context, IMapper mapper)
             {
                 ProductId = productId,
                 BranchId = branchId,
-                Quantity = -quantity
+                Quantity = quantity != null ? -quantity : null 
             };
             _context.Stocks.Add(stock);
         }
         else
         {
-            stock.Quantity -= quantity;
-            _context.Stocks.Update(stock);
+            if (quantity != null)
+            {
+                stock.Quantity -= quantity;
+                _context.Stocks.Update(stock);
+            }
         }
 
         await _context.SaveChangesAsync();

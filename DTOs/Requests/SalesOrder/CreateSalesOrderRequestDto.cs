@@ -17,6 +17,7 @@ public class CreateSalesOrderRequestDto
     public int AccountId { get; set; }
     public int MovementType { get; set; }
     public int BranchId { get; set; }
+    public decimal ImportValue {get; set;}
 
     public List<CreateSalesOrderDetailRequestDto> Details { get; set; } = new();
 }

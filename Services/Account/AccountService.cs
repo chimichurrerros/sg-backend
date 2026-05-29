@@ -62,10 +62,6 @@ public class AccountService(AppDbContext context, IMapper mapper)
     {
         var newAccount = _mapper.Map<Account>(request);
 
-        // REGLA DE NEGOCIO: Una cuenta nueva siempre nace con saldo 0
-        newAccount.CurrentBalance = 0;
-        newAccount.AvailableBalance = 0;
-
         _context.Accounts.Add(newAccount);
         await _context.SaveChangesAsync();
 
@@ -88,21 +84,36 @@ public class AccountService(AppDbContext context, IMapper mapper)
         return await GetByIdAsync(account.Id);
     }
 
-    public async Task<Result> DeleteAsync(int id)
-    {
-        var account = await _context.Accounts.FindAsync(id);
+    // public async Task<Result> DeleteAsync(int id)
+    // {
+    //     var account = await _context.Accounts.FindAsync(id);
 
-        if (account == null)
-            return Result.Failure(ApplicationError.NotFound, ErrorType.NotFound);
+    //     if (account == null)
+    //         return Result.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
-        // REGLA DE NEGOCIO: No se puede borrar una cuenta si ya tiene movimientos
-        var hasMovements = await _context.BankMovements.AnyAsync(bm => bm.AccountId == id);
-        if (hasMovements)
-            return Result.Failure("No se puede eliminar la cuenta porque ya tiene movimientos registrados.", ErrorType.Validation);
+    //     // REGLA DE NEGOCIO: No se puede borrar una cuenta si ya tiene movimientos
+    //     var hasMovements = await _context.BankMovements.AnyAsync(bm => bm.AccountId == id);
+    //     if (hasMovements)
+    //         return Result.Failure("No se puede eliminar la cuenta porque ya tiene movimientos registrados.", ErrorType.Validation);
 
-        _context.Accounts.Remove(account);
-        await _context.SaveChangesAsync();
+    //     _context.Accounts.Remove(account);
+    //     await _context.SaveChangesAsync();
 
-        return Result.Success();
-    }
+    //     return Result.Success();
+    // }
+
+    public async Task<Result> ToggleStatusAsync(int id)
+	{
+		var account = await _context.Accounts.FirstOrDefaultAsync(u => u.Id == id);
+
+		if (account == null)
+			return Result.Failure(ApplicationError.NotFound, ErrorType.NotFound);
+
+		account.IsActive = !account.IsActive;
+
+		_context.Accounts.Update(account);
+		await _context.SaveChangesAsync();
+
+		return Result.Success();
+	}
 }

@@ -17,8 +17,7 @@ public class CustomerService(AppDbContext context, IMapper mapper)
 
     public async Task<Result<ListCustomersWrapperDto>> GetAllAsync()
     {
-        var products = await _context.Products
-            .AsNoTracking()
+        var products = await _context.Customers
             .ProjectTo<CustomerResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
@@ -110,8 +109,10 @@ public class CustomerService(AppDbContext context, IMapper mapper)
 
         try
         {
-            customer.Name = request.Name;
-            customer.Ruc = request.Ruc;
+            if (request.Name is not null)
+                customer.Name = request.Name;
+            if (request.Ruc is not null)
+                customer.Ruc = request.Ruc;
 
             await _context.SaveChangesAsync();
 
@@ -156,16 +157,19 @@ public class CustomerService(AppDbContext context, IMapper mapper)
     {
         var errors = new Dictionary<string, string[]>();
 
-        if (string.IsNullOrWhiteSpace(request.Name))
+        if (request.Name is not null && string.IsNullOrWhiteSpace(request.Name))
             errors[nameof(request.Name)] = [CustomerError.NameRequired];
 
-        if (string.IsNullOrWhiteSpace(request.Ruc))
-            errors[nameof(request.Ruc)] = [CustomerError.RucRequired];
-        else
+        if (request.Ruc is not null)
         {
-            var rucExists = await _context.Customers.AnyAsync(c =>
-                c.Ruc == request.Ruc && c.Id != currentEntityId);
-            if (rucExists) errors[nameof(request.Ruc)] = [CustomerError.RucAlreadyExists];
+            if (string.IsNullOrWhiteSpace(request.Ruc))
+                errors[nameof(request.Ruc)] = [CustomerError.RucRequired];
+            else
+            {
+                var rucExists = await _context.Customers.AnyAsync(c =>
+                    c.Ruc == request.Ruc && c.Id != currentEntityId);
+                if (rucExists) errors[nameof(request.Ruc)] = [CustomerError.RucAlreadyExists];
+            }
         }
 
         if (errors.Count > 0)

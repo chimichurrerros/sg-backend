@@ -15,8 +15,7 @@ namespace BackEnd.Migrations
                 name: "BankMovementId",
                 table: "Checks",
                 type: "integer",
-                nullable: false,
-                defaultValue: 0);
+                nullable: true);
 
             migrationBuilder.AddColumn<DateOnly>(
                 name: "ConciliationDate",

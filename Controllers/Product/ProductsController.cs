@@ -17,9 +17,9 @@ public class ProductsController(ProductsService productsService) : ControllerBas
     private readonly ProductsService _productsService = productsService;
 
     [HttpGet]
-    public async Task<ActionResult<ListProductsWrapperDto>> GetListProducts([FromQuery] PaginationRequestDto pagination)
+    public async Task<ActionResult<ListProductsWrapperDto>> GetListProducts([FromQuery] ProductQueryDto query)
     {
-        var result = await _productsService.GetListAsync(pagination);
+        var result = await _productsService.GetListAsync(query);
 
         if (result.IsSuccess)
             return Ok(result.Value);
@@ -91,6 +91,29 @@ public class ProductsController(ProductsService productsService) : ControllerBas
         if (result.ErrorType == ErrorType.NotFound)
             return this.HandleNotFoundProblem(result);
 
+        return StatusCode(500);
+    }
+
+    [HttpGet("{id}/suppliers")]
+    public async Task<ActionResult<ProductWrapperDto>> GetSuppliers(int id)
+    {
+        var result = await _productsService.GetAllSuppliers(id);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        return StatusCode(500);
+    }
+
+    [HttpGet("by-branch/{branchId}")]
+    public async Task<ActionResult<ListProductsStockWrapperDto>> GetProductsByBranch(int branchId)
+    {
+        var result = await _productsService.GetByBranchIdAsync(branchId);
+        if (result.IsSuccess)
+            return Ok(result.Value);
         return StatusCode(500);
     }
 }

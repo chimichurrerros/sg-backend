@@ -6,7 +6,7 @@ namespace BackEnd.DTOs.Requests.SalesOrder;
 
 public class CreatePosSaleRequestDto
 {
-    public PosSaleCustomerRequestDto Customer { get; set; } = new();
+    public PosSaleCustomerRequestDto? Customer { get; set; } = new();
     public PosSaleDataRequestDto Sale { get; set; } = new();
     public PosSalePayRequestDto Pay { get; set; } = new();
     public List<PosSaleProductRequestDto> Products { get; set; } = new();
@@ -22,7 +22,6 @@ public class PosSaleCustomerRequestDto
 public class PosSaleDataRequestDto
 {
     public BillTypeEnum? Bill { get; set; }
-    public int? SaleNumber { get; set; }
     public DateTime? Date { get; set; }
     public int? CashierNumber { get; set; }
     public int? BranchId { get; set; }
@@ -50,6 +49,7 @@ public class PosSaleTotalsRequestDto
     public decimal Total { get; set; }
     public decimal Amount { get; set; }
     public decimal Change { get; set; }
+    public decimal ImportValue {get; set;}
 }
 
 public enum PosPaymentMethod

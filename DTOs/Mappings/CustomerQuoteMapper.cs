@@ -1,4 +1,3 @@
-using BackEnd.DTOs.Requests.CustomerQuote;
 using BackEnd.DTOs.Responses.CustomerQuote;
 using BackEnd.Models;
 
@@ -8,32 +7,6 @@ public class CustomerQuoteMapper : AutoMapper.Profile
 {
     public CustomerQuoteMapper()
     {
-        CreateMap<CustomerQuoteDetailRequestDto, CustomerQuoteDetail>()
-            .ForMember(dest => dest.Id, opt => opt.Ignore())
-            .ForMember(dest => dest.CustomerQuoteId, opt => opt.Ignore())
-            .ForMember(dest => dest.CustomerQuote, opt => opt.Ignore())
-            .ForMember(dest => dest.Product, opt => opt.Ignore());
-
-        CreateMap<CreateCustomerQuoteRequestDto, CustomerQuote>()
-            .ForMember(dest => dest.Id, opt => opt.Ignore())
-            .ForMember(dest => dest.Date, opt => opt.MapFrom(_ => DateTime.UtcNow))
-            .ForMember(dest => dest.Total, opt => opt.Ignore())
-            .ForMember(dest => dest.Status, opt => opt.Ignore())
-            .ForMember(dest => dest.CustomerQuoteDetails, opt => opt.MapFrom(src => src.Details))
-            .ForMember(dest => dest.Customer, opt => opt.Ignore())
-            .ForMember(dest => dest.User, opt => opt.Ignore())
-            .ForMember(dest => dest.SalesOrders, opt => opt.Ignore());
-
-        CreateMap<UpdateCustomerQuoteRequestDto, CustomerQuote>()
-            .ForMember(dest => dest.Id, opt => opt.Ignore())
-            .ForMember(dest => dest.Date, opt => opt.Ignore())
-            .ForMember(dest => dest.Total, opt => opt.Ignore())
-            .ForMember(dest => dest.Status, opt => opt.Ignore())
-            .ForMember(dest => dest.CustomerQuoteDetails, opt => opt.MapFrom(src => src.Details))
-            .ForMember(dest => dest.Customer, opt => opt.Ignore())
-            .ForMember(dest => dest.User, opt => opt.Ignore())
-            .ForMember(dest => dest.SalesOrders, opt => opt.Ignore());
-
         CreateMap<CustomerQuoteDetail, CustomerQuoteDetailResponseDto>()
             .ForMember(dest => dest.ProductName,
                 opt => opt.MapFrom(src => src.Product != null ? src.Product.Name : null));
@@ -44,7 +17,9 @@ public class CustomerQuoteMapper : AutoMapper.Profile
             .ForMember(dest => dest.UserName,
                 opt => opt.MapFrom(src => src.User != null ? $"{src.User.Name} {src.User.LastName}".Trim() : null))
             .ForMember(dest => dest.Details,
-                opt => opt.MapFrom(src => src.CustomerQuoteDetails));
+                opt => opt.MapFrom(src => src.CustomerQuoteDetails))
+            .ForMember(dest => dest.AssociatedSalesOrderId,
+                opt => opt.MapFrom(src => (src.SalesOrders != null && src.SalesOrders.Any()) ? (int?)src.SalesOrders.OrderByDescending(o => o.Id).First().Id : null));
 
         CreateMap<CustomerQuote, CustomerQuoteWrapperDto>()
             .ForMember(dest => dest.CustomerQuote,

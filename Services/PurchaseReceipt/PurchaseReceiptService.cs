@@ -1,4 +1,6 @@
 using BackEnd.Constants.Errors;
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using BackEnd.DTOs.Requests.PurchaseReceipt;
 using BackEnd.DTOs.Responses.Bill;
 using BackEnd.Infrastructure.Context;
@@ -11,11 +13,15 @@ namespace BackEnd.Services;
 public class PurchaseReceiptService(
     AppDbContext context,
     StockService stockService,
-    BillService billService)
+    BillService billService,
+    PaymentOrderService paymentOrderService,
+    IMapper mapper)
 {
     private readonly AppDbContext _context = context;
     private readonly StockService _stockService = stockService;
     private readonly BillService _billService = billService;
+    private readonly PaymentOrderService _paymentOrderService = paymentOrderService;
+    private readonly IMapper _mapper = mapper;
 
     public async Task<Result<BillWrapperDto>> ReceivePurchaseOrderAsync(CreatePurchaseReceiptDto request)
     {
@@ -29,6 +35,13 @@ public class PurchaseReceiptService(
         if (purchaseOrder == null)
             return Result<BillWrapperDto>.Failure(PurchaseReceiptError.PurchaseOrderNotFound, ErrorType.NotFound);
 
+        var paymentConfirmationResult = await _paymentOrderService.IsPaymentConfirmedAsync(request.PurchaseOrderId);
+        if (!paymentConfirmationResult.IsSuccess)
+            return Result<BillWrapperDto>.Failure(paymentConfirmationResult.ErrorMessage!, paymentConfirmationResult.ErrorType);
+
+        // if (!paymentConfirmationResult.Value)
+        //     return Result<BillWrapperDto>.Failure(PurchaseReceiptError.PaymentNotConfirmed, ErrorType.Validation);
+
         using var transaction = await _context.Database.BeginTransactionAsync();
 
         try
@@ -40,7 +53,7 @@ public class PurchaseReceiptService(
             foreach (var detail in request.Details)
             {
                 var poDetail = purchaseOrder.PurchaseOrderDetails.FirstOrDefault(d => d.ProductId == detail.ProductId);
-                
+
                 if (poDetail == null)
                 {
                     await transaction.RollbackAsync();
@@ -48,7 +61,7 @@ public class PurchaseReceiptService(
                 }
 
                 decimal pendingQuantity = poDetail.QuantityOrdered - poDetail.QuantityReceived;
-                
+
                 if (detail.Quantity > pendingQuantity)
                 {
                     await transaction.RollbackAsync();
@@ -74,6 +87,13 @@ public class PurchaseReceiptService(
                 taxTotal += lineTax;
             }
 
+            var allReceived = purchaseOrder.PurchaseOrderDetails.All(d => d.QuantityReceived >= d.QuantityOrdered);
+            purchaseOrder.State = allReceived
+                ? PurchaseOrderStateEnum.Received
+                : PurchaseOrderStateEnum.PartiallyReceived;
+
+            _context.PurchaseOrders.Update(purchaseOrder);
+
             await _context.SaveChangesAsync();
 
             // 3. Crear Factura (Bill) de tipo Compra
@@ -98,7 +118,7 @@ public class PurchaseReceiptService(
             foreach (var detail in request.Details)
             {
                 var poDetail = purchaseOrder.PurchaseOrderDetails.First(d => d.ProductId == detail.ProductId);
-                
+
                 var billDetail = new BillDetail
                 {
                     BillId = bill.Id,
@@ -120,5 +140,17 @@ public class PurchaseReceiptService(
             await transaction.RollbackAsync();
             return Result<BillWrapperDto>.Failure($"{PurchaseReceiptError.ProcessFailed}: {ex.Message}", ErrorType.Unexpected);
         }
+    }
+
+    public async Task<Result<ListBillsWrapperDto>> GetAllAsync()
+    {
+        var bills = await _context.Bills
+            .AsNoTracking()
+            .Where(b => b.PurchaseOrderId != null)
+            .OrderByDescending(b => b.Id)
+            .ProjectTo<BillResponseDto>(_mapper.ConfigurationProvider)
+            .ToListAsync();
+
+        return Result<ListBillsWrapperDto>.Success(new ListBillsWrapperDto { Bills = bills });
     }
 }

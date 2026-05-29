@@ -398,8 +398,10 @@ namespace BackEnd.Migrations
                     b.Property<DateOnly>("AvailabilityDate")
                         .HasColumnType("date");
 
-                    b.Property<int>("BankMovementId")
+                    b.Property<int?>("BankMovementId")
                         .HasColumnType("integer");
+                    b.Property<DateOnly?>("ConciliationDate")
+                        .HasColumnType("date");
 
                     b.Property<DateOnly?>("ConciliationDate")
                         .HasColumnType("date");
@@ -2050,8 +2052,7 @@ namespace BackEnd.Migrations
                     b.HasOne("BackEnd.Models.BankMovement", "BankMovement")
                         .WithOne("Check")
                         .HasForeignKey("BackEnd.Models.Check", "BankMovementId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("BankMovement");
                 });

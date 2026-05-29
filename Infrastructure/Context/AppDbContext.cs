@@ -37,6 +37,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Branch> Branches { get; set; }
 
+    public virtual DbSet<BranchDepartment> BranchDepartments { get; set; }
+
     public virtual DbSet<Check> Checks { get; set; }
 
     public virtual DbSet<CreditNote> CreditNotes { get; set; }
@@ -53,7 +55,7 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Employee> Employees { get; set; }
 
-    public virtual DbSet<EmployeeKid> EmployeeKids { get; set; }
+    public virtual DbSet<EmployeeRelation> EmployeeRelations { get; set; }
 
     public virtual DbSet<Entity> Entities { get; set; }
 
@@ -67,15 +69,9 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<EntryModelDetail> EntryModelDetails { get; set; }
 
-    public virtual DbSet<FormulaType> FormulaTypes { get; set; }
-
-    public virtual DbSet<Gender> Genders { get; set; }
-
     public virtual DbSet<LegalPerson> LegalPersons { get; set; }
 
     // public virtual DbSet<Lote> Lotes { get; set; }
-
-    public virtual DbSet<MaritalStatus> MaritalStatuses { get; set; }
 
     public virtual DbSet<Module> Modules { get; set; }
 
@@ -85,13 +81,15 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<PaymentOrderMovement> PaymentOrderMovements { get; set; }
 
+    public virtual DbSet<PaymentOrderCreditNote> PaymentOrderCreditNotes { get; set; }
+
     public virtual DbSet<PayrollProcess> PayrollProcesses { get; set; }
 
     public virtual DbSet<PayrollProcessDetail> PayrollProcessDetails { get; set; }
 
-    public virtual DbSet<PayrollStatus> PayrollStatuses { get; set; }
+    public virtual DbSet<ManualConceptIncident> ManualConceptIncidents { get; set; }
 
-    public virtual DbSet<PayrollType> PayrollTypes { get; set; }
+    public virtual DbSet<PayrollStatus> PayrollStatuses { get; set; }
 
     public virtual DbSet<PayrollUpdate> PayrollUpdates { get; set; }
 
@@ -100,8 +98,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Position> Positions { get; set; }
 
     public virtual DbSet<PositionByScheduleByEmployee> PositionByScheduleByEmployees { get; set; }
-
-    public virtual DbSet<ProcessType> ProcessTypes { get; set; }
 
     public virtual DbSet<Product> Products { get; set; }
 
@@ -112,6 +108,12 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<PurchaseOrder> PurchaseOrders { get; set; }
 
     public virtual DbSet<PurchaseOrderDetail> PurchaseOrderDetails { get; set; }
+
+    public virtual DbSet<PurchaseReturn> PurchaseReturns { get; set; }
+
+    public virtual DbSet<PurchaseReturnDetail> PurchaseReturnDetails { get; set; }
+
+    public virtual DbSet<PurchaseReturnReason> PurchaseReturnReasons { get; set; }
 
     public virtual DbSet<PurchaseRequest> PurchaseRequests { get; set; }
 
@@ -124,8 +126,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<SalesOrderDetail> SalesOrderDetails { get; set; }
 
     public virtual DbSet<Schedule> Schedules { get; set; }
-
-    public virtual DbSet<ScheduleType> ScheduleTypes { get; set; }
 
     public virtual DbSet<State> States { get; set; }
 
@@ -368,6 +368,11 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone");
             entity.Property(e => e.Total).HasPrecision(15, 2);
+            entity.Property(e => e.ImportValue).HasPrecision(15, 2);
+            entity.Property(e => e.Number).HasMaxLength(50);
+            entity.Property(e => e.PaymentMethod).HasConversion<int>();
+            entity.Property(e => e.SaleCondition).HasConversion<int>();
+            entity.Property(e => e.BillType).HasColumnType("bill_type_enum");
 
             entity.HasOne(d => d.Customer).WithMany(p => p.CustomerQuotes)
                 .HasForeignKey(d => d.CustomerId)
@@ -378,6 +383,11 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("CustomerQuotes_UserId_fkey");
+
+            entity.HasOne(d => d.Branch).WithMany()
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("CustomerQuotes_BranchId_fkey");
         });
 
         modelBuilder.Entity<CustomerQuoteDetail>(entity =>
@@ -403,46 +413,85 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("Departments_pkey");
 
             entity.Property(e => e.Name).HasMaxLength(100);
+        });
 
-            entity.HasOne(d => d.Boss).WithMany(p => p.Departments)
+        modelBuilder.Entity<BranchDepartment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("BranchDepartments_pkey");
+
+            entity.HasIndex(e => new { e.BranchId, e.DepartmentId }).IsUnique();
+
+            entity.HasOne(d => d.Branch).WithMany(p => p.BranchDepartments)
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("BranchDepartments_BranchId_fkey");
+
+            entity.HasOne(d => d.Department).WithMany(p => p.BranchDepartments)
+                .HasForeignKey(d => d.DepartmentId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("BranchDepartments_DepartmentId_fkey");
+
+            entity.HasOne(d => d.Boss).WithMany()
                 .HasForeignKey(d => d.BossId)
-                .HasConstraintName("FkDepartmentsBoss");
+                .HasConstraintName("BranchDepartments_BossId_fkey");
         });
 
         modelBuilder.Entity<Employee>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("Employees_pkey");
 
+            entity.Property(e => e.Address).HasMaxLength(255);
+            entity.Property(e => e.DocumentNumber).HasMaxLength(50);
+            entity.Property(e => e.Email).HasMaxLength(150);
             entity.Property(e => e.FileNumber).HasMaxLength(50);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.Lastname).HasMaxLength(100);
+            entity.Property(e => e.Gender).HasConversion<int>();
+            entity.Property(e => e.MaritalStatus).HasConversion<int>();
+            entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.Phone).HasMaxLength(50);
 
             entity.HasOne(d => d.Area).WithMany(p => p.Employees)
                 .HasForeignKey(d => d.AreaId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("Employees_AreaId_fkey");
 
-            entity.HasOne(d => d.Entity).WithMany(p => p.Employees)
-                .HasForeignKey(d => d.EntityId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Employees_EntityId_fkey");
-
             entity.HasOne(d => d.InmediatlyBoss).WithMany(p => p.InverseInmediatlyBoss)
                 .HasForeignKey(d => d.InmediatlyBossId)
                 .HasConstraintName("Employees_InmediatlyBossId_fkey");
+
+            entity.HasOne(d => d.Branch).WithMany(p => p.Employees)
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("Employees_BranchId_fkey");
         });
 
-        modelBuilder.Entity<EmployeeKid>(entity =>
+        modelBuilder.Entity<EmployeeRelation>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("EmployeeKids_pkey");
+            entity.HasKey(e => e.Id).HasName("EmployeeRelations_pkey");
 
-            entity.HasOne(d => d.Employee).WithMany(p => p.EmployeeKids)
+            entity.Property(e => e.Lastname).HasMaxLength(100);
+            entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.DocumentNumber).HasMaxLength(50);
+
+            entity.Property(e => e.RelationType)
+                .HasConversion<int>();
+
+            entity.HasIndex(e => new { e.EmployeeId, e.RelationType })
+                .HasDatabaseName("IX_EmployeeRelations_EmployeeId_RelationType");
+
+            entity.HasIndex(e => e.DocumentNumber)
+                .HasDatabaseName("IX_EmployeeRelations_DocumentNumber");
+
+            entity.HasIndex(e => e.EmployeeId)
+                .HasDatabaseName("IX_EmployeeRelations_OneActiveSpouse")
+                .IsUnique()
+                .HasFilter("\"RelationType\" = 1 AND \"EndDate\" IS NULL");
+
+            entity.HasOne(d => d.Employee).WithMany(p => p.EmployeeRelations)
                 .HasForeignKey(d => d.EmployeeId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("EmployeeKids_EmployeeId_fkey");
-
-            entity.HasOne(d => d.Entity).WithMany(p => p.EmployeeKids)
-                .HasForeignKey(d => d.EntityId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("EmployeeKids_EntityId_fkey");
+                .HasConstraintName("EmployeeRelations_EmployeeId_fkey");
         });
 
         modelBuilder.Entity<Entity>(entity =>
@@ -526,20 +575,6 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("EntryModelDetails_EntryModelId_fkey");
         });
 
-        modelBuilder.Entity<FormulaType>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("FormulaTypes_pkey");
-
-            entity.Property(e => e.Name).HasMaxLength(50);
-        });
-
-        modelBuilder.Entity<Gender>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("Genders_pkey");
-
-            entity.Property(e => e.Name).HasMaxLength(50);
-        });
-
         modelBuilder.Entity<LegalPerson>(entity =>
         {
             entity.HasKey(e => e.EntityId).HasName("LegalPersons_pkey");
@@ -566,15 +601,6 @@ public partial class AppDbContext : DbContext
         //         .HasConstraintName("Lotes_ProductId_fkey");
         // });
 
-        modelBuilder.Entity<MaritalStatus>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("MaritalStatus_pkey");
-
-            entity.ToTable("MaritalStatus");
-
-            entity.Property(e => e.Name).HasMaxLength(50);
-        });
-
         modelBuilder.Entity<Module>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("Modules_pkey");
@@ -590,11 +616,6 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone");
             entity.Property(e => e.Total).HasPrecision(15, 2);
-
-            entity.HasOne(d => d.State).WithMany(p => p.PaymentOrders)
-                .HasForeignKey(d => d.StateId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("PaymentOrders_StateId_fkey");
 
             entity.HasOne(d => d.Supplier).WithMany(p => p.PaymentOrders)
                 .HasForeignKey(d => d.SupplierId)
@@ -617,6 +638,21 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.PaymentOrderId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PaymentOrderBills_PaymentOrderId_fkey");
+        });
+
+        modelBuilder.Entity<PaymentOrderCreditNote>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PaymentOrderCreditNotes_pkey");
+
+            entity.Property(e => e.Amount).HasPrecision(15, 2);
+
+            entity.HasOne(d => d.CreditNote).WithMany(p => p.PaymentOrderCreditNotes)
+                .HasForeignKey(d => d.CreditNoteId)
+                .HasConstraintName("PaymentOrderCreditNotes_CreditNoteId_fkey");
+
+            entity.HasOne(d => d.PaymentOrder).WithMany(p => p.PaymentOrderCreditNotes)
+                .HasForeignKey(d => d.PaymentOrderId)
+                .HasConstraintName("PaymentOrderCreditNotes_PaymentOrderId_fkey");
         });
 
         modelBuilder.Entity<PaymentOrderMovement>(entity =>
@@ -646,11 +682,6 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.PayrollStatusId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PayrollProcesses_PayrollStatusId_fkey");
-
-            entity.HasOne(d => d.ProcessType).WithMany(p => p.PayrollProcesses)
-                .HasForeignKey(d => d.ProcessTypeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("PayrollProcesses_ProcessTypeId_fkey");
         });
 
         modelBuilder.Entity<PayrollProcessDetail>(entity =>
@@ -675,6 +706,30 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("PayrollProcessDetails_PayrollUpdateId_fkey");
         });
 
+        modelBuilder.Entity<ManualConceptIncident>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("ManualConceptIncidents_pkey");
+
+            entity.Property(e => e.Amount).HasPrecision(15, 2);
+            entity.Property(e => e.OccurrenceDate).HasColumnType("date");
+            entity.Property(e => e.Status).HasConversion<int>();
+
+            entity.HasOne(d => d.Employee).WithMany()
+                .HasForeignKey(d => d.EmployeeId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("ManualConceptIncidents_EmployeeId_fkey");
+
+            entity.HasOne(d => d.PayrollUpdate).WithMany()
+                .HasForeignKey(d => d.PayrollUpdateId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("ManualConceptIncidents_PayrollUpdateId_fkey");
+
+            entity.HasOne(d => d.PayrollProcess).WithMany()
+                .HasForeignKey(d => d.PayrollProcessId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("ManualConceptIncidents_PayrollProcessId_fkey");
+        });
+
         modelBuilder.Entity<PayrollStatus>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PayrollStatus_pkey");
@@ -684,28 +739,11 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(50);
         });
 
-        modelBuilder.Entity<PayrollType>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PayrollTypes_pkey");
-
-            entity.Property(e => e.Name).HasMaxLength(50);
-        });
-
         modelBuilder.Entity<PayrollUpdate>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PayrollUpdates_pkey");
 
             entity.Property(e => e.Name).HasMaxLength(100);
-
-            entity.HasOne(d => d.FormulaType).WithMany(p => p.PayrollUpdates)
-                .HasForeignKey(d => d.FormulaTypeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("PayrollUpdates_FormulaTypeId_fkey");
-
-            entity.HasOne(d => d.PayrollType).WithMany(p => p.PayrollUpdates)
-                .HasForeignKey(d => d.PayrollTypeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("PayrollUpdates_PayrollTypeId_fkey");
         });
 
         modelBuilder.Entity<PhysicalPerson>(entity =>
@@ -720,16 +758,6 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey<PhysicalPerson>(d => d.EntityId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PhysicalPersons_EntityId_fkey");
-
-            entity.HasOne(d => d.Gender).WithMany(p => p.PhysicalPeople)
-                .HasForeignKey(d => d.GenderId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("PhysicalPersons_GenderId_fkey");
-
-            entity.HasOne(d => d.MaritalStatus).WithMany(p => p.PhysicalPeople)
-                .HasForeignKey(d => d.MaritalStatusId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("PhysicalPersons_MaritalStatusId_fkey");
         });
 
         modelBuilder.Entity<Position>(entity =>
@@ -737,6 +765,7 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("Positions_pkey");
 
             entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.DefaultBasicSalary).HasPrecision(15, 2).HasDefaultValue(0m);
         });
 
         modelBuilder.Entity<PositionByScheduleByEmployee>(entity =>
@@ -763,13 +792,6 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("PositionByScheduleByEmployee_ScheduleId_fkey");
         });
 
-        modelBuilder.Entity<ProcessType>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("ProcessTypes_pkey");
-
-            entity.Property(e => e.Name).HasMaxLength(50);
-        });
-
         modelBuilder.Entity<Product>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("Products_pkey");
@@ -779,6 +801,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.MinimumStock).HasPrecision(10, 2);
             entity.Property(e => e.Name).HasMaxLength(150);
             entity.Property(e => e.Price).HasPrecision(15, 2);
+            entity.Property(e => e.TaxRate).HasPrecision(5, 2).HasDefaultValue(10m);
 
             entity.HasOne(d => d.ProductBrand).WithMany(p => p.Products)
                 .HasForeignKey(d => d.ProductBrandId)
@@ -839,6 +862,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Price).HasPrecision(15, 2);
             entity.Property(e => e.QuantityOrdered).HasPrecision(10, 2);
             entity.Property(e => e.QuantityReceived).HasPrecision(10, 2);
+            entity.Property(e => e.QuantityReturned).HasPrecision(10, 2);
             entity.Property(e => e.TaxRate).HasPrecision(5, 2);
 
             entity.HasOne(d => d.Product).WithMany(p => p.PurchaseOrderDetails)
@@ -854,6 +878,68 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.PurchaseOrderId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PurchaseOrderDetails_PurchaseOrderId_fkey");
+        });
+
+        modelBuilder.Entity<PurchaseReturnReason>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PurchaseReturnReasons_pkey");
+
+            entity.Property(e => e.Name).HasMaxLength(150);
+
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<PurchaseReturn>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PurchaseReturns_pkey");
+
+            entity.Property(e => e.Date)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone");
+            entity.Property(e => e.Number).HasMaxLength(50);
+            entity.Property(e => e.Observation).HasMaxLength(500);
+            entity.Property(e => e.ReasonId).IsRequired();
+            entity.Property(e => e.Total).HasPrecision(15, 2);
+            entity.Property(e => e.TaxTotal).HasPrecision(15, 2);
+            entity.Property(e => e.State).HasConversion<int>();
+
+            entity.HasOne(d => d.Bill).WithMany()
+                .HasForeignKey(d => d.BillId)
+                .HasConstraintName("PurchaseReturns_BillId_fkey");
+
+            entity.HasOne(d => d.Branch).WithMany()
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseReturns_BranchId_fkey");
+
+            entity.HasOne(d => d.PurchaseOrder).WithMany()
+                .HasForeignKey(d => d.PurchaseOrderId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseReturns_PurchaseOrderId_fkey");
+
+            entity.HasOne(d => d.Reason).WithMany(p => p.PurchaseReturns)
+                .HasForeignKey(d => d.ReasonId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseReturns_ReasonId_fkey");
+        });
+
+        modelBuilder.Entity<PurchaseReturnDetail>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PurchaseReturnDetails_pkey");
+
+            entity.Property(e => e.Price).HasPrecision(15, 2);
+            entity.Property(e => e.Quantity).HasPrecision(10, 2);
+            entity.Property(e => e.TaxRate).HasPrecision(5, 2);
+
+            entity.HasOne(d => d.Product).WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseReturnDetails_ProductId_fkey");
+
+            entity.HasOne(d => d.PurchaseReturn).WithMany(p => p.PurchaseReturnDetails)
+                .HasForeignKey(d => d.PurchaseReturnId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseReturnDetails_PurchaseReturnId_fkey");
         });
 
         modelBuilder.Entity<PurchaseRequest>(entity =>
@@ -921,6 +1007,10 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("SalesOrders_UserId_fkey");
+            
+            entity.HasOne(d => d.Branch).WithMany()
+                .HasForeignKey(d => d.BranchId)
+                .HasConstraintName("SalesOrders_BranchId_fkey");
         });
 
         modelBuilder.Entity<SalesOrderDetail>(entity =>
@@ -948,18 +1038,9 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("Schedules_pkey");
 
             entity.Property(e => e.NumberOfHours).HasPrecision(5, 2);
-
-            entity.HasOne(d => d.ScheduleType).WithMany(p => p.Schedules)
-                .HasForeignKey(d => d.ScheduleTypeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Schedules_ScheduleTypeId_fkey");
-        });
-
-        modelBuilder.Entity<ScheduleType>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("ScheduleTypes_pkey");
-
-            entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.ScheduleType)
+                .HasColumnName("ScheduleTypeId")
+                .HasConversion<int>();
         });
 
         modelBuilder.Entity<State>(entity =>
@@ -1048,7 +1129,6 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Price).HasPrecision(15, 2);
             entity.Property(e => e.QuantityAvailable).HasPrecision(10, 2);
-            entity.Property(e => e.TaxRate).HasPrecision(5, 2);
 
             entity.HasOne(d => d.Product).WithMany(p => p.SupplierQuoteDetails)
                 .HasForeignKey(d => d.ProductId)

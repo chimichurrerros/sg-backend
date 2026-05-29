@@ -63,6 +63,19 @@ public class PurchaseOrderController(PurchaseOrderService purchaseOrderService) 
         return StatusCode(500);
     }
 
+    [HttpGet("{id}/suppliers")]
+    public async Task<ActionResult<BackEnd.DTOs.Responses.Supplier.ListSuppliersWrapperDto>> GetSuppliers(int id)
+    {
+        var result = await _purchaseOrderService.GetSuppliersByPurchaseOrderIdAsync(id);
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        return StatusCode(500);
+    }
+
     [HttpPost]
     public async Task<ActionResult<PurchaseOrderWrapperDto>> Create(CreatePurchaseOrderRequestDto request)
     {

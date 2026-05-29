@@ -17,9 +17,9 @@ public class ProductCategoriesController(ProductCategoriesService productCategor
     private readonly ProductCategoriesService _productCategoriesService = productCategoriesService;
 
     [HttpGet]
-    public async Task<ActionResult<ListProductCategoriesWrapperDto>> GetListProductCategories([FromQuery] PaginationRequestDto pagination)
+    public async Task<ActionResult<ListProductCategoriesWrapperDto>> GetListProductCategories([FromQuery] ProductCategoryQueryDto query)
     {
-        var result = await _productCategoriesService.GetListAsync(pagination);
+        var result = await _productCategoriesService.GetListAsync(query);
 
         if (result.IsSuccess)
             return Ok(result.Value);
