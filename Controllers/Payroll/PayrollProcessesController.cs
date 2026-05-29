@@ -15,6 +15,26 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
 {
     private readonly PayrollProcessingService _payrollProcessingService = payrollProcessingService;
 
+    [HttpPatch("{processId}/status")]
+    public async Task<ActionResult> UpdateStatus(int processId, UpdatePayrollProcessStatusRequestDto request)
+    {
+        var result = await _payrollProcessingService.UpdatePayrollProcessStatusAsync(processId, request);
+
+        if (result.IsSuccess)
+            return NoContent();
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        if (result.ErrorType == ErrorType.Validation)
+            return this.HandleValidationProblem(result);
+
+        if (result.ErrorType == ErrorType.Conflict)
+            return Conflict(result.ErrorMessage);
+
+        return StatusCode(500);
+    }
+
     [HttpPost("{processId}/manual-details")]
     public async Task<ActionResult<PayrollManualDetailResponseDto>> UpsertManualDetail(int processId, PayrollManualInputDto request)
     {
