@@ -2,11 +2,11 @@ namespace BackEnd.Constants.Errors;
 
 public static class PayrollUpdateError
 {
-    public const string NameRequired = "El nombre del concepto de nómina es obligatorio";
-    public const string FormulaRequired = "La fórmula del concepto de nómina es obligatoria";
-    public const string InvalidPayrollType = "El tipo de nómina seleccionado no existe";
-    public const string InvalidFormulaType = "El tipo de fórmula seleccionado no existe";
-    public const string FixedFormulaMustBeNumeric = "La fórmula fija debe ser un número válido";
-    public const string CalculatedFormulaIsInvalid = "La fórmula calculada contiene una expresión inválida";
-    public const string PayrollUpdateNotFound = "No se encontró el concepto de nómina solicitado";
+    public const string NameRequired = "The payroll concept name is required";
+    public const string FormulaRequired = "The payroll concept formula is required";
+    public const string InvalidPayrollType = "The selected payroll type does not exist";
+    public const string InvalidFormulaType = "The selected formula type does not exist";
+    public const string FixedFormulaMustBeNumeric = "The fixed formula must be a valid number";
+    public const string CalculatedFormulaIsInvalid = "The calculated formula contains an invalid expression";
+    public const string PayrollUpdateNotFound = "The requested payroll concept was not found";
 }

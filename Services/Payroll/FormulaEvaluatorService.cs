@@ -10,13 +10,13 @@ public class FormulaEvaluatorService
     public decimal EvaluateFormula(string formula, Dictionary<string, decimal> variables)
     {
         if (string.IsNullOrWhiteSpace(formula))
-            throw new ArgumentException("La fórmula no puede estar vacía.", nameof(formula));
+            throw new ArgumentException("The formula cannot be empty.", nameof(formula));
 
         var safeVariables = new Dictionary<string, decimal>(variables, StringComparer.OrdinalIgnoreCase);
         var resolvedFormula = VariableRegex.Replace(formula, match =>
         {
             if (!safeVariables.TryGetValue(match.Value, out var value))
-                throw new KeyNotFoundException($"No se encontró el valor para la variable '{match.Value}'.");
+                throw new KeyNotFoundException($"No value was found for variable '{match.Value}'.");
 
             return value.ToString(CultureInfo.InvariantCulture);
         });
@@ -47,7 +47,7 @@ public class FormulaEvaluatorService
                     }
 
                     if (operators.Count == 0 || operators.Pop() != '(')
-                        throw new FormatException("La expresión contiene paréntesis desbalanceados.");
+                        throw new FormatException("The expression contains unbalanced parentheses.");
 
                     break;
                 case TokenKind.Operator:
@@ -65,7 +65,7 @@ public class FormulaEvaluatorService
         {
             var op = operators.Pop();
             if (op == '(' || op == ')')
-                throw new FormatException("La expresión contiene paréntesis desbalanceados.");
+                throw new FormatException("The expression contains unbalanced parentheses.");
 
             ApplyOperator(values, op);
         }
@@ -129,7 +129,7 @@ public class FormulaEvaluatorService
                 continue;
             }
 
-            throw new FormatException($"La expresión contiene un carácter no soportado: '{current}'.");
+            throw new FormatException($"The expression contains an unsupported character: '{current}'.");
         }
 
         return tokens;
@@ -186,7 +186,7 @@ public class FormulaEvaluatorService
     private static void ApplyOperator(Stack<decimal> values, char op)
     {
         if (values.Count < 2)
-            throw new FormatException("La expresión matemática es inválida.");
+            throw new FormatException("The mathematical expression is invalid.");
 
         var right = values.Pop();
         var left = values.Pop();
