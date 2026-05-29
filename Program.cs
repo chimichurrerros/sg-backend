@@ -80,7 +80,8 @@ builder.Services.AddCors(options =>
                 return true;
             var uri = new Uri(origin);
             return uri.Host.Equals("mbeju.xyz", StringComparison.OrdinalIgnoreCase)
-                || uri.Host.EndsWith(".mbeju.xyz", StringComparison.OrdinalIgnoreCase);
+                || uri.Host.EndsWith(".mbeju.xyz", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.EndsWith(".netlify.app", StringComparison.OrdinalIgnoreCase);
         })
         .AllowAnyMethod()
         .AllowAnyHeader()
