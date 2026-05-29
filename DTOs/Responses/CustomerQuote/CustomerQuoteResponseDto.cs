@@ -24,6 +24,8 @@ public class CustomerQuoteResponseDto
 
     public string? CustomerName { get; set; }
 
+    public string? CustomerRuc { get; set; }
+
     public int UserId { get; set; }
 
     public string? UserName { get; set; }
