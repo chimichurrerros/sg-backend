@@ -46,6 +46,11 @@ public class ServicesService(AppDbContext context, IMapper mapper)
             query = query.Where(p => p.Description.ToLower().Contains(queryDto.Description.ToLower()));
         }
 
+        if (!string.IsNullOrWhiteSpace(queryDto.Barcode))
+        {
+            query = query.Where(p => p.Barcode.ToLower().Contains(queryDto.Barcode.ToLower()));
+        }
+
         if (queryDto.MinPrice.HasValue)
         {
             query = query.Where(p => p.Price >= queryDto.MinPrice.Value);

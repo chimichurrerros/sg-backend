@@ -15,6 +15,7 @@ public partial class ProductRequestDto
     public string Barcode { get; set; } = null!;
 
     public decimal Price { get; set; }
+    public bool? IsDeleted { get; set; }
 
     public decimal Cost { get; set; }
 
