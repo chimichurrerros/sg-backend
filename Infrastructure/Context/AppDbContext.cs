@@ -372,6 +372,11 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone");
             entity.Property(e => e.Total).HasPrecision(15, 2);
+            entity.Property(e => e.ImportValue).HasPrecision(15, 2);
+            entity.Property(e => e.Number).HasMaxLength(50);
+            entity.Property(e => e.PaymentMethod).HasConversion<int>();
+            entity.Property(e => e.SaleCondition).HasConversion<int>();
+            entity.Property(e => e.BillType).HasColumnType("bill_type_enum");
 
             entity.HasOne(d => d.Customer).WithMany(p => p.CustomerQuotes)
                 .HasForeignKey(d => d.CustomerId)
@@ -382,6 +387,11 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("CustomerQuotes_UserId_fkey");
+
+            entity.HasOne(d => d.Branch).WithMany()
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("CustomerQuotes_BranchId_fkey");
         });
 
         modelBuilder.Entity<CustomerQuoteDetail>(entity =>
