@@ -74,6 +74,18 @@ public class CustomerQuoteResponseDto
     /// </summary>
     public decimal Total { get; set; }
 
+    public decimal ImportValue { get; set; }
+
+    public int BranchId { get; set; }
+
+    public string? Number { get; set; }
+
+    public PaymentMethodEnum? PaymentMethod { get; set; }
+
+    public SaleConditionEnum? SaleCondition { get; set; }
+
+    public BillTypeEnum? BillType { get; set; }
+
     /// <summary>
     /// Current status of the quote.
     /// </summary>
