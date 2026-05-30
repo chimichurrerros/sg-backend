@@ -108,6 +108,159 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         return Result.Success();
     }
 
+    public async Task<Result<List<PayrollProcessResponseDto>>> GetListAsync()
+    {
+        var processes = await _context.PayrollProcesses
+            .AsNoTracking()
+            .Include(p => p.PayrollStatus)
+            .OrderByDescending(p => p.Year)
+            .ThenByDescending(p => p.Month)
+            .Select(p => new PayrollProcessResponseDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                ProcessTypeId = (int)p.ProcessTypeId,
+                ProcessTypeName = p.ProcessTypeId.ToString(),
+                Year = p.Year,
+                Month = p.Month,
+                StartDate = p.StartDate,
+                PayDate = p.PayDate,
+                PayrollStatusId = p.PayrollStatusId,
+                PayrollStatusName = p.PayrollStatus.Name
+            })
+            .ToListAsync();
+
+        return Result<List<PayrollProcessResponseDto>>.Success(processes);
+    }
+
+    public async Task<Result<PayrollProcessResponseDto>> GetByIdAsync(int id)
+    {
+        var p = await _context.PayrollProcesses
+            .AsNoTracking()
+            .Include(x => x.PayrollStatus)
+            .FirstOrDefaultAsync(x => x.Id == id);
+
+        if (p is null)
+            return Result<PayrollProcessResponseDto>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
+
+        var dto = new PayrollProcessResponseDto
+        {
+            Id = p.Id,
+            Name = p.Name,
+            ProcessTypeId = (int)p.ProcessTypeId,
+            ProcessTypeName = p.ProcessTypeId.ToString(),
+            Year = p.Year,
+            Month = p.Month,
+            StartDate = p.StartDate,
+            PayDate = p.PayDate,
+            PayrollStatusId = p.PayrollStatusId,
+            PayrollStatusName = p.PayrollStatus.Name
+        };
+
+        return Result<PayrollProcessResponseDto>.Success(dto);
+    }
+
+    public async Task<Result<PayrollProcessResponseDto>> CreatePayrollProcessAsync(PayrollProcessCreateDto request)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+            errors["Name"] = new[] { "Name is required" };
+
+        if (request.Month < 1 || request.Month > 12)
+            errors["Month"] = new[] { "Month must be between 1 and 12" };
+
+        if (request.Year < 1900)
+            errors["Year"] = new[] { "Year is invalid" };
+
+        if (!Enum.IsDefined(typeof(PayrollProcess.ProcessTypeEnum), request.ProcessTypeId))
+            errors["ProcessTypeId"] = new[] { "Invalid process type" };
+
+        if (errors.Count > 0)
+            return Result<PayrollProcessResponseDto>.Failure(string.Join("; ", errors.SelectMany(e => e.Value)), errors, ErrorType.Validation);
+
+        int statusId;
+        if (request.PayrollStatusId.HasValue)
+        {
+            var status = await _context.PayrollStatuses.FirstOrDefaultAsync(s => s.Id == request.PayrollStatusId.Value);
+            if (status is null)
+                return Result<PayrollProcessResponseDto>.Failure(PayrollProcessError.PayrollProcessStatusNotFound, ErrorType.NotFound);
+            statusId = status.Id;
+        }
+        else
+        {
+            var openId = await GetPayrollStatusIdAsync("Abierto");
+            if (openId is null)
+                return Result<PayrollProcessResponseDto>.Failure(PayrollProcessError.PayrollProcessStatusNotFound, ErrorType.Failure);
+            statusId = openId.Value;
+        }
+
+        var process = new PayrollProcess
+        {
+            Name = request.Name.Trim(),
+            ProcessTypeId = (PayrollProcess.ProcessTypeEnum)request.ProcessTypeId,
+            Year = request.Year,
+            Month = request.Month,
+            StartDate = request.StartDate,
+            PayDate = request.PayDate,
+            PayrollStatusId = statusId
+        };
+
+        _context.PayrollProcesses.Add(process);
+        await _context.SaveChangesAsync();
+
+        var created = await GetByIdAsync(process.Id);
+        return created;
+    }
+
+    public async Task<Result> UpdatePayrollProcessAsync(int id, PayrollProcessUpdateDto request)
+    {
+        var process = await _context.PayrollProcesses.FirstOrDefaultAsync(p => p.Id == id);
+        if (process is null)
+            return Result.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
+
+        if (!Enum.IsDefined(typeof(PayrollProcess.ProcessTypeEnum), request.ProcessTypeId))
+            return Result.Failure("Invalid process type", ErrorType.Validation);
+
+        if (request.Month < 1 || request.Month > 12)
+            return Result.Failure("Month must be between 1 and 12", ErrorType.Validation);
+
+        if (request.Year < 1900)
+            return Result.Failure("Year is invalid", ErrorType.Validation);
+
+        process.Name = request.Name.Trim();
+        process.ProcessTypeId = (PayrollProcess.ProcessTypeEnum)request.ProcessTypeId;
+        process.Year = request.Year;
+        process.Month = request.Month;
+        process.StartDate = request.StartDate;
+        process.PayDate = request.PayDate;
+
+        if (request.PayrollStatusId.HasValue)
+        {
+            var status = await _context.PayrollStatuses.FirstOrDefaultAsync(s => s.Id == request.PayrollStatusId.Value);
+            if (status is null)
+                return Result.Failure(PayrollProcessError.PayrollProcessStatusNotFound, ErrorType.NotFound);
+            process.PayrollStatusId = status.Id;
+        }
+
+        await _context.SaveChangesAsync();
+        return Result.Success();
+    }
+
+    public async Task<Result> DeletePayrollProcessAsync(int id)
+    {
+        var process = await _context.PayrollProcesses.Include(p => p.PayrollStatus).FirstOrDefaultAsync(p => p.Id == id);
+        if (process is null)
+            return Result.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
+
+        if (IsFinalPayrollStatus(process.PayrollStatus.Name))
+            return Result.Failure("Cannot delete a payroll process in final status", ErrorType.Conflict);
+
+        _context.PayrollProcesses.Remove(process);
+        await _context.SaveChangesAsync();
+        return Result.Success();
+    }
+
     public async Task<Result<PayrollManualDetailResponseDto>> UpsertManualDetailAsync(int payrollProcessId, PayrollManualInputDto request)
     {
         var process = await _context.PayrollProcesses.FirstOrDefaultAsync(payrollProcess => payrollProcess.Id == payrollProcessId);
