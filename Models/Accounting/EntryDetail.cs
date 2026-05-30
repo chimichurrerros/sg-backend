@@ -11,9 +11,9 @@ public partial class EntryDetail
 
     public int AccountPlanId { get; set; }
 
-    public decimal Debit { get; set; }
+    public decimal Debit { get; set; } // deber
 
-    public decimal Credit { get; set; }
+    public decimal Credit { get; set; } // haber
 
     public virtual AccountPlan AccountPlan { get; set; } = null!;
 

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace BackEnd.Models;
+﻿namespace BackEnd.Models;
 
 public partial class AccountantProcess
 {
@@ -13,9 +10,6 @@ public partial class AccountantProcess
 
     public DateOnly EndDate { get; set; }
 
-    public int StateId { get; set; }
-
     public virtual ICollection<Entry> Entries { get; set; } = new List<Entry>();
 
-    public virtual State State { get; set; } = null!;
 }
