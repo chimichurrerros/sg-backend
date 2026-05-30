@@ -7,8 +7,7 @@ namespace BackEnd.DTOs.Requests.Employee;
 public class CreateEmployeeRequestDto
 {
     // Employee Info
-    [Required(ErrorMessage = EmployeeError.FileNumberRequired)]
-    public string FileNumber { get; set; } = null!;
+    public string? FileNumber { get; set; }
 
     [Required(ErrorMessage = EmployeeError.HireDateRequired)]
     public DateOnly HireDate { get; set; }

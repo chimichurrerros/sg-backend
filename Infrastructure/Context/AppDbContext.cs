@@ -444,6 +444,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.DocumentNumber).HasMaxLength(50);
             entity.Property(e => e.Email).HasMaxLength(150);
             entity.Property(e => e.FileNumber).HasMaxLength(50);
+            entity.HasIndex(e => e.FileNumber).IsUnique().HasDatabaseName("IX_Employees_FileNumber");
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.Lastname).HasMaxLength(100);
             entity.Property(e => e.Gender).HasConversion<int>();
