@@ -13,4 +13,8 @@ public static class CustomerQuoteError
     public const string InvalidProducts = "Uno o mas productos no existen";
     public const string ExistingOpenQuote = "El cliente ya tiene un presupuesto vigente";
     public const string QuoteExpired = "El presupuesto esta vencido y no puede modificarse";
+    public const string BranchRequired = "La sucursal es obligatoria.";
+    public const string ProductQuantityRequired = "Cada producto debe tener quantity > 0.";
+    public const string ProductIdOrBarcodeRequired = "Cada producto debe tener productId o barcode.";
+    public const string ProductNotFoundWithBarcode = "No se encontro producto con barcode {0}.";
 }

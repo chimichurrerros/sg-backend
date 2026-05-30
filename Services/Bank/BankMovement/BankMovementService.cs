@@ -67,7 +67,7 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
     .Include(a => a.Bank)
     .FirstOrDefaultAsync(a => a.Id == request.AccountId);
     if (account == null)
-        return Result<BankMovementWrapperDto>.Failure("Cuenta no encontrada", ErrorType.NotFound);
+        return Result<BankMovementWrapperDto>.Failure(AccountError.AccountNotFound, ErrorType.NotFound);
 
         // 2. Mapeamos el DTO a Entidad
         var newMovement = _mapper.Map<BankMovement>(request);
@@ -86,7 +86,7 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
         {
             // Validar que haya saldo suficiente antes de restar
             if (account.AvailableBalance < newMovement.Amount)
-                return Result<BankMovementWrapperDto>.Failure("Saldo insuficiente para realizar este movimiento.", ErrorType.Validation);
+                return Result<BankMovementWrapperDto>.Failure(AccountError.NotEnoughFunds, ErrorType.Validation);
 
         account.CurrentBalance -= newMovement.Amount;
         account.AvailableBalance -= newMovement.Amount;
@@ -126,7 +126,7 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
 
         var account = await _context.Accounts.FindAsync(request.AccountId);
         if (account == null)
-            return Result<BankMovementDto>.Failure("La cuenta bancaria seleccionada no existe.", ErrorType.NotFound);
+            return Result<BankMovementDto>.Failure(AccountError.AccountNotFound, ErrorType.NotFound);
 
         var movement = new Models.BankMovement
         {
@@ -165,14 +165,14 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
     public async Task<Result<bool>> ValidateAccountAsync(int accountId, decimal amount)
     {
         if (amount <= 0)
-            return Result<bool>.Failure("El monto debe ser mayor a cero.", ErrorType.Validation);
+            return Result<bool>.Failure(AccountError.InvalidAmount, ErrorType.Validation);
 
         var account = await _context.Accounts.FindAsync(accountId);
         if (account == null)
-            return Result<bool>.Failure("La cuenta bancaria seleccionada no existe.", ErrorType.NotFound);
+            return Result<bool>.Failure(AccountError.AccountNotFound, ErrorType.NotFound);
 
         if (account.AvailableBalance < amount)
-            return Result<bool>.Failure("Saldo insuficiente para realizar este movimiento.", ErrorType.Validation);
+            return Result<bool>.Failure(AccountError.NotEnoughFunds, ErrorType.Validation);
 
         return Result<bool>.Success(true);
     }

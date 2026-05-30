@@ -12,4 +12,5 @@ public static class PurchaseReturnError
     public const string ReasonNotFound = "El motivo de devolución especificado no existe.";
     public const string BillNotFound = "La factura especificada no existe.";
     public const string BranchNotFound = "La sucursal especificada no existe.";
+    public const string PurchaseOrderIdMismatch  = "La combinación de factura y nota de devolución no existe";
 }

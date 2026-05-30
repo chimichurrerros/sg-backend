@@ -63,11 +63,11 @@ public async Task<Result<CheckWrapperDto>> UpdateStatusAsync(int id, UpdateCheck
     var check = await _context.Checks.FirstOrDefaultAsync(c => c.Id == id);
 
     if (check == null)
-        return Result<CheckWrapperDto>.Failure("El cheque no existe.", ErrorType.NotFound);
+        return Result<CheckWrapperDto>.Failure(CheckError.CheckNotFound, ErrorType.NotFound);
 
     // Evitamos hacer el proceso si ya tiene el estado solicitado
     if (check.Status == request.Status)
-        return Result<CheckWrapperDto>.Failure($"El cheque ya se encuentra en estado {request.Status}.", ErrorType.Validation);
+        return Result<CheckWrapperDto>.Failure(string.Format(CheckError.CheckAlreadyInStatus, request.Status), ErrorType.Validation);
 
     // 1. Cambiamos el estado
     check.Status = request.Status;
