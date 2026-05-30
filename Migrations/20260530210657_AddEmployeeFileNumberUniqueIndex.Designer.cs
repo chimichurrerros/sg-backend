@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260530210657_AddEmployeeFileNumberUniqueIndex")]
+    partial class AddEmployeeFileNumberUniqueIndex
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -27,7 +30,6 @@ namespace BackEnd.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "bill_type_enum", new[] { "contado", "credito" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "check_status_enum", new[] { "pending", "cashed", "voided" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "check_type_enum", new[] { "day", "deferred" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "module_enum", new[] { "sales", "purchases", "inventory", "salary" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "purchase_request_state_enum", new[] { "pending", "approved", "rejected", "completed" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "sales_order_state_enum", new[] { "pending", "confirmed", "cancelled" });
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -82,9 +84,6 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AccountantProcessId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -93,23 +92,16 @@ namespace BackEnd.Migrations
                     b.Property<bool>("IsAcceptor")
                         .HasColumnType("boolean");
 
+                    b.Property<int>("Level")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
-                    b.Property<int>("Order")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("ParentId")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id")
                         .HasName("AccountPlans_pkey");
-
-                    b.HasIndex("AccountantProcessId");
-
-                    b.HasIndex("ParentId");
 
                     b.HasIndex(new[] { "Code" }, "AccountPlans_Code_key")
                         .IsUnique();
@@ -136,7 +128,7 @@ namespace BackEnd.Migrations
                     b.Property<DateOnly>("StartDate")
                         .HasColumnType("date");
 
-                    b.Property<int?>("StateId")
+                    b.Property<int>("StateId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id")
@@ -907,9 +899,6 @@ namespace BackEnd.Migrations
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
-
-                    b.Property<ModuleEnum>("Module")
-                        .HasColumnType("module_enum");
 
                     b.Property<int?>("ModuleId")
                         .HasColumnType("integer");
@@ -2200,28 +2189,15 @@ namespace BackEnd.Migrations
                     b.Navigation("Bank");
                 });
 
-            modelBuilder.Entity("BackEnd.Models.AccountPlan", b =>
-                {
-                    b.HasOne("BackEnd.Models.AccountantProcess", "AccountantProcess")
-                        .WithMany()
-                        .HasForeignKey("AccountantProcessId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("BackEnd.Models.AccountPlan", "Parent")
-                        .WithMany()
-                        .HasForeignKey("ParentId");
-
-                    b.Navigation("AccountantProcess");
-
-                    b.Navigation("Parent");
-                });
-
             modelBuilder.Entity("BackEnd.Models.AccountantProcess", b =>
                 {
-                    b.HasOne("BackEnd.Models.State", null)
+                    b.HasOne("BackEnd.Models.State", "State")
                         .WithMany("AccountantProcesses")
-                        .HasForeignKey("StateId");
+                        .HasForeignKey("StateId")
+                        .IsRequired()
+                        .HasConstraintName("AccountantProcesses_StateId_fkey");
+
+                    b.Navigation("State");
                 });
 
             modelBuilder.Entity("BackEnd.Models.Attendance", b =>
@@ -2471,11 +2447,14 @@ namespace BackEnd.Migrations
                         .IsRequired()
                         .HasConstraintName("Entries_AccountantProcessId_fkey");
 
-                    b.HasOne("BackEnd.Models.Module", null)
+                    b.HasOne("BackEnd.Models.Module", "Module")
                         .WithMany("Entries")
-                        .HasForeignKey("ModuleId");
+                        .HasForeignKey("ModuleId")
+                        .HasConstraintName("Entries_ModuleId_fkey");
 
                     b.Navigation("AccountantProcess");
+
+                    b.Navigation("Module");
                 });
 
             modelBuilder.Entity("BackEnd.Models.EntryDetail", b =>

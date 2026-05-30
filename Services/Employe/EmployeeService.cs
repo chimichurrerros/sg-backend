@@ -66,9 +66,35 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
 
         try
         {
+            if (string.IsNullOrWhiteSpace(request.FileNumber))
+            {
+                await _context.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(hashtext('employee_file_number_gen'))");
+
+                var yearSuffix = (DateTime.UtcNow.Year % 1000).ToString("D3");
+                var prefix = $"PY{yearSuffix}";
+
+                var maxFileNumber = await _context.Employees
+                    .Where(e => e.FileNumber.StartsWith(prefix))
+                    .OrderByDescending(e => e.FileNumber)
+                    .Select(e => e.FileNumber)
+                    .FirstOrDefaultAsync();
+
+                var nextSeq = 1;
+                if (maxFileNumber != null)
+                {
+                    var numericPart = maxFileNumber[prefix.Length..];
+                    if (int.TryParse(numericPart, out var lastSeq))
+                    {
+                        nextSeq = lastSeq + 1;
+                    }
+                }
+
+                request.FileNumber = $"{prefix}{nextSeq}";
+            }
+
             var employee = new Employee
             {
-                FileNumber = request.FileNumber,
+                FileNumber = request.FileNumber!,
                 Name = request.Name,
                 Lastname = request.Lastname,
                 BirthDate = request.BirthDate,
@@ -497,7 +523,6 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
 
         if (string.IsNullOrWhiteSpace(request.Name)) errors["Name"] = new[] { EmployeeError.FirstNameRequired };
         if (string.IsNullOrWhiteSpace(request.Lastname)) errors["Lastname"] = new[] { EmployeeError.LastNameRequired };
-        if (string.IsNullOrWhiteSpace(request.FileNumber)) errors["FileNumber"] = new[] { EmployeeError.FileNumberRequired };
         
         var validArea = await _context.Departments.AnyAsync(d => d.Id == request.AreaId);
         if (!validArea) errors["AreaId"] = new[] { EmployeeError.InvalidArea };
