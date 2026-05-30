@@ -35,7 +35,7 @@ public class SupplierCategoryService(AppDbContext context, IMapper mapper)
         if (!supplierExists || !categoryExists)
         {
             return Result<SupplierCategoryWrapperDto>.Failure(
-                "El Proveedor o la Categoría especificada no existe.",
+                SupplierCategoryError.SupplierOrCategoryNotFound,
                 ErrorType.Validation
             );
         }
@@ -45,7 +45,7 @@ public class SupplierCategoryService(AppDbContext context, IMapper mapper)
             .AnyAsync(sc => sc.SupplierId == request.SupplierId && sc.ProductCategoryId == request.ProductCategoryId);
 
         if (exists)
-            return Result<SupplierCategoryWrapperDto>.Failure("SupplierCategory.AlreadyExists", ErrorType.Validation);
+            return Result<SupplierCategoryWrapperDto>.Failure(SupplierCategoryError.AlreadyExists, ErrorType.Validation);
 
         var newSupplierCategory = _mapper.Map<SupplierCategory>(request);
 
@@ -66,7 +66,7 @@ public class SupplierCategoryService(AppDbContext context, IMapper mapper)
         var supplierCategory = await _context.SupplierCategories.FindAsync(id);
 
         if (supplierCategory == null)
-            return Result<bool>.Failure("SupplierCategory.NotFound", ErrorType.NotFound);
+            return Result<bool>.Failure(SupplierCategoryError.NotFound, ErrorType.NotFound);
 
         _context.SupplierCategories.Remove(supplierCategory);
         await _context.SaveChangesAsync();

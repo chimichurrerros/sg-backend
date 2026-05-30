@@ -15,14 +15,14 @@ public class CreditNoteService(AppDbContext context)
     public async Task<Result<CreditNoteWrapperDto>> CreateAsync(CreateCreditNoteDto request)
     {
         if (request.BillId <= 0)
-            return Result<CreditNoteWrapperDto>.Failure("BillId is required", ErrorType.Validation);
+            return Result<CreditNoteWrapperDto>.Failure(CreditNoteError.BillIdRequired, ErrorType.Validation);
 
         var bill = await _context.Bills.Include(b => b.BillDetails).FirstOrDefaultAsync(b => b.Id == request.BillId);
         if (bill == null)
-            return Result<CreditNoteWrapperDto>.Failure("Bill not found", ErrorType.NotFound);
+            return Result<CreditNoteWrapperDto>.Failure(CreditNoteError.BillNotFound, ErrorType.NotFound);
 
         if (request.Details == null || request.Details.Count == 0)
-            return Result<CreditNoteWrapperDto>.Failure("Details required", ErrorType.Validation);
+            return Result<CreditNoteWrapperDto>.Failure(CreditNoteError.DetailsRequired, ErrorType.Validation);
 
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try
@@ -87,7 +87,7 @@ public class CreditNoteService(AppDbContext context)
             .FirstOrDefaultAsync(c => c.Id == id);
 
         if (cn == null)
-            return Result<CreditNoteWrapperDto>.Failure("Credit note not found", ErrorType.NotFound);
+            return Result<CreditNoteWrapperDto>.Failure(CreditNoteError.CreditNoteNotFound, ErrorType.NotFound);
 
         var response = new CreditNoteResponseDto
         {

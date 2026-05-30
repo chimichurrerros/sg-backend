@@ -26,7 +26,7 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.InvalidAmount, ErrorType.Validation);
 
         if (request.BankAccountId <= 0)
-            return Result<PaymentOrderWrapperDto>.Failure("Invalid bank account", ErrorType.Validation);
+            return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.BankAccountRequired, ErrorType.Validation);
 
         // Busca la orden de compra asociada
         var purchaseOrder = await _context.PurchaseOrders

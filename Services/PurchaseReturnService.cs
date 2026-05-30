@@ -399,7 +399,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
             return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.DetailsRequired, ErrorType.Validation);
 
         if (request.Return.PurchaseOrderId != request.Bill.PurchaseOrderId)
-            return Result<PurchaseReturnWrapperDto>.Failure("PurchaseOrderId mismatch between bill and return", ErrorType.Validation);
+            return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.PurchaseOrderIdMismatch, ErrorType.Validation);
 
         // Single transaction for both Bill and PurchaseReturn
         await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);

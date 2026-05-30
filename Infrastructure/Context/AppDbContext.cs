@@ -176,6 +176,7 @@ public partial class AppDbContext : DbContext
         modelBuilder.HasPostgresEnum<BankMovementTypeEnum>();
         modelBuilder.HasPostgresEnum<AccountTypeEnum>();
         modelBuilder.HasPostgresEnum<PurchaseRequestStateEnum>();
+        modelBuilder.HasPostgresEnum<ModuleEnum>();
 
         // *****************************************************************************************************
 
@@ -210,10 +211,10 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Name).HasMaxLength(100);
 
-            entity.HasOne(d => d.State).WithMany(p => p.AccountantProcesses)
-                .HasForeignKey(d => d.StateId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("AccountantProcesses_StateId_fkey");
+            // entity.HasOne(d => d.State).WithMany(p => p.AccountantProcesses)
+            //     .HasForeignKey(d => d.StateId)
+            //     .OnDelete(DeleteBehavior.ClientSetNull)
+            //     .HasConstraintName("AccountantProcesses_StateId_fkey");
         });
 
         modelBuilder.Entity<Attendance>(entity =>
@@ -530,10 +531,6 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.AccountantProcessId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("Entries_AccountantProcessId_fkey");
-
-            entity.HasOne(d => d.Module).WithMany(p => p.Entries)
-                .HasForeignKey(d => d.ModuleId)
-                .HasConstraintName("Entries_ModuleId_fkey");
         });
 
         modelBuilder.Entity<EntryDetail>(entity =>
@@ -1008,7 +1005,7 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("SalesOrders_UserId_fkey");
-            
+
             entity.HasOne(d => d.Branch).WithMany()
                 .HasForeignKey(d => d.BranchId)
                 .HasConstraintName("SalesOrders_BranchId_fkey");

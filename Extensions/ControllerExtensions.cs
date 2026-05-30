@@ -49,9 +49,11 @@ public static class ControllerExtensions
         var detail = result.ErrorMessage;
         if (id.HasValue) detail = string.Format($"{detail}{SalesOrderError.IdSuffix}", id.Value);
 
-        return controller.Problem(
-            title: title,
-            detail: detail,
-            statusCode: StatusCodes.Status500InternalServerError);
+        return controller.StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+        {
+            Title = title,
+            Status = StatusCodes.Status500InternalServerError,
+            Detail = detail
+        });
     }
 }

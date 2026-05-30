@@ -21,7 +21,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             .FirstOrDefaultAsync(employee => employee.Id == request.EmployeeId);
 
         if (employee is null)
-            return Result<ManualConceptIncidentResponseDto>.Failure("The requested employee was not found", ErrorType.NotFound);
+            return Result<ManualConceptIncidentResponseDto>.Failure(EmployeeError.EmployeeNotFound, ErrorType.NotFound);
 
         var payrollUpdate = await _context.PayrollUpdates
             .AsNoTracking()
@@ -279,7 +279,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             .FirstOrDefaultAsync(employee => employee.Id == request.EmployeeId);
 
         if (employee is null)
-            return Result<PayrollManualDetailResponseDto>.Failure("The requested employee was not found", ErrorType.NotFound);
+            return Result<PayrollManualDetailResponseDto>.Failure(EmployeeError.EmployeeNotFound, ErrorType.NotFound);
 
         var payrollUpdate = await _context.PayrollUpdates
             .AsNoTracking()

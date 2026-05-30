@@ -122,7 +122,7 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
 
         var branchId = request.Sale.BranchId ?? request.Sale.CashierNumber ?? 0;
         if (branchId <= 0)
-            return Result<CustomerQuoteWrapperDto>.Failure("La sucursal es obligatoria.", ErrorType.Validation);
+            return Result<CustomerQuoteWrapperDto>.Failure(CustomerQuoteError.BranchRequired, ErrorType.Validation);
 
         await ExpireQuotesIfNeededAsync(customerIdResult.Value);
 
@@ -184,6 +184,10 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
 
             _context.CustomerQuotes.Add(quote);
             await _context.SaveChangesAsync();
+
+            quote.Number = $"COT-{quote.Id:D6}";
+            await _context.SaveChangesAsync();
+
             await transaction.CommitAsync();
 
             var createdQuote = await _context.CustomerQuotes
@@ -238,7 +242,7 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
 
         var branchId = request.Sale.BranchId ?? request.Sale.CashierNumber ?? quote.BranchId;
         if (branchId <= 0)
-            return Result<CustomerQuoteWrapperDto>.Failure("La sucursal es obligatoria.", ErrorType.Validation);
+            return Result<CustomerQuoteWrapperDto>.Failure(CustomerQuoteError.BranchRequired, ErrorType.Validation);
 
         var details = new List<CustomerQuoteDetail>();
         foreach (var product in request.Products)
@@ -313,7 +317,7 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
 
         var name = customer.Name?.Trim();
         if (string.IsNullOrWhiteSpace(name))
-            return Result<int>.Failure("customer.name es obligatorio cuando el cliente no existe.", ErrorType.Validation);
+            return Result<int>.Failure(CustomerError.NameRequiredForNewCustomer, ErrorType.Validation);
 
         var createdCustomerResult = await _customerService.CreateAsync(new CreateCustomerRequestDto
         {
@@ -335,13 +339,13 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
     private async Task<Result<int>> ResolveProductIdAsync(CustomerQuoteProductRequestDto product)
     {
         if (product.Quantity <= 0)
-            return Result<int>.Failure("Cada producto debe tener quantity > 0.", ErrorType.Validation);
+            return Result<int>.Failure(CustomerQuoteError.ProductQuantityRequired, ErrorType.Validation);
 
         if (product.ProductId.HasValue)
             return Result<int>.Success(product.ProductId.Value);
 
         if (string.IsNullOrWhiteSpace(product.Barcode))
-            return Result<int>.Failure("Cada producto debe tener productId o barcode.", ErrorType.Validation);
+            return Result<int>.Failure(CustomerQuoteError.ProductIdOrBarcodeRequired, ErrorType.Validation);
 
         var barcode = product.Barcode.Trim();
         var productEntity = await _context.Products
@@ -349,7 +353,7 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
             .FirstOrDefaultAsync(p => p.Barcode == barcode);
 
         if (productEntity == null)
-            return Result<int>.Failure($"No se encontro producto con barcode {barcode}.", ErrorType.Validation);
+            return Result<int>.Failure(string.Format(CustomerQuoteError.ProductNotFoundWithBarcode, barcode), ErrorType.Validation);
 
         return Result<int>.Success(productEntity.Id);
     }

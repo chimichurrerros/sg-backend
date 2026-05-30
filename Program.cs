@@ -63,6 +63,9 @@ builder.Services.AddSingleton<FormulaEvaluatorService>();
 builder.Services.AddScoped<PayrollUpdateService>();
 builder.Services.AddScoped<PayrollProcessingService>();
 builder.Services.AddScoped<IEmployeeAssignmentService, EmployeeAssignmentService>();
+builder.Services.AddScoped<AccountantProcessService>();
+builder.Services.AddScoped<AccountPlanService>();
+builder.Services.AddScoped<EntryService>();
 // ------------------------------------------------------------------------------------------------------
 // Authorization configuration
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
@@ -109,6 +112,7 @@ builder.Services.AddDbContextPool<AppDbContext>(options =>
         npgsqlOptions.MapEnum<SalesOrderStateEnum>("sales_order_state_enum");
         npgsqlOptions.MapEnum<PurchaseRequestStateEnum>("purchase_request_state_enum");
         npgsqlOptions.MapEnum<AccountTypeEnum>("account_type_enum");
+        npgsqlOptions.MapEnum<ModuleEnum>("module_enum");
     }));
 
 //*******************************************END-END-END*************************************************
