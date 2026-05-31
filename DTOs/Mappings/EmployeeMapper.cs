@@ -10,6 +10,7 @@ public class EmployeeMapper : Profile
     {
         CreateMap<Employee, EmployeeResponseDto>()
             .ForMember(dest => dest.AreaName, opt => opt.MapFrom(src => src.Area.Name))
+            .ForMember(dest => dest.BranchName, opt => opt.MapFrom(src => src.Branch.Name))
             .ForMember(dest => dest.BaseSalary, opt => opt.MapFrom(src =>
                 src.PositionByScheduleByEmployees
                     .OrderByDescending(p => p.StartDate)
