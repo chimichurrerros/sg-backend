@@ -5,6 +5,7 @@ using BackEnd.DTOs.Requests.CustomerQuote;
 using BackEnd.DTOs.Requests.SalesOrder;
 using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Responses.CustomerQuote;
+using BackEnd.DTOs.Responses.SalesOrder;
 using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using BackEnd.Utils;
@@ -12,10 +13,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BackEnd.Services;
 
-public class CustomerQuoteService(AppDbContext context, CustomerService customerService, IMapper mapper)
+public class CustomerQuoteService(AppDbContext context, CustomerService customerService, SalesOrderService salesOrderService, IMapper mapper)
 {
     private readonly AppDbContext _context = context;
     private readonly CustomerService _customerService = customerService;
+    private readonly SalesOrderService _salesOrderService = salesOrderService;
     private readonly IMapper _mapper = mapper;
     private const int QuoteValidityDays = 10;
 
@@ -302,6 +304,62 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
             await transaction.RollbackAsync();
             throw;
         }
+    }
+
+    public async Task<Result<SalesOrderWrapperDto>> SellFromQuoteAsync(int quoteId, int userId)
+    {
+        var quote = await _context.CustomerQuotes
+            .Include(q => q.CustomerQuoteDetails)
+            .ThenInclude(d => d.Product)
+            .FirstOrDefaultAsync(q => q.Id == quoteId);
+
+        if (quote == null)
+            return Result<SalesOrderWrapperDto>.Failure(CustomerQuoteError.CustomerQuoteNotFound, ErrorType.NotFound);
+
+        await ExpireQuoteIfNeededAsync(quote);
+
+        if (quote.Status == CustomerQuote.QuoteStatus.Expired)
+            return Result<SalesOrderWrapperDto>.Failure(CustomerQuoteError.QuoteExpired, ErrorType.Conflict);
+
+        if (quote.Status == CustomerQuote.QuoteStatus.Closed)
+            return Result<SalesOrderWrapperDto>.Failure(CustomerQuoteError.QuoteAlreadySold, ErrorType.Conflict);
+
+        var details = quote.CustomerQuoteDetails.Select(d => new CreateSalesOrderDetailRequestDto
+        {
+            ProductId = d.ProductId,
+            Quantity = d.Quantity,
+            Price = d.Price
+        }).ToList();
+
+        var isCredit = quote.SaleCondition == SaleConditionEnum.Credit;
+        var movementType = quote.MovementType ?? (int)BankMovementTypeEnum.Credit;
+
+        var request = new CreateSalesOrderRequestDto
+        {
+            CustomerId = quote.CustomerId,
+            SalesOrderState = SalesOrderStateEnum.Confirmed,
+            Date = DateTime.UtcNow,
+            BillType = quote.BillType,
+            IsCredit = isCredit,
+            PaymentMethod = quote.PaymentMethod,
+            SaleCondition = quote.SaleCondition,
+            AccountId = quote.AccountId ?? 0,
+            MovementType = movementType,
+            BranchId = quote.BranchId,
+            ImportValue = quote.ImportValue,
+            CustomerQuoteId = quote.Id,
+            Details = details
+        };
+
+        var result = await _salesOrderService.CreateAsync(request, userId);
+
+        if (!result.IsSuccess)
+            return result;
+
+        quote.Status = CustomerQuote.QuoteStatus.Closed;
+        await _context.SaveChangesAsync();
+
+        return result;
     }
 
     private async Task<Result<int>> ResolveCustomerIdAsync(CustomerQuoteCustomerRequestDto customer)
