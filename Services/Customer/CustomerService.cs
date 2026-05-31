@@ -74,7 +74,9 @@ public class CustomerService(AppDbContext context, IMapper mapper)
             var customer = new Customer
             {
                 Name = request.Name,
-                Ruc = request.Ruc
+                Ruc = request.Ruc,
+                BirthDate = request.BirthDate,
+                Email = request.Email
             };
 
             _context.Customers.Add(customer);
@@ -113,6 +115,10 @@ public class CustomerService(AppDbContext context, IMapper mapper)
                 customer.Name = request.Name;
             if (request.Ruc is not null)
                 customer.Ruc = request.Ruc;
+            if (request.BirthDate.HasValue)
+                customer.BirthDate = request.BirthDate;
+            if (request.Email is not null)
+                customer.Email = request.Email;
 
             await _context.SaveChangesAsync();
 
@@ -144,6 +150,9 @@ public class CustomerService(AppDbContext context, IMapper mapper)
             if (rucExists) errors[nameof(request.Ruc)] = [CustomerError.RucAlreadyExists];
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Email) && !IsValidEmail(request.Email))
+            errors[nameof(request.Email)] = [CustomerError.InvalidEmail];
+
         if (errors.Count > 0)
         {
             var errorMessage = string.Join("; ", errors.Values.SelectMany(v => v));
@@ -172,6 +181,9 @@ public class CustomerService(AppDbContext context, IMapper mapper)
             }
         }
 
+        if (request.Email is not null && !string.IsNullOrWhiteSpace(request.Email) && !IsValidEmail(request.Email))
+            errors[nameof(request.Email)] = [CustomerError.InvalidEmail];
+
         if (errors.Count > 0)
         {
             var errorMessage = string.Join("; ", errors.Values.SelectMany(v => v));
@@ -179,5 +191,18 @@ public class CustomerService(AppDbContext context, IMapper mapper)
         }
 
         return Result.Success();
+    }
+
+    private static bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

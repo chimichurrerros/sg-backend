@@ -7,6 +7,8 @@ public class CustomerResponseDto
     public int Id { get; set; }
     public string Name { get; set; } = null!;
     public string Ruc { get; set; } = null!;
+    public DateOnly? BirthDate { get; set; }
+    public string? Email { get; set; }
 }
 
 public class CustomerWrapperDto

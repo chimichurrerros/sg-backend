@@ -26,6 +26,10 @@ public class CustomerQuoteResponseDto
 
     public string? CustomerRuc { get; set; }
 
+    public DateOnly? CustomerBirthDate { get; set; }
+
+    public string? CustomerEmail { get; set; }
+
     public int UserId { get; set; }
 
     public string? UserName { get; set; }

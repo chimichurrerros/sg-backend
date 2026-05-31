@@ -380,7 +380,9 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
         var createdCustomerResult = await _customerService.CreateAsync(new CreateCustomerRequestDto
         {
             Name = name,
-            Ruc = ruc ?? string.Empty
+            Ruc = ruc ?? string.Empty,
+            BirthDate = customer.BirthDate,
+            Email = customer.Email
         });
 
         if (!createdCustomerResult.IsSuccess)

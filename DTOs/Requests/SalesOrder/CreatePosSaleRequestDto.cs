@@ -17,6 +17,8 @@ public class PosSaleCustomerRequestDto
 {
     public string Name { get; set; } = string.Empty;
     public string Ruc { get; set; } = string.Empty;
+    public DateOnly? BirthDate { get; set; }
+    public string? Email { get; set; }
 }
 
 public class PosSaleDataRequestDto
