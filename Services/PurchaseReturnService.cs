@@ -70,21 +70,55 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
         });
     }
 
-    public async Task<Result<ListPurchaseReturnsWrapperDto>> GetListAsync(PaginationRequestDto pagination)
+    public async Task<Result<ListPurchaseReturnsWrapperDto>> GetListAsync(PurchaseReturnQueryDto queryDto)
     {
         var query = LoadQuery();
+
+        if (!string.IsNullOrWhiteSpace(queryDto.Number))
+        {
+            query = query.Where(pr => pr.Number.ToLower().Contains(queryDto.Number.ToLower()));
+        }
+
+        if (queryDto.Date.HasValue)
+        {
+            query = query.Where(pr => pr.Date.Date == queryDto.Date.Value.Date);
+        }
+
+        if (queryDto.ReasonId.HasValue)
+        {
+            query = query.Where(pr => pr.ReasonId == queryDto.ReasonId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryDto.ReasonName))
+        {
+            query = query.Where(pr => pr.Reason != null && pr.Reason.Name.ToLower().Contains(queryDto.ReasonName.ToLower()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryDto.CustomerName))
+        {
+            query = query.Where(pr =>
+                (pr.Bill != null && pr.Bill.Customer != null && pr.Bill.Customer.Name.ToLower().Contains(queryDto.CustomerName.ToLower())) ||
+                (pr.PurchaseOrder != null && pr.PurchaseOrder.Supplier != null && pr.PurchaseOrder.Supplier.BusinessName.ToLower().Contains(queryDto.CustomerName.ToLower()))
+            );
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryDto.SupplierName))
+        {
+            query = query.Where(pr => pr.PurchaseOrder != null && pr.PurchaseOrder.Supplier != null && pr.PurchaseOrder.Supplier.BusinessName.ToLower().Contains(queryDto.SupplierName.ToLower()));
+        }
+
         var totalElements = await query.CountAsync();
 
         var purchaseReturns = await query
             .OrderByDescending(purchaseReturn => purchaseReturn.Id)
-            .Skip((pagination.Page - 1) * pagination.PageSize)
-            .Take(pagination.PageSize)
+            .Skip((queryDto.Page - 1) * queryDto.PageSize)
+            .Take(queryDto.PageSize)
             .ToListAsync();
 
         return Result<ListPurchaseReturnsWrapperDto>.Success(new ListPurchaseReturnsWrapperDto
         {
             PurchaseReturns = purchaseReturns.Select(MapReturn).ToList(),
-            Pagination = new Pagination(pagination.Page, pagination.PageSize, totalElements)
+            Pagination = new Pagination(queryDto.Page, queryDto.PageSize, totalElements)
         });
     }
 
@@ -132,20 +166,20 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
                     return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.PurchaseOrderNotFound, ErrorType.NotFound);
                 }
 
-        var branchExists = await _context.Branches.AnyAsync(branch => branch.Id == request.BranchId);
-        if (!branchExists)
-            return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.BranchNotFound, ErrorType.NotFound);
+                var branchExists = await _context.Branches.AnyAsync(branch => branch.Id == request.BranchId);
+                if (!branchExists)
+                    return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.BranchNotFound, ErrorType.NotFound);
 
-        var reasonResult = await ResolveReasonAsync(request.ReasonId, request.ReasonName);
-        if (!reasonResult.IsSuccess)
-            return Result<PurchaseReturnWrapperDto>.Failure(reasonResult.ErrorMessage!, reasonResult.ErrorType);
+                var reasonResult = await ResolveReasonAsync(request.ReasonId, request.ReasonName);
+                if (!reasonResult.IsSuccess)
+                    return Result<PurchaseReturnWrapperDto>.Failure(reasonResult.ErrorMessage!, reasonResult.ErrorType);
 
-        if (request.BillId.HasValue)
-        {
-            var billExists = await _context.Bills.AnyAsync(bill => bill.Id == request.BillId.Value && bill.PurchaseOrderId == request.PurchaseOrderId);
-            if (!billExists)
-                return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.BillNotFound, ErrorType.NotFound);
-        }
+                if (request.BillId.HasValue)
+                {
+                    var billExists = await _context.Bills.AnyAsync(bill => bill.Id == request.BillId.Value && bill.PurchaseOrderId == request.PurchaseOrderId);
+                    if (!billExists)
+                        return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.BillNotFound, ErrorType.NotFound);
+                }
 
                 decimal total = 0;
                 decimal taxTotal = 0;
@@ -304,7 +338,9 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
             .AsNoTracking()
             .Include(purchaseReturn => purchaseReturn.Branch)
             .Include(purchaseReturn => purchaseReturn.Bill)
+                .ThenInclude(bill => bill!.Customer)
             .Include(purchaseReturn => purchaseReturn.PurchaseOrder)
+                .ThenInclude(po => po.Supplier)
             .Include(purchaseReturn => purchaseReturn.Reason)
             .Include(purchaseReturn => purchaseReturn.PurchaseReturnDetails)
                 .ThenInclude(detail => detail.Product);
@@ -351,6 +387,8 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
             Total = purchaseReturn.Total,
             TaxTotal = purchaseReturn.TaxTotal,
             State = purchaseReturn.State,
+            SupplierName = purchaseReturn.PurchaseOrder?.Supplier?.BusinessName ?? string.Empty,
+            CustomerName = purchaseReturn.Bill?.Customer?.Name ?? string.Empty,
             Details = purchaseReturn.PurchaseReturnDetails.Select(MapDetail).ToList()
         };
     }
@@ -361,7 +399,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
             return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.DetailsRequired, ErrorType.Validation);
 
         if (request.Return.PurchaseOrderId != request.Bill.PurchaseOrderId)
-            return Result<PurchaseReturnWrapperDto>.Failure("PurchaseOrderId mismatch between bill and return", ErrorType.Validation);
+            return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.PurchaseOrderIdMismatch, ErrorType.Validation);
 
         // Single transaction for both Bill and PurchaseReturn
         await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);

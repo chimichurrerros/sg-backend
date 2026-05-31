@@ -12,4 +12,5 @@ public static class PaymentOrderError
     public const string PaymentAlreadyProcessed = "La orden de pago ya fue procesada";
     public const string PendingStateNotFound = "No se encontro el estado Pending para ordenes de pago";
     public const string ProcessedStateNotFound = "No se encontro el estado Processed para ordenes de pago";
+    public const string BankAccountRequired = "La cuenta bancaria es obligatoria.";
 }

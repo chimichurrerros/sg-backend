@@ -43,9 +43,9 @@ public class PurchaseReturnController(PurchaseReturnService purchaseReturnServic
     }
 
     [HttpGet]
-    public async Task<ActionResult<ListPurchaseReturnsWrapperDto>> GetList([FromQuery] PaginationRequestDto pagination)
+    public async Task<ActionResult<ListPurchaseReturnsWrapperDto>> GetList([FromQuery] PurchaseReturnQueryDto query)
     {
-        var result = await _purchaseReturnService.GetListAsync(pagination);
+        var result = await _purchaseReturnService.GetListAsync(query);
 
         if (result.IsSuccess)
             return Ok(result.Value);

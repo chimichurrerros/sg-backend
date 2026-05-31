@@ -17,9 +17,9 @@ public class ProductsController(ProductsService productsService) : ControllerBas
     private readonly ProductsService _productsService = productsService;
 
     [HttpGet]
-    public async Task<ActionResult<ListProductsWrapperDto>> GetListProducts([FromQuery] PaginationRequestDto pagination)
+    public async Task<ActionResult<ListProductsWrapperDto>> GetListProducts([FromQuery] ProductQueryDto query)
     {
-        var result = await _productsService.GetListAsync(pagination);
+        var result = await _productsService.GetListAsync(query);
 
         if (result.IsSuccess)
             return Ok(result.Value);

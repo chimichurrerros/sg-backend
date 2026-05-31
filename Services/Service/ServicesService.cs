@@ -27,20 +27,60 @@ public class ServicesService(AppDbContext context, IMapper mapper)
         return Result<ListServiceWrapperDto>.Success(new ListServiceWrapperDto { Services = products });
     }
 
-    public async Task<Result<ListServiceWrapperDto>> GetListAsync(PaginationRequestDto pagination)
+    public async Task<Result<ListServiceWrapperDto>> GetListAsync(ServiceQueryDto queryDto)
     {
         var query = _context.Products.AsNoTracking().Where(p => p.IsService == true);
+
+        if (queryDto.Id.HasValue)
+        {
+            query = query.Where(p => p.Id == queryDto.Id.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryDto.Name))
+        {
+            query = query.Where(p => p.Name.ToLower().Contains(queryDto.Name.ToLower()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryDto.Description))
+        {
+            query = query.Where(p => p.Description.ToLower().Contains(queryDto.Description.ToLower()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryDto.Barcode))
+        {
+            query = query.Where(p => p.Barcode.ToLower().Contains(queryDto.Barcode.ToLower()));
+        }
+
+        if (queryDto.MinPrice.HasValue)
+        {
+            query = query.Where(p => p.Price >= queryDto.MinPrice.Value);
+        }
+
+        if (queryDto.MaxPrice.HasValue)
+        {
+            query = query.Where(p => p.Price <= queryDto.MaxPrice.Value);
+        }
+
+        if (queryDto.MinCost.HasValue)
+        {
+            query = query.Where(p => p.Cost >= queryDto.MinCost.Value);
+        }
+
+        if (queryDto.MaxCost.HasValue)
+        {
+            query = query.Where(p => p.Cost <= queryDto.MaxCost.Value);
+        }
 
         var totalElements = await query.CountAsync();
 
         var products = await query
             .OrderBy(v => v.Id)
-            .Skip((pagination.Page - 1) * pagination.PageSize)
-            .Take(pagination.PageSize)
+            .Skip((queryDto.Page - 1) * queryDto.PageSize)
+            .Take(queryDto.PageSize)
             .ProjectTo<ServiceResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
-        var _pagination = new Pagination(pagination.Page, pagination.PageSize, totalElements);
+        var _pagination = new Pagination(queryDto.Page, queryDto.PageSize, totalElements);
 
         return Result<ListServiceWrapperDto>.Success(new ListServiceWrapperDto { Services = products, Pagination = _pagination });
     }

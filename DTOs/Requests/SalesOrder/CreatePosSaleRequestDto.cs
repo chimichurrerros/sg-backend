@@ -21,9 +21,7 @@ public class PosSaleCustomerRequestDto
 
 public class PosSaleDataRequestDto
 {
-    public int BillId {get; set;}
     public BillTypeEnum? Bill { get; set; }
-    public int? SaleNumber { get; set; }
     public DateTime? Date { get; set; }
     public int? CashierNumber { get; set; }
     public int? BranchId { get; set; }

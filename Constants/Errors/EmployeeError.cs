@@ -22,6 +22,7 @@ public static class EmployeeError
     public const string PositionHistoryNotFound = "No se encontró el historial de cargo solicitado";
     public const string PositionStartDateBeforeHireDate = "La fecha de inicio del cargo no puede ser anterior al ingreso del empleado";
     public const string PositionStartDateMustBeAfterCurrent = "La fecha de inicio del nuevo cargo debe ser posterior al cargo actual";
+    public const string PositionEndDateInvalid = "La fecha de fin del cargo debe ser posterior o igual a la fecha de inicio";
     public const string FamilyRelationNotFound = "No se encontró la relación familiar solicitada";
     public const string FamilyRelationTypeInvalid = "El tipo de relación familiar es inválido";
     public const string FamilyNameRequired = "El nombre del familiar es obligatorio";
@@ -29,12 +30,7 @@ public static class EmployeeError
     public const string FamilyDocumentRequired = "El documento del familiar es obligatorio";
     public const string FamilyDocumentAlreadyExists = "Ya existe un familiar con ese documento para este empleado";
     public const string FamilyBirthDateRequired = "La fecha de nacimiento del familiar es obligatoria";
-    public const string FamilyStartDateRequired = "La fecha de inicio de la relación es obligatoria";
-    public const string FamilyEndDateInvalid = "La fecha de fin de la relación debe ser posterior o igual a la fecha de inicio";
-    public const string EmployeeCanOnlyHaveOneActiveSpouse = "El empleado solo puede tener un cónyuge activo";
     public const string EmployeeAlreadyInactive = "El empleado ya se encuentra inactivo";
     public const string PositionHistoryNotEditable = "Solo se puede editar el historial de cargo más reciente";
     public const string PositionHistoryNotDeletable = "Solo se puede eliminar el historial de cargo más reciente";
-    public const string RelationNotEditable = "Solo se puede editar la relación familiar seleccionada";
-    public const string RelationNotDeletable = "No se puede eliminar la relación familiar seleccionada";
 }

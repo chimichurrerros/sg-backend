@@ -7,10 +7,20 @@ namespace BackEnd.DTOs.Responses.Employee;
 public class EmployeeResponseDto
 {
     public int Id { get; set; }
-    public int EntityId { get; set; }
     public string FileNumber { get; set; } = null!;
+    public string Name { get; set; } = null!;
+    public string Lastname { get; set; } = null!;
+    public DateOnly BirthDate { get; set; }
+    public BackEnd.Models.Employee.GenderEnum Gender { get; set; }
+    public string DocumentNumber { get; set; } = null!;
+    public string? Phone { get; set; }
+    public string? Address { get; set; }
+    public string? Email { get; set; }
+    public bool IsActive { get; set; }
     public int AreaId { get; set; }
+    public string AreaName { get; set; } = null!;
     public int? BranchId { get; set; }
+    public string? BranchName { get; set; }
     public int? InmediatlyBossId { get; set; }
     public DateOnly HireDate { get; set; }
     public BackEnd.Models.Employee.MaritalStatusEnum MaritalStatus { get; set; }
@@ -18,11 +28,11 @@ public class EmployeeResponseDto
     // From PositionByScheduleByEmployee (latest)
     public decimal? BaseSalary { get; set; }
     public DateOnly? PositionStartDate { get; set; }
+    public int? PositionId { get; set; }
+    public string? PositionName { get; set; }
+    public int? ScheduleId { get; set; }
+    public string? ScheduleName { get; set; }
 
-    // Relacionales
-    public virtual object? Area { get; set; }
-    public virtual object? Entity { get; set; } // Representa a la PhysicalPerson devuelta por la BD
-    public virtual object? Branch { get; set; }
 }
 
 public class EmployeeWrapperDto

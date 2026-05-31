@@ -56,20 +56,42 @@ builder.Services.AddScoped<PurchaseReturnService>();
 builder.Services.AddScoped<BankService>();
 builder.Services.AddScoped<PaymentOrderService>();
 builder.Services.AddScoped<CreditNoteService>();
+builder.Services.AddScoped<DepartmentService>();
+builder.Services.AddScoped<PositionService>();
+builder.Services.AddScoped<ScheduleService>();
+builder.Services.AddSingleton<FormulaEvaluatorService>();
+builder.Services.AddScoped<PayrollUpdateService>();
+builder.Services.AddScoped<PayrollProcessingService>();
+builder.Services.AddScoped<IEmployeeAssignmentService, EmployeeAssignmentService>();
+builder.Services.AddScoped<AccountantProcessService>();
+builder.Services.AddScoped<AccountPlanService>();
+builder.Services.AddScoped<EntryService>();
 // ------------------------------------------------------------------------------------------------------
 // Authorization configuration
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 builder.Services.AddAuthorization();
 // ------------------------------------------------------------------------------------------------------
 // CORS configuracion
+var allowedOrigins = builder.Configuration.GetValue<string>("AllowedOrigins")
+    ?? "http://localhost:5173";
+var explicitOrigins = allowedOrigins.Split(';', StringSplitOptions.RemoveEmptyEntries);
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("DevPolicy", policy =>
+    options.AddPolicy("CorsPolicy", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials();
+        policy.SetIsOriginAllowed(origin =>
+        {
+            if (explicitOrigins.Contains(origin))
+                return true;
+            var uri = new Uri(origin);
+            return uri.Host.Equals("mbeju.xyz", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.EndsWith(".mbeju.xyz", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.EndsWith(".netlify.app", StringComparison.OrdinalIgnoreCase);
+        })
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials();
     });
 });
 // ------------------------------------------------------------------------------------------------------
@@ -90,6 +112,7 @@ builder.Services.AddDbContextPool<AppDbContext>(options =>
         npgsqlOptions.MapEnum<SalesOrderStateEnum>("sales_order_state_enum");
         npgsqlOptions.MapEnum<PurchaseRequestStateEnum>("purchase_request_state_enum");
         npgsqlOptions.MapEnum<AccountTypeEnum>("account_type_enum");
+        npgsqlOptions.MapEnum<ModuleEnum>("module_enum");
     }));
 
 //*******************************************END-END-END*************************************************
@@ -139,10 +162,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseCors("DevPolicy");
-}
+app.UseCors("CorsPolicy");
 
 app.UseSwagger();
 app.UseSwaggerUI(options =>

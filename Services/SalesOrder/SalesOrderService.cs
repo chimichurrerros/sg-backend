@@ -116,7 +116,8 @@ public class SalesOrderService(
                 SaleCondition = request.SaleCondition,
                 BranchId = branchIdResult.Value,
                 Total = 0, // Will compute
-                ImportValue = request.ImportValue
+                ImportValue = request.ImportValue,
+                CustomerQuoteId = request.CustomerQuoteId
             };
 
             _context.SalesOrders.Add(salesOrder);
@@ -139,7 +140,7 @@ public class SalesOrderService(
                     return Result<SalesOrderWrapperDto>.Failure(SalesOrderError.ProductNotFound, ErrorType.Validation);
                 }
 
-                var Price = product.Price;
+                var Price = detail.Price ?? product.Price;
 
                 var lineTotal = detail.Quantity * Price;
                 var lineTax = lineTotal * (TaxRate / 100m);
@@ -200,7 +201,7 @@ public class SalesOrderService(
                     return Result<SalesOrderWrapperDto>.Failure(SalesOrderError.ProductNotFound, ErrorType.Validation);
                 }
 
-                var Price = product.Price;
+                var Price = detail.Price ?? product.Price;
                 var billDetailResult = await _billDetailService.CreateAsync(new CreateBillDetailRequestDto
                 {
                     BillId = billId,
@@ -367,8 +368,8 @@ public class SalesOrderService(
     private async Task<Result<int>> ResolveCustomerIdAsync(PosSaleCustomerRequestDto customer)
     {
         var ruc = customer.Ruc?.Trim();
-        if (string.IsNullOrWhiteSpace(ruc))
-            return Result<int>.Failure("customer.ruc es obligatorio.", ErrorType.Validation);
+        // if (string.IsNullOrWhiteSpace(ruc))
+        //     return Result<int>.Failure("customer.ruc es obligatorio.", ErrorType.Validation);
 
         var existingCustomer = await _context.Customers
             .AsNoTracking()
@@ -379,12 +380,12 @@ public class SalesOrderService(
 
         var name = customer.Name?.Trim();
         if (string.IsNullOrWhiteSpace(name))
-            return Result<int>.Failure("customer.name es obligatorio cuando el cliente no existe.", ErrorType.Validation);
+            return Result<int>.Failure(CustomerError.NameRequiredForNewCustomer, ErrorType.Validation);
 
         var createdCustomerResult = await _customerService.CreateAsync(new CreateCustomerRequestDto
         {
             Name = name,
-            Ruc = ruc
+            Ruc = ruc!
         });
 
         if (!createdCustomerResult.IsSuccess)
@@ -401,13 +402,13 @@ public class SalesOrderService(
     private async Task<Result<int>> ResolveProductIdAsync(PosSaleProductRequestDto product)
     {
         if (product.Quantity <= 0)
-            return Result<int>.Failure("Cada producto debe tener quantity > 0.", ErrorType.Validation);
+            return Result<int>.Failure(SalesOrderError.ProductQuantityRequired, ErrorType.Validation);
 
         if (product.ProductId.HasValue)
             return Result<int>.Success(product.ProductId.Value);
 
         if (string.IsNullOrWhiteSpace(product.Barcode))
-            return Result<int>.Failure("Cada producto debe tener productId o barcode.", ErrorType.Validation);
+            return Result<int>.Failure(SalesOrderError.ProductIdOrBarcodeRequired, ErrorType.Validation);
 
         var barcode = product.Barcode.Trim();
         var productEntity = await _context.Products
@@ -415,7 +416,7 @@ public class SalesOrderService(
             .FirstOrDefaultAsync(p => p.Barcode == barcode);
 
         if (productEntity == null)
-            return Result<int>.Failure($"No se encontro producto con barcode {barcode}.", ErrorType.Validation);
+            return Result<int>.Failure(string.Format(SalesOrderError.ProductNotFoundWithBarcode, barcode), ErrorType.Validation);
 
         return Result<int>.Success(productEntity.Id);
     }

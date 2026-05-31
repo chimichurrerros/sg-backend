@@ -7,8 +7,7 @@ namespace BackEnd.DTOs.Requests.Employee;
 public class CreateEmployeeRequestDto
 {
     // Employee Info
-    [Required(ErrorMessage = EmployeeError.FileNumberRequired)]
-    public string FileNumber { get; set; } = null!;
+    public string? FileNumber { get; set; }
 
     [Required(ErrorMessage = EmployeeError.HireDateRequired)]
     public DateOnly HireDate { get; set; }
@@ -37,7 +36,7 @@ public class CreateEmployeeRequestDto
     public string Lastname { get; set; } = null!;
 
     public DateOnly BirthDate { get; set; }
-    public int GenderId { get; set; }
+    public BackEnd.Models.Employee.GenderEnum Gender { get; set; }
     public BackEnd.Models.Employee.MaritalStatusEnum MaritalStatus { get; set; }
 
     // Base Entity Info
