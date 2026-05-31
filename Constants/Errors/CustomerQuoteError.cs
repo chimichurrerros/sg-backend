@@ -18,4 +18,5 @@ public static class CustomerQuoteError
     public const string ProductIdOrBarcodeRequired = "Cada producto debe tener productId o barcode.";
     public const string ProductNotFoundWithBarcode = "No se encontro producto con barcode {0}.";
     public const string QuoteAlreadySold = "El presupuesto ya fue convertido en venta";
+    public const string QuoteCancelled = "El presupuesto fue cancelado y no puede ser editado";
 }

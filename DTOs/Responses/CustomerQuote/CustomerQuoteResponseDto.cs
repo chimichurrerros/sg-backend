@@ -36,7 +36,7 @@ public class CustomerQuoteResponseDto
 
     public DateTime Date { get; set; }
 
-    public DateTime ExpirationDate => Date.AddDays(10);
+    public DateTime ExpirationDate => DateTimeUtils.AddWorkingDays(Date, 10);
 
     public decimal Total { get; set; }
 

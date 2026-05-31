@@ -65,7 +65,8 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
 
         if (queryDto.ExpirationDate.HasValue)
         {
-            var targetCreationDate = queryDto.ExpirationDate.Value.AddDays(-QuoteValidityDays);
+            var calendarDays = DateTimeUtils.WorkingDaysToCalendarDays(QuoteValidityDays);
+            var targetCreationDate = queryDto.ExpirationDate.Value.AddDays(-calendarDays);
             quotesQuery = quotesQuery.Where(q => q.Date.Date == targetCreationDate.Date);
         }
 
@@ -362,6 +363,28 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
         return result;
     }
 
+    public async Task<Result> CancelAsync(int id)
+    {
+        var quote = await _context.CustomerQuotes
+            .FirstOrDefaultAsync(q => q.Id == id);
+
+        if (quote == null)
+            return Result.Failure(CustomerQuoteError.CustomerQuoteNotFound, ErrorType.NotFound);
+
+        await ExpireQuoteIfNeededAsync(quote);
+
+        if (quote.Status == CustomerQuote.QuoteStatus.Expired)
+            return Result.Failure(CustomerQuoteError.QuoteExpired, ErrorType.Conflict);
+
+        if (quote.Status == CustomerQuote.QuoteStatus.Closed)
+            return Result.Failure(CustomerQuoteError.QuoteAlreadySold, ErrorType.Conflict);
+
+        quote.Status = CustomerQuote.QuoteStatus.Cancelled;
+        await _context.SaveChangesAsync();
+
+        return Result.Success();
+    }
+
     private async Task<Result<int>> ResolveCustomerIdAsync(CustomerQuoteCustomerRequestDto customer)
     {
         var ruc = customer.Ruc?.Trim();
@@ -427,9 +450,15 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
         if (customerId.HasValue)
             openQuotesQuery = openQuotesQuery.Where(q => q.CustomerId == customerId.Value);
 
+        var calendarDays = DateTimeUtils.WorkingDaysToCalendarDays(QuoteValidityDays);
+
         var quotesToExpire = await openQuotesQuery
-            .Where(q => q.Date.AddDays(QuoteValidityDays) < utcNow)
+            .Where(q => q.Date.AddDays(calendarDays) < utcNow)
             .ToListAsync();
+
+        quotesToExpire = quotesToExpire
+            .Where(q => DateTimeUtils.AddWorkingDays(q.Date, QuoteValidityDays) < utcNow)
+            .ToList();
 
         if (quotesToExpire.Count == 0)
             return;
@@ -445,7 +474,7 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
         if (quote.Status == CustomerQuote.QuoteStatus.Expired)
             return;
 
-        if (quote.Date.AddDays(QuoteValidityDays) >= DateTime.UtcNow)
+        if (DateTimeUtils.AddWorkingDays(quote.Date, QuoteValidityDays) >= DateTime.UtcNow)
             return;
 
         quote.Status = CustomerQuote.QuoteStatus.Expired;
