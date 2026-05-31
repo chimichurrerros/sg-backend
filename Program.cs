@@ -1,3 +1,170 @@
+<<<<<<< HEAD
+using BackEnd.Infrastructure.Context;
+using BackEnd.Models;
+using System.Text;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
+using BackEnd.Constants.Errors;
+using BackEnd.Services;
+using BackEnd.Infrastructure.Authorization;
+using Microsoft.AspNetCore.Authorization;
+
+// NECESITO ESTO PARA GUARDAR LA EL DATE TIME SIN JODER CON EL DBCONTEXT
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
+var builder = WebApplication.CreateBuilder(args);
+
+//*******************************************************************************************************
+//*                 ╭─────────────────────────────────────────────────────────╮
+//*                 │ Usually this is the only thing they will have to modify │
+//*                 ╰─────────────────────────────────────────────────────────╯
+//*******************************************************************************************************
+
+//-------------------------------------------------------------------------------------------------------
+// This is usually outside the scope of the services, use it sparingly.
+// I need this to set cookies in AuthService.
+builder.Services.AddHttpContextAccessor();
+//-------------------------------------------------------------------------------------------------------
+// The application services should be here 
+builder.Services.AddSingleton<IAuthorizationHandler, PermissionHandler>();
+builder.Services.AddScoped<AuthService, AuthService>();
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<SupplierService>();
+builder.Services.AddScoped<CustomerService>();
+builder.Services.AddScoped<CustomerQuoteService>();
+builder.Services.AddScoped<SupplierQuoteService>();
+builder.Services.AddScoped<PurchaseOrderService>();
+builder.Services.AddScoped<EmployeeService>();
+builder.Services.AddScoped<ProductBrandsService>();
+builder.Services.AddScoped<ProductCategoriesService>();
+builder.Services.AddScoped<ProductsService>();
+builder.Services.AddScoped<BranchService>();
+builder.Services.AddScoped<SupplierCategoryService>();
+builder.Services.AddScoped<CheckService>();
+builder.Services.AddScoped<BillService>();
+builder.Services.AddScoped<BillDetailService>();
+builder.Services.AddScoped<StockService>();
+builder.Services.AddScoped<SalesOrderService>();
+builder.Services.AddScoped<StatesService>();
+builder.Services.AddScoped<ServicesService>();
+builder.Services.AddScoped<AccountService>();
+builder.Services.AddScoped<BankMovementService>();
+builder.Services.AddScoped<PurchaseRequestService>();
+builder.Services.AddScoped<PurchaseReceiptService>();
+builder.Services.AddScoped<PurchaseReturnService>();
+builder.Services.AddScoped<BankService>();
+builder.Services.AddScoped<PaymentOrderService>();
+builder.Services.AddScoped<CreditNoteService>();
+builder.Services.AddScoped<IEmployeeAssignmentService, EmployeeAssignmentService>();
+builder.Services.AddScoped<AccountantProcessService>();
+builder.Services.AddScoped<AccountPlanService>();
+builder.Services.AddScoped<EntryService>();
+// ------------------------------------------------------------------------------------------------------
+// Authorization configuration
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+builder.Services.AddAuthorization();
+// ------------------------------------------------------------------------------------------------------
+// CORS configuracion
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("DevPolicy", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
+// ------------------------------------------------------------------------------------------------------
+
+
+
+// Database configuration
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContextPool<AppDbContext>(options =>
+    options.UseNpgsql(connectionString, npgsqlOptions =>
+    {
+        // ENUMS CONFIG <----------------------------------------------------------- SEE------------------
+        npgsqlOptions.MapEnum<BankMovementTypeEnum>("bank_movement_type_enum");
+        npgsqlOptions.MapEnum<BillStateEnum>("bill_state_enum");
+        npgsqlOptions.MapEnum<BillTypeEnum>("bill_type_enum");
+        npgsqlOptions.MapEnum<CheckStatusEnum>("check_status_enum");
+        npgsqlOptions.MapEnum<CheckTypeEnum>("check_type_enum");
+        npgsqlOptions.MapEnum<SalesOrderStateEnum>("sales_order_state_enum");
+        npgsqlOptions.MapEnum<PurchaseRequestStateEnum>("purchase_request_state_enum");
+        npgsqlOptions.MapEnum<AccountTypeEnum>("account_type_enum");
+        npgsqlOptions.MapEnum<ModuleEnum>("module_enum");
+    }));
+
+//*******************************************END-END-END*************************************************
+// AutoMapper configuration
+builder.Services.AddAutoMapper(typeof(Program).Assembly);
+
+// JWT configuration
+var jwtKey = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!);
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(jwtKey),
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                context.Token = context.Request.Cookies["current_user"];
+                return Task.CompletedTask;
+            }
+        };
+    });
+
+// Controller configuration
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var problemDetails = new ValidationProblemDetails(context.ModelState)
+            {
+                Title = ApplicationError.ValidationFailed
+            };
+            return new BadRequestObjectResult(problemDetails);
+        };
+    });
+
+// Swagger configuration
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors("DevPolicy");
+}
+
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+    options.RoutePrefix = string.Empty;
+});
+
+app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
+
+=======
 using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using System.Text;
@@ -178,4 +345,5 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+>>>>>>> dev
 app.Run();

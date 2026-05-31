@@ -389,6 +389,8 @@ namespace BackEnd.Migrations
                     b.ToTable("Branches");
                 });
 
+<<<<<<< HEAD
+=======
             modelBuilder.Entity("BackEnd.Models.BranchDepartment", b =>
                 {
                     b.Property<int>("Id")
@@ -419,6 +421,7 @@ namespace BackEnd.Migrations
                     b.ToTable("BranchDepartments");
                 });
 
+>>>>>>> dev
             modelBuilder.Entity("BackEnd.Models.Check", b =>
                 {
                     b.Property<int>("Id")
@@ -577,6 +580,8 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+<<<<<<< HEAD
+=======
                     b.Property<int?>("AccountId")
                         .HasColumnType("integer");
 
@@ -589,6 +594,7 @@ namespace BackEnd.Migrations
                     b.Property<int?>("CashierNumber")
                         .HasColumnType("integer");
 
+>>>>>>> dev
                     b.Property<int>("CustomerId")
                         .HasColumnType("integer");
 
@@ -597,6 +603,8 @@ namespace BackEnd.Migrations
                         .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+<<<<<<< HEAD
+=======
                     b.Property<decimal>("ImportValue")
                         .HasPrecision(15, 2)
                         .HasColumnType("numeric(15,2)");
@@ -614,6 +622,7 @@ namespace BackEnd.Migrations
                     b.Property<int?>("SaleCondition")
                         .HasColumnType("integer");
 
+>>>>>>> dev
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -627,8 +636,11 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("CustomerQuotes_pkey");
 
+<<<<<<< HEAD
+=======
                     b.HasIndex("BranchId");
 
+>>>>>>> dev
                     b.HasIndex("CustomerId");
 
                     b.HasIndex("UserId");
@@ -676,7 +688,11 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+<<<<<<< HEAD
+                    b.Property<int?>("BossId")
+=======
                     b.Property<int?>("EmployeeId")
+>>>>>>> dev
                         .HasColumnType("integer");
 
                     b.Property<string>("Name")
@@ -687,7 +703,11 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("Departments_pkey");
 
+<<<<<<< HEAD
+                    b.HasIndex("BossId");
+=======
                     b.HasIndex("EmployeeId");
+>>>>>>> dev
 
                     b.ToTable("Departments");
                 });
@@ -765,10 +785,13 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("BranchId");
 
+<<<<<<< HEAD
+=======
                     b.HasIndex("FileNumber")
                         .IsUnique()
                         .HasDatabaseName("IX_Employees_FileNumber");
 
+>>>>>>> dev
                     b.HasIndex("InmediatlyBossId");
 
                     b.ToTable("Employees");
@@ -793,6 +816,12 @@ namespace BackEnd.Migrations
                     b.Property<int>("EmployeeId")
                         .HasColumnType("integer");
 
+<<<<<<< HEAD
+                    b.Property<DateOnly?>("EndDate")
+                        .HasColumnType("date");
+
+=======
+>>>>>>> dev
                     b.Property<string>("Lastname")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -806,12 +835,26 @@ namespace BackEnd.Migrations
                     b.Property<int>("RelationType")
                         .HasColumnType("integer");
 
+<<<<<<< HEAD
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+=======
+>>>>>>> dev
                     b.HasKey("Id")
                         .HasName("EmployeeRelations_pkey");
 
                     b.HasIndex("DocumentNumber")
                         .HasDatabaseName("IX_EmployeeRelations_DocumentNumber");
 
+<<<<<<< HEAD
+                    b.HasIndex("EmployeeId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_EmployeeRelations_OneActiveSpouse")
+                        .HasFilter("\"RelationType\" = 1 AND \"EndDate\" IS NULL");
+
+=======
+>>>>>>> dev
                     b.HasIndex("EmployeeId", "RelationType")
                         .HasDatabaseName("IX_EmployeeRelations_EmployeeId_RelationType");
 
@@ -991,6 +1034,28 @@ namespace BackEnd.Migrations
                     b.ToTable("EntryModelDetails");
                 });
 
+<<<<<<< HEAD
+            modelBuilder.Entity("BackEnd.Models.FormulaType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id")
+                        .HasName("FormulaTypes_pkey");
+
+                    b.ToTable("FormulaTypes");
+                });
+
+=======
+>>>>>>> dev
             modelBuilder.Entity("BackEnd.Models.LegalPerson", b =>
                 {
                     b.Property<int>("EntityId")
@@ -1011,6 +1076,8 @@ namespace BackEnd.Migrations
                     b.ToTable("LegalPersons");
                 });
 
+<<<<<<< HEAD
+=======
             modelBuilder.Entity("BackEnd.Models.ManualConceptIncident", b =>
                 {
                     b.Property<int>("Id")
@@ -1050,6 +1117,7 @@ namespace BackEnd.Migrations
                     b.ToTable("ManualConceptIncidents");
                 });
 
+>>>>>>> dev
             modelBuilder.Entity("BackEnd.Models.Module", b =>
                 {
                     b.Property<int>("Id")
@@ -1225,6 +1293,11 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("PayrollStatusId");
 
+<<<<<<< HEAD
+                    b.HasIndex("ProcessTypeId");
+
+=======
+>>>>>>> dev
                     b.ToTable("PayrollProcesses");
                 });
 
@@ -1280,6 +1353,28 @@ namespace BackEnd.Migrations
                     b.ToTable("PayrollStatus", (string)null);
                 });
 
+<<<<<<< HEAD
+            modelBuilder.Entity("BackEnd.Models.PayrollType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id")
+                        .HasName("PayrollTypes_pkey");
+
+                    b.ToTable("PayrollTypes");
+                });
+
+=======
+>>>>>>> dev
             modelBuilder.Entity("BackEnd.Models.PayrollUpdate", b =>
                 {
                     b.Property<int>("Id")
@@ -1308,6 +1403,13 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("PayrollUpdates_pkey");
 
+<<<<<<< HEAD
+                    b.HasIndex("FormulaTypeId");
+
+                    b.HasIndex("PayrollTypeId");
+
+=======
+>>>>>>> dev
                     b.ToTable("PayrollUpdates");
                 });
 
@@ -1419,6 +1521,28 @@ namespace BackEnd.Migrations
                     b.ToTable("PositionByScheduleByEmployee", (string)null);
                 });
 
+<<<<<<< HEAD
+            modelBuilder.Entity("BackEnd.Models.ProcessType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id")
+                        .HasName("ProcessTypes_pkey");
+
+                    b.ToTable("ProcessTypes");
+                });
+
+=======
+>>>>>>> dev
             modelBuilder.Entity("BackEnd.Models.Product", b =>
                 {
                     b.Property<int>("Id")
@@ -1440,9 +1564,12 @@ namespace BackEnd.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+<<<<<<< HEAD
+=======
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+>>>>>>> dev
                     b.Property<bool?>("IsService")
                         .HasColumnType("boolean");
 
@@ -1489,9 +1616,12 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+<<<<<<< HEAD
+=======
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+>>>>>>> dev
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1511,9 +1641,12 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+<<<<<<< HEAD
+=======
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+>>>>>>> dev
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1934,16 +2067,48 @@ namespace BackEnd.Migrations
                         .HasPrecision(5, 2)
                         .HasColumnType("numeric(5,2)");
 
+<<<<<<< HEAD
+                    b.Property<int>("ScheduleTypeId")
+                        .HasColumnType("integer");
+=======
                     b.Property<int>("ScheduleType")
                         .HasColumnType("integer")
                         .HasColumnName("ScheduleTypeId");
+>>>>>>> dev
 
                     b.HasKey("Id")
                         .HasName("Schedules_pkey");
 
+<<<<<<< HEAD
+                    b.HasIndex("ScheduleTypeId");
+
                     b.ToTable("Schedules");
                 });
 
+            modelBuilder.Entity("BackEnd.Models.ScheduleType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id")
+                        .HasName("ScheduleTypes_pkey");
+
+                    b.ToTable("ScheduleTypes");
+                });
+
+=======
+                    b.ToTable("Schedules");
+                });
+
+>>>>>>> dev
             modelBuilder.Entity("BackEnd.Models.State", b =>
                 {
                     b.Property<int>("Id")
@@ -1977,7 +2142,11 @@ namespace BackEnd.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("integer");
 
+<<<<<<< HEAD
+                    b.Property<decimal>("Quantity")
+=======
                     b.Property<decimal?>("Quantity")
+>>>>>>> dev
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
 
@@ -2286,6 +2455,8 @@ namespace BackEnd.Migrations
                     b.Navigation("Product");
                 });
 
+<<<<<<< HEAD
+=======
             modelBuilder.Entity("BackEnd.Models.BranchDepartment", b =>
                 {
                     b.HasOne("BackEnd.Models.Employee", "Boss")
@@ -2312,6 +2483,7 @@ namespace BackEnd.Migrations
                     b.Navigation("Department");
                 });
 
+>>>>>>> dev
             modelBuilder.Entity("BackEnd.Models.Check", b =>
                 {
                     b.HasOne("BackEnd.Models.BankMovement", "BankMovement")
@@ -2353,12 +2525,15 @@ namespace BackEnd.Migrations
 
             modelBuilder.Entity("BackEnd.Models.CustomerQuote", b =>
                 {
+<<<<<<< HEAD
+=======
                     b.HasOne("BackEnd.Models.Branch", "Branch")
                         .WithMany()
                         .HasForeignKey("BranchId")
                         .IsRequired()
                         .HasConstraintName("CustomerQuotes_BranchId_fkey");
 
+>>>>>>> dev
                     b.HasOne("BackEnd.Models.Customer", "Customer")
                         .WithMany("CustomerQuotes")
                         .HasForeignKey("CustomerId")
@@ -2371,8 +2546,11 @@ namespace BackEnd.Migrations
                         .IsRequired()
                         .HasConstraintName("CustomerQuotes_UserId_fkey");
 
+<<<<<<< HEAD
+=======
                     b.Navigation("Branch");
 
+>>>>>>> dev
                     b.Navigation("Customer");
 
                     b.Navigation("User");
@@ -2399,9 +2577,18 @@ namespace BackEnd.Migrations
 
             modelBuilder.Entity("BackEnd.Models.Department", b =>
                 {
+<<<<<<< HEAD
+                    b.HasOne("BackEnd.Models.Employee", "Boss")
+                        .WithMany("Departments")
+                        .HasForeignKey("BossId")
+                        .HasConstraintName("FkDepartmentsBoss");
+
+                    b.Navigation("Boss");
+=======
                     b.HasOne("BackEnd.Models.Employee", null)
                         .WithMany("Departments")
                         .HasForeignKey("EmployeeId");
+>>>>>>> dev
                 });
 
             modelBuilder.Entity("BackEnd.Models.Employee", b =>
@@ -2516,6 +2703,8 @@ namespace BackEnd.Migrations
                     b.Navigation("Entity");
                 });
 
+<<<<<<< HEAD
+=======
             modelBuilder.Entity("BackEnd.Models.ManualConceptIncident", b =>
                 {
                     b.HasOne("BackEnd.Models.Employee", "Employee")
@@ -2543,6 +2732,7 @@ namespace BackEnd.Migrations
                     b.Navigation("PayrollUpdate");
                 });
 
+>>>>>>> dev
             modelBuilder.Entity("BackEnd.Models.PaymentOrder", b =>
                 {
                     b.HasOne("BackEnd.Models.State", null)
@@ -2625,7 +2815,19 @@ namespace BackEnd.Migrations
                         .IsRequired()
                         .HasConstraintName("PayrollProcesses_PayrollStatusId_fkey");
 
+<<<<<<< HEAD
+                    b.HasOne("BackEnd.Models.ProcessType", "ProcessType")
+                        .WithMany("PayrollProcesses")
+                        .HasForeignKey("ProcessTypeId")
+                        .IsRequired()
+                        .HasConstraintName("PayrollProcesses_ProcessTypeId_fkey");
+
                     b.Navigation("PayrollStatus");
+
+                    b.Navigation("ProcessType");
+=======
+                    b.Navigation("PayrollStatus");
+>>>>>>> dev
                 });
 
             modelBuilder.Entity("BackEnd.Models.PayrollProcessDetail", b =>
@@ -2655,6 +2857,28 @@ namespace BackEnd.Migrations
                     b.Navigation("PayrollUpdate");
                 });
 
+<<<<<<< HEAD
+            modelBuilder.Entity("BackEnd.Models.PayrollUpdate", b =>
+                {
+                    b.HasOne("BackEnd.Models.FormulaType", "FormulaType")
+                        .WithMany("PayrollUpdates")
+                        .HasForeignKey("FormulaTypeId")
+                        .IsRequired()
+                        .HasConstraintName("PayrollUpdates_FormulaTypeId_fkey");
+
+                    b.HasOne("BackEnd.Models.PayrollType", "PayrollType")
+                        .WithMany("PayrollUpdates")
+                        .HasForeignKey("PayrollTypeId")
+                        .IsRequired()
+                        .HasConstraintName("PayrollUpdates_PayrollTypeId_fkey");
+
+                    b.Navigation("FormulaType");
+
+                    b.Navigation("PayrollType");
+                });
+
+=======
+>>>>>>> dev
             modelBuilder.Entity("BackEnd.Models.Permission", b =>
                 {
                     b.HasOne("BackEnd.Models.Role", "Role")
@@ -2909,6 +3133,20 @@ namespace BackEnd.Migrations
                     b.Navigation("SalesOrder");
                 });
 
+<<<<<<< HEAD
+            modelBuilder.Entity("BackEnd.Models.Schedule", b =>
+                {
+                    b.HasOne("BackEnd.Models.ScheduleType", "ScheduleType")
+                        .WithMany("Schedules")
+                        .HasForeignKey("ScheduleTypeId")
+                        .IsRequired()
+                        .HasConstraintName("Schedules_ScheduleTypeId_fkey");
+
+                    b.Navigation("ScheduleType");
+                });
+
+=======
+>>>>>>> dev
             modelBuilder.Entity("BackEnd.Models.Stock", b =>
                 {
                     b.HasOne("BackEnd.Models.Branch", "Branch")
@@ -3041,8 +3279,11 @@ namespace BackEnd.Migrations
 
             modelBuilder.Entity("BackEnd.Models.Branch", b =>
                 {
+<<<<<<< HEAD
+=======
                     b.Navigation("BranchDepartments");
 
+>>>>>>> dev
                     b.Navigation("Employees");
 
                     b.Navigation("Stocks");
@@ -3073,8 +3314,11 @@ namespace BackEnd.Migrations
 
             modelBuilder.Entity("BackEnd.Models.Department", b =>
                 {
+<<<<<<< HEAD
+=======
                     b.Navigation("BranchDepartments");
 
+>>>>>>> dev
                     b.Navigation("Employees");
                 });
 
@@ -3115,6 +3359,14 @@ namespace BackEnd.Migrations
                     b.Navigation("EntryModelDetails");
                 });
 
+<<<<<<< HEAD
+            modelBuilder.Entity("BackEnd.Models.FormulaType", b =>
+                {
+                    b.Navigation("PayrollUpdates");
+                });
+
+=======
+>>>>>>> dev
             modelBuilder.Entity("BackEnd.Models.Module", b =>
                 {
                     b.Navigation("Entries");
@@ -3139,6 +3391,14 @@ namespace BackEnd.Migrations
                     b.Navigation("PayrollProcesses");
                 });
 
+<<<<<<< HEAD
+            modelBuilder.Entity("BackEnd.Models.PayrollType", b =>
+                {
+                    b.Navigation("PayrollUpdates");
+                });
+
+=======
+>>>>>>> dev
             modelBuilder.Entity("BackEnd.Models.PayrollUpdate", b =>
                 {
                     b.Navigation("PayrollProcessDetails");
@@ -3149,6 +3409,14 @@ namespace BackEnd.Migrations
                     b.Navigation("PositionByScheduleByEmployees");
                 });
 
+<<<<<<< HEAD
+            modelBuilder.Entity("BackEnd.Models.ProcessType", b =>
+                {
+                    b.Navigation("PayrollProcesses");
+                });
+
+=======
+>>>>>>> dev
             modelBuilder.Entity("BackEnd.Models.Product", b =>
                 {
                     b.Navigation("BillDetails");
@@ -3225,6 +3493,14 @@ namespace BackEnd.Migrations
                     b.Navigation("PositionByScheduleByEmployees");
                 });
 
+<<<<<<< HEAD
+            modelBuilder.Entity("BackEnd.Models.ScheduleType", b =>
+                {
+                    b.Navigation("Schedules");
+                });
+
+=======
+>>>>>>> dev
             modelBuilder.Entity("BackEnd.Models.State", b =>
                 {
                     b.Navigation("AccountantProcesses");
