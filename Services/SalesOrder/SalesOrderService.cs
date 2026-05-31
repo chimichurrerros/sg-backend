@@ -116,7 +116,8 @@ public class SalesOrderService(
                 SaleCondition = request.SaleCondition,
                 BranchId = branchIdResult.Value,
                 Total = 0, // Will compute
-                ImportValue = request.ImportValue
+                ImportValue = request.ImportValue,
+                CustomerQuoteId = request.CustomerQuoteId
             };
 
             _context.SalesOrders.Add(salesOrder);
@@ -139,7 +140,7 @@ public class SalesOrderService(
                     return Result<SalesOrderWrapperDto>.Failure(SalesOrderError.ProductNotFound, ErrorType.Validation);
                 }
 
-                var Price = product.Price;
+                var Price = detail.Price ?? product.Price;
 
                 var lineTotal = detail.Quantity * Price;
                 var lineTax = lineTotal * (TaxRate / 100m);
@@ -200,7 +201,7 @@ public class SalesOrderService(
                     return Result<SalesOrderWrapperDto>.Failure(SalesOrderError.ProductNotFound, ErrorType.Validation);
                 }
 
-                var Price = product.Price;
+                var Price = detail.Price ?? product.Price;
                 var billDetailResult = await _billDetailService.CreateAsync(new CreateBillDetailRequestDto
                 {
                     BillId = billId,

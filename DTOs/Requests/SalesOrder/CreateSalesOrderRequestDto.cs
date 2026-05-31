@@ -19,6 +19,8 @@ public class CreateSalesOrderRequestDto
     public int BranchId { get; set; }
     public decimal ImportValue {get; set;}
 
+    public int? CustomerQuoteId { get; set; }
+
     public List<CreateSalesOrderDetailRequestDto> Details { get; set; } = new();
 }
 
@@ -26,4 +28,5 @@ public class CreateSalesOrderDetailRequestDto
 {
     public int ProductId { get; set; }
     public decimal Quantity { get; set; }
+    public decimal? Price { get; set; }
 }

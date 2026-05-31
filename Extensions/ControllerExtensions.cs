@@ -18,7 +18,15 @@ public static class ControllerExtensions
 
     public static ActionResult HandleValidationProblem(this ControllerBase controller, Result result)
     {
-        return controller.BadRequest(new ValidationProblemDetails(result.Errors!));
+        if (result.Errors != null)
+            return controller.BadRequest(new ValidationProblemDetails(result.Errors));
+
+        return controller.BadRequest(new ProblemDetails
+        {
+            Title = "Validation Error",
+            Status = StatusCodes.Status400BadRequest,
+            Detail = result.ErrorMessage
+        });
     }
 
     public static ActionResult HandleNotFoundProblem(this ControllerBase controller, Result result)
