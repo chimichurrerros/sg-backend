@@ -61,6 +61,69 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         });
     }
 
+    public async Task<Result<ManualConceptIncidentResponseDto>> UpdateManualConceptIncidentAsync(int id, ManualConceptIncidentCreateDto request)
+    {
+        var incident = await _context.ManualConceptIncidents
+            .Include(i => i.Employee)
+            .Include(i => i.PayrollUpdate)
+            .FirstOrDefaultAsync(i => i.Id == id);
+
+        if (incident is null)
+            return Result<ManualConceptIncidentResponseDto>.Failure(ManualConceptIncidentError.ManualConceptIncidentNotFound, ErrorType.NotFound);
+
+        if (incident.Status != ManualConceptIncident.ManualConceptStatus.Pending)
+            return Result<ManualConceptIncidentResponseDto>.Failure("Solo se pueden editar novedades en estado Pendiente", ErrorType.Conflict);
+
+        var employee = await _context.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == request.EmployeeId);
+        if (employee is null)
+            return Result<ManualConceptIncidentResponseDto>.Failure(EmployeeError.EmployeeNotFound, ErrorType.NotFound);
+
+        var payrollUpdate = await _context.PayrollUpdates.AsNoTracking().FirstOrDefaultAsync(pu => pu.Id == request.PayrollUpdateId);
+        if (payrollUpdate is null)
+            return Result<ManualConceptIncidentResponseDto>.Failure(PayrollUpdateError.PayrollUpdateNotFound, ErrorType.NotFound);
+
+        if (payrollUpdate.FormulaTypeId != PayrollUpdate.FormulaTypeEnum.Fixed)
+            return Result<ManualConceptIncidentResponseDto>.Failure(ManualConceptIncidentError.ManualConceptMustBeFixed, ErrorType.Validation);
+
+        incident.EmployeeId = request.EmployeeId;
+        incident.PayrollUpdateId = request.PayrollUpdateId;
+        incident.Amount = request.Amount;
+        incident.OccurrenceDate = request.OccurrenceDate;
+
+        await _context.SaveChangesAsync();
+
+        return Result<ManualConceptIncidentResponseDto>.Success(new ManualConceptIncidentResponseDto
+        {
+            Id = incident.Id,
+            EmployeeId = employee.Id,
+            EmployeeFullName = $"{employee.Name} {employee.Lastname}",
+            PayrollUpdateId = payrollUpdate.Id,
+            ConceptName = payrollUpdate.Name,
+            PayrollTypeName = GetManualPayrollTypeName(payrollUpdate.PayrollTypeId),
+            Amount = incident.Amount,
+            OccurrenceDate = incident.OccurrenceDate,
+            StatusName = nameof(ManualConceptIncident.ManualConceptStatus.Pending),
+            PayrollProcessId = incident.PayrollProcessId
+        });
+    }
+
+    public async Task<Result> DeleteManualConceptIncidentAsync(int id)
+    {
+        var incident = await _context.ManualConceptIncidents
+            .FirstOrDefaultAsync(i => i.Id == id);
+
+        if (incident is null)
+            return Result.Failure(ManualConceptIncidentError.ManualConceptIncidentNotFound, ErrorType.NotFound);
+
+        if (incident.Status != ManualConceptIncident.ManualConceptStatus.Pending)
+            return Result.Failure("Solo se pueden eliminar novedades en estado Pendiente", ErrorType.Conflict);
+
+        _context.ManualConceptIncidents.Remove(incident);
+        await _context.SaveChangesAsync();
+
+        return Result.Success();
+    }
+
     public async Task<Result<List<ManualConceptIncidentResponseDto>>> GetPendingManualConceptIncidentsAsync()
     {
         var incidents = await _context.ManualConceptIncidents
@@ -752,9 +815,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             .Where(relation =>
                 relation.EmployeeId == employeeId &&
                 relation.RelationType == EmployeeRelation.RelationTypeEnum.Child &&
-                relation.BirthDate > adultThreshold &&
-                relation.StartDate <= referenceDate &&
-                (relation.EndDate == null || relation.EndDate >= referenceDate))
+                relation.BirthDate > adultThreshold)
             .CountAsync();
     }
 }

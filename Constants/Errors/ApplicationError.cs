@@ -5,4 +5,5 @@ public static class ApplicationError
     public const string ValidationFailed = "Se produjeron uno o más errores de validación.";
     public const string BadRequest = "La solicitud es inválida.";
     public const string NotFound = "No se encontró el recurso solicitado.";
+    public const string Conflict = "Conflicto con el estado actual del recurso.";
 }

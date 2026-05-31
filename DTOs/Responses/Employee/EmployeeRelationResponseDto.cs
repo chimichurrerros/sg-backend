@@ -13,8 +13,6 @@ public class EmployeeRelationResponseDto
     public string Lastname { get; set; } = null!;
     public string DocumentNumber { get; set; } = null!;
     public DateOnly BirthDate { get; set; }
-    public DateOnly StartDate { get; set; }
-    public DateOnly? EndDate { get; set; }
 }
 
 public class EmployeeRelationWrapperDto

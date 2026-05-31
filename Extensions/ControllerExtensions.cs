@@ -44,6 +44,16 @@ public static class ControllerExtensions
         });
     }
 
+    public static ActionResult HandleConflictProblem(this ControllerBase controller, Result result)
+    {
+        return controller.Conflict(new ProblemDetails
+        {
+            Title = ApplicationError.Conflict,
+            Status = StatusCodes.Status409Conflict,
+            Detail = result.ErrorMessage
+        });
+    }
+
     public static ActionResult HandleServerError(this ControllerBase controller, string title, Result result, int? id = null)
     {
         var detail = result.ErrorMessage;
