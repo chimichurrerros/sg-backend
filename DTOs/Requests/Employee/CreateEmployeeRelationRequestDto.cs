@@ -20,9 +20,4 @@ public class CreateEmployeeRelationRequestDto
 
     [Required(ErrorMessage = EmployeeError.FamilyBirthDateRequired)]
     public DateOnly BirthDate { get; set; }
-
-    [Required(ErrorMessage = EmployeeError.FamilyStartDateRequired)]
-    public DateOnly StartDate { get; set; }
-
-    public DateOnly? EndDate { get; set; }
 }

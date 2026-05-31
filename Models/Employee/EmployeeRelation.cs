@@ -24,9 +24,5 @@ public partial class EmployeeRelation
 
     public DateOnly BirthDate { get; set; }
 
-    public DateOnly StartDate { get; set; }
-
-    public DateOnly? EndDate { get; set; }
-
     public virtual Employee Employee { get; set; } = null!;
 }

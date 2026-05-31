@@ -485,11 +485,6 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.DocumentNumber)
                 .HasDatabaseName("IX_EmployeeRelations_DocumentNumber");
 
-            entity.HasIndex(e => e.EmployeeId)
-                .HasDatabaseName("IX_EmployeeRelations_OneActiveSpouse")
-                .IsUnique()
-                .HasFilter("\"RelationType\" = 1 AND \"EndDate\" IS NULL");
-
             entity.HasOne(d => d.Employee).WithMany(p => p.EmployeeRelations)
                 .HasForeignKey(d => d.EmployeeId)
                 .OnDelete(DeleteBehavior.ClientSetNull)

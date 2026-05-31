@@ -406,9 +406,7 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
                 Name = relation.Name,
                 Lastname = relation.Lastname,
                 DocumentNumber = relation.DocumentNumber,
-                BirthDate = relation.BirthDate,
-                StartDate = relation.StartDate,
-                EndDate = relation.EndDate
+                BirthDate = relation.BirthDate
             })
             .ToListAsync();
 
@@ -431,9 +429,7 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
             Name = request.Name.Trim(),
             Lastname = request.Lastname.Trim(),
             DocumentNumber = request.DocumentNumber.Trim(),
-            BirthDate = request.BirthDate,
-            StartDate = request.StartDate,
-            EndDate = request.EndDate
+            BirthDate = request.BirthDate
         };
 
         _context.EmployeeRelations.Add(relation);
@@ -449,9 +445,7 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
                 Name = relation.Name,
                 Lastname = relation.Lastname,
                 DocumentNumber = relation.DocumentNumber,
-                BirthDate = relation.BirthDate,
-                StartDate = relation.StartDate,
-                EndDate = relation.EndDate
+                BirthDate = relation.BirthDate
             }
         });
     }
@@ -468,8 +462,6 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
         relation.Lastname = request.Lastname.Trim();
         relation.DocumentNumber = request.DocumentNumber.Trim();
         relation.BirthDate = request.BirthDate;
-        relation.StartDate = request.StartDate;
-        relation.EndDate = request.EndDate;
 
         await _context.SaveChangesAsync();
 
@@ -483,9 +475,7 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
                 Name = relation.Name,
                 Lastname = relation.Lastname,
                 DocumentNumber = relation.DocumentNumber,
-                BirthDate = relation.BirthDate,
-                StartDate = relation.StartDate,
-                EndDate = relation.EndDate
+                BirthDate = relation.BirthDate
             }
         });
     }
@@ -498,10 +488,7 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
         if (relation == null)
             return Result.Failure(EmployeeError.FamilyRelationNotFound, ErrorType.NotFound);
 
-        if (relation.EndDate != null)
-            return Result.Failure(EmployeeError.RelationNotDeletable, ErrorType.Conflict);
-
-        relation.EndDate = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+        _context.EmployeeRelations.Remove(relation);
         await _context.SaveChangesAsync();
 
         return Result.Success();
@@ -665,27 +652,10 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
         if (string.IsNullOrWhiteSpace(request.Lastname)) errors["Lastname"] = new[] { EmployeeError.FamilyLastnameRequired };
         if (string.IsNullOrWhiteSpace(request.DocumentNumber)) errors["DocumentNumber"] = new[] { EmployeeError.FamilyDocumentRequired };
 
-        if (request.EndDate.HasValue && request.EndDate.Value < request.StartDate)
-            errors["EndDate"] = new[] { EmployeeError.FamilyEndDateInvalid };
-
         var duplicatedDocument = await _context.EmployeeRelations.AsNoTracking().AnyAsync(relation =>
             relation.EmployeeId == employeeId && relation.DocumentNumber == request.DocumentNumber.Trim());
 
         if (duplicatedDocument) errors["DocumentNumber"] = new[] { EmployeeError.FamilyDocumentAlreadyExists };
-
-        if (request.RelationType == EmployeeRelation.RelationTypeEnum.Spouse)
-        {
-            var hasActiveSpouse = await _context.EmployeeRelations
-                .AsNoTracking()
-                .AnyAsync(relation =>
-                    relation.EmployeeId == employeeId
-                    && relation.RelationType == EmployeeRelation.RelationTypeEnum.Spouse
-                    && relation.EndDate == null);
-
-            var newSpouseIsActive = request.EndDate == null;
-            if (hasActiveSpouse && newSpouseIsActive)
-                errors["RelationType"] = new[] { EmployeeError.EmployeeCanOnlyHaveOneActiveSpouse };
-        }
 
         if (errors.Count > 0)
         {
@@ -755,7 +725,7 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
         var relation = await _context.EmployeeRelations
             .AsNoTracking()
             .Where(r => r.Id == relationId && r.EmployeeId == employeeId)
-            .Select(r => new { r.Id, r.RelationType, r.EndDate })
+            .Select(r => new { r.Id, r.RelationType })
             .FirstOrDefaultAsync();
 
         if (relation == null)
@@ -768,27 +738,10 @@ public class EmployeeService(AppDbContext context, IMapper mapper)
         if (string.IsNullOrWhiteSpace(request.Lastname)) errors["Lastname"] = new[] { EmployeeError.FamilyLastnameRequired };
         if (string.IsNullOrWhiteSpace(request.DocumentNumber)) errors["DocumentNumber"] = new[] { EmployeeError.FamilyDocumentRequired };
 
-        if (request.EndDate.HasValue && request.EndDate.Value < request.StartDate)
-            errors["EndDate"] = new[] { EmployeeError.FamilyEndDateInvalid };
-
         var duplicatedDocument = await _context.EmployeeRelations.AsNoTracking().AnyAsync(rel =>
             rel.EmployeeId == employeeId && rel.DocumentNumber == request.DocumentNumber.Trim() && rel.Id != relationId);
 
         if (duplicatedDocument) errors["DocumentNumber"] = new[] { EmployeeError.FamilyDocumentAlreadyExists };
-
-        if (request.RelationType == EmployeeRelation.RelationTypeEnum.Spouse && request.EndDate == null)
-        {
-            var hasOtherActiveSpouse = await _context.EmployeeRelations
-                .AsNoTracking()
-                .AnyAsync(rel =>
-                    rel.EmployeeId == employeeId
-                    && rel.RelationType == EmployeeRelation.RelationTypeEnum.Spouse
-                    && rel.EndDate == null
-                    && rel.Id != relationId);
-
-            if (hasOtherActiveSpouse)
-                errors["RelationType"] = new[] { EmployeeError.EmployeeCanOnlyHaveOneActiveSpouse };
-        }
 
         if (errors.Count > 0)
         {
