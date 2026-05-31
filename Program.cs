@@ -66,6 +66,7 @@ builder.Services.AddScoped<IEmployeeAssignmentService, EmployeeAssignmentService
 builder.Services.AddScoped<AccountantProcessService>();
 builder.Services.AddScoped<AccountPlanService>();
 builder.Services.AddScoped<EntryService>();
+builder.Services.AddScoped<AccountingReportService>();
 // ------------------------------------------------------------------------------------------------------
 // Authorization configuration
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
