@@ -86,7 +86,9 @@ builder.Services.AddCors(options =>
             if (explicitOrigins.Contains(origin))
                 return true;
             var uri = new Uri(origin);
-            return uri.Host.Equals("mbeju.xyz", StringComparison.OrdinalIgnoreCase)
+            return uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.Equals("mbeju.xyz", StringComparison.OrdinalIgnoreCase)
                 || uri.Host.EndsWith(".mbeju.xyz", StringComparison.OrdinalIgnoreCase)
                 || uri.Host.EndsWith(".netlify.app", StringComparison.OrdinalIgnoreCase);
         })
