@@ -147,66 +147,6 @@ namespace BackEnd.Migrations
                     b.ToTable("AccountantProcesses");
                 });
 
-            modelBuilder.Entity("BackEnd.Models.Attendance", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AttendanceTypeId")
-                        .HasColumnType("integer");
-
-                    b.Property<TimeOnly?>("CheckIn")
-                        .HasColumnType("time without time zone");
-
-                    b.Property<TimeOnly?>("CheckOut")
-                        .HasColumnType("time without time zone");
-
-                    b.Property<DateOnly>("Date")
-                        .HasColumnType("date");
-
-                    b.Property<int>("EmployeeId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("MinutesLate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.HasKey("Id")
-                        .HasName("Attendances_pkey");
-
-                    b.HasIndex("AttendanceTypeId");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.ToTable("Attendances");
-                });
-
-            modelBuilder.Entity("BackEnd.Models.AttendanceType", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("AffectsPayroll")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.HasKey("Id")
-                        .HasName("AttendanceTypes_pkey");
-
-                    b.ToTable("AttendanceTypes");
-                });
-
             modelBuilder.Entity("BackEnd.Models.Bank", b =>
                 {
                     b.Property<int>("Id")
@@ -2238,25 +2178,6 @@ namespace BackEnd.Migrations
                         .HasForeignKey("StateId");
                 });
 
-            modelBuilder.Entity("BackEnd.Models.Attendance", b =>
-                {
-                    b.HasOne("BackEnd.Models.AttendanceType", "AttendanceType")
-                        .WithMany("Attendances")
-                        .HasForeignKey("AttendanceTypeId")
-                        .IsRequired()
-                        .HasConstraintName("Attendances_AttendanceTypeId_fkey");
-
-                    b.HasOne("BackEnd.Models.Employee", "Employee")
-                        .WithMany("Attendances")
-                        .HasForeignKey("EmployeeId")
-                        .IsRequired()
-                        .HasConstraintName("Attendances_EmployeeId_fkey");
-
-                    b.Navigation("AttendanceType");
-
-                    b.Navigation("Employee");
-                });
-
             modelBuilder.Entity("BackEnd.Models.BankMovement", b =>
                 {
                     b.HasOne("BackEnd.Models.Account", "Account")
@@ -3043,11 +2964,6 @@ namespace BackEnd.Migrations
                     b.Navigation("Entries");
                 });
 
-            modelBuilder.Entity("BackEnd.Models.AttendanceType", b =>
-                {
-                    b.Navigation("Attendances");
-                });
-
             modelBuilder.Entity("BackEnd.Models.Bank", b =>
                 {
                     b.Navigation("Accounts");
@@ -3110,8 +3026,6 @@ namespace BackEnd.Migrations
 
             modelBuilder.Entity("BackEnd.Models.Employee", b =>
                 {
-                    b.Navigation("Attendances");
-
                     b.Navigation("Departments");
 
                     b.Navigation("EmployeeRelations");

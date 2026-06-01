@@ -23,10 +23,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<AccountantProcess> AccountantProcesses { get; set; }
 
-    public virtual DbSet<Attendance> Attendances { get; set; }
-
-    public virtual DbSet<AttendanceType> AttendanceTypes { get; set; }
-
     public virtual DbSet<DailyAttendance> DailyAttendances { get; set; }
 
     public virtual DbSet<Bank> Banks { get; set; }
@@ -219,30 +215,6 @@ public partial class AppDbContext : DbContext
             //     .HasForeignKey(d => d.StateId)
             //     .OnDelete(DeleteBehavior.ClientSetNull)
             //     .HasConstraintName("AccountantProcesses_StateId_fkey");
-        });
-
-        modelBuilder.Entity<Attendance>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("Attendances_pkey");
-
-            entity.Property(e => e.MinutesLate).HasDefaultValue(0);
-
-            entity.HasOne(d => d.AttendanceType).WithMany(p => p.Attendances)
-                .HasForeignKey(d => d.AttendanceTypeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Attendances_AttendanceTypeId_fkey");
-
-            entity.HasOne(d => d.Employee).WithMany(p => p.Attendances)
-                .HasForeignKey(d => d.EmployeeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Attendances_EmployeeId_fkey");
-        });
-
-        modelBuilder.Entity<AttendanceType>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("AttendanceTypes_pkey");
-
-            entity.Property(e => e.Name).HasMaxLength(100);
         });
 
         modelBuilder.Entity<DailyAttendance>(entity =>
