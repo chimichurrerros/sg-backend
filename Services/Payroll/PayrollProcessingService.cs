@@ -1,5 +1,6 @@
 using System.Globalization;
 using BackEnd.Constants.Errors;
+using BackEnd.DTOs.Requests.Entry;
 using BackEnd.DTOs.Requests.PayrollProcess;
 using BackEnd.DTOs.Responses.PayrollProcess;
 using BackEnd.Infrastructure.Context;
@@ -9,10 +10,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BackEnd.Services;
 
-public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorService formulaEvaluator)
+public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorService formulaEvaluator, EntryService entryService)
 {
     private readonly AppDbContext _context = context;
     private readonly FormulaEvaluatorService _formulaEvaluator = formulaEvaluator;
+    private readonly EntryService _entryService = entryService;
 
     public async Task<Result<ManualConceptIncidentResponseDto>> CreateManualConceptIncidentAsync(ManualConceptIncidentCreateDto request)
     {
@@ -462,15 +464,24 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             .OrderBy(payrollUpdate => payrollUpdate.Id)
             .ToListAsync();
 
-        var earningsUpdates = payrollUpdates
-            .Where(payrollUpdate => payrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings)
-            .OrderBy(payrollUpdate => payrollUpdate.Id)
+        // Paso A: Haberes Calculados (formula type = Calculated)
+        var calculatedEarnings = payrollUpdates
+            .Where(pu => pu.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings
+                      && pu.FormulaTypeId == PayrollUpdate.FormulaTypeEnum.Calculated)
+            .OrderBy(pu => pu.Id)
             .ToList();
 
-        var deductionsUpdates = payrollUpdates
-            .Where(payrollUpdate => payrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Deductions)
-            .OrderBy(payrollUpdate => payrollUpdate.FormulaTypeId)
-            .ThenBy(payrollUpdate => payrollUpdate.Id)
+        // Paso B: Haberes y Descuentos Manuales (formula type = Fixed)
+        var manualUpdates = payrollUpdates
+            .Where(pu => pu.FormulaTypeId == PayrollUpdate.FormulaTypeEnum.Fixed)
+            .OrderBy(pu => pu.Id)
+            .ToList();
+
+        // Paso C: Descuentos Calculados (formula type = Calculated, type = Deductions)
+        var calculatedDeductions = payrollUpdates
+            .Where(pu => pu.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Deductions
+                      && pu.FormulaTypeId == PayrollUpdate.FormulaTypeEnum.Calculated)
+            .OrderBy(pu => pu.Id)
             .ToList();
 
         var employees = await _context.Employees
@@ -520,14 +531,16 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             {
                 var salarioBase = await ResolveSalaryBaseAsync(employee, referenceDate);
                 var jornalDiario = decimal.Round(salarioBase / 30m, 2, MidpointRounding.AwayFromZero);
-                var diasTrabajados = await ResolveDaysWorkedAsync(employee.Id, periodStart, periodEnd);
+                var attendanceData = await ResolveAttendanceDataAsync(employee.Id, process.Year, process.Month);
                 var cantidadHijos = await ResolveChildrenCountAsync(employee.Id, referenceDate);
 
                 var variables = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
                 {
                     ["SalarioBase"] = salarioBase,
                     ["JornalDiario"] = jornalDiario,
-                    ["DiasTrabajados"] = diasTrabajados,
+                    ["DiasTrabajados"] = attendanceData.DiasTrabajados,
+                    ["DiasAusencia"] = attendanceData.DiasAusencia,
+                    ["DiasTardanza"] = attendanceData.DiasTardanza,
                     ["CantidadHijos"] = cantidadHijos,
                     ["TotalDeducibleIPS"] = 0m
                 };
@@ -537,9 +550,10 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
                 var totalDescuentos = 0m;
                 var employeeDetails = new List<PayrollProcessDetailCalculationResponseDto>();
 
-                foreach (var update in earningsUpdates)
+                // PASO A: Haberes Calculados — evalúa fórmulas, acumula IPS deductible
+                foreach (var update in calculatedEarnings)
                 {
-                    var amount = await ResolvePayrollUpdateAmountAsync(process.Id, employee, update, variables, detailsByKey, incidentsByEmployeeAndUpdate);
+                    var amount = ResolveCalculatedAmount(update, variables);
 
                     totalHaberes += amount;
 
@@ -547,20 +561,50 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
                         totalDeducibleIPS += amount;
 
                     UpsertDetail(process.Id, employee.Id, update.Id, amount, detailsByKey);
-
                     employeeDetails.Add(CreateDetailResponse(update, amount));
                 }
 
+                // PASO B: Absorber conceptos manuales pendientes (Haberes y Descuentos)
+                foreach (var update in manualUpdates)
+                {
+                    var key = (employee.Id, update.Id);
+                    decimal amount;
+
+                    if (incidentsByEmployeeAndUpdate.TryGetValue(key, out var incidents) && incidents.Count > 0)
+                    {
+                        amount = incidents.Sum(i => i.Amount);
+
+                        foreach (var incident in incidents)
+                            incident.PayrollProcessId = process.Id;
+                    }
+                    else
+                    {
+                        amount = 0m;
+                    }
+
+                    if (update.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings)
+                        totalHaberes += amount;
+                    else
+                        totalDescuentos += amount;
+
+                    if (update.IpsDeductible)
+                        totalDeducibleIPS += amount;
+
+                    UpsertDetail(process.Id, employee.Id, update.Id, amount, detailsByKey);
+                    employeeDetails.Add(CreateDetailResponse(update, amount));
+                }
+
+                // Inyectar TotalDeducibleIPS final antes de evaluar descuentos calculados
                 variables["TotalDeducibleIPS"] = totalDeducibleIPS;
 
-                foreach (var update in deductionsUpdates)
+                // PASO C: Descuentos Calculados — incluye IPS que lee TotalDeducibleIPS
+                foreach (var update in calculatedDeductions)
                 {
-                    var amount = await ResolvePayrollUpdateAmountAsync(process.Id, employee, update, variables, detailsByKey, incidentsByEmployeeAndUpdate);
+                    var amount = ResolveCalculatedAmount(update, variables);
 
                     totalDescuentos += amount;
 
                     UpsertDetail(process.Id, employee.Id, update.Id, amount, detailsByKey);
-
                     employeeDetails.Add(CreateDetailResponse(update, amount));
                 }
 
@@ -570,7 +614,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
                     EmployeeName = $"{employee.Name} {employee.Lastname}",
                     SalarioBase = salarioBase,
                     JornalDiario = jornalDiario,
-                    DiasTrabajados = diasTrabajados,
+                    DiasTrabajados = attendanceData.DiasTrabajados,
                     CantidadHijos = cantidadHijos,
                     TotalDeducibleIPS = totalDeducibleIPS,
                     TotalHaberes = totalHaberes,
@@ -588,7 +632,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
 
             process.PayrollStatusId = processedStatusId.Value;
 
-            await LinkPendingIncidentsToProcessAsync(process.Id, pendingIncidents);
+            await AssignPendingIncidentsAsync(pendingIncidents);
 
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -617,82 +661,176 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         }
     }
 
-    private async Task<decimal> ResolvePayrollUpdateAmountAsync(
-        int payrollProcessId,
-        Employee employee,
-        PayrollUpdate payrollUpdate,
-        Dictionary<string, decimal> variables,
-        Dictionary<(int EmployeeId, int PayrollUpdateId), PayrollProcessDetail> detailsByKey,
-        Dictionary<(int EmployeeId, int PayrollUpdateId), List<ManualConceptIncident>> incidentsByEmployeeAndUpdate)
+    public async Task<Result<PayrollCloseAndPayResponseDto>> CloseAndPayAsync(int payrollProcessId)
     {
-        var key = (employee.Id, payrollUpdate.Id);
-        var existingDetail = detailsByKey.TryGetValue(key, out var detail) ? detail : null;
+        var process = await _context.PayrollProcesses
+            .Include(p => p.PayrollStatus)
+            .FirstOrDefaultAsync(p => p.Id == payrollProcessId);
 
-        if (payrollUpdate.FormulaTypeId == PayrollUpdate.FormulaTypeEnum.Fixed)
+        if (process is null)
+            return Result<PayrollCloseAndPayResponseDto>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
+
+        var processedStatusId = await GetPayrollStatusIdAsync("Procesado");
+        if (processedStatusId is null)
+            return Result<PayrollCloseAndPayResponseDto>.Failure(PayrollProcessError.PayrollProcessStatusNotFound, ErrorType.Failure);
+
+        if (process.PayrollStatusId != processedStatusId.Value)
+            return Result<PayrollCloseAndPayResponseDto>.Failure("La planilla debe estar en estado 'Procesado' para cerrar y pagar.", ErrorType.Conflict);
+
+        var details = await _context.PayrollProcessDetails
+            .AsNoTracking()
+            .Include(d => d.PayrollUpdate)
+            .Where(d => d.PayrollProcessId == process.Id)
+            .ToListAsync();
+
+        if (details.Count == 0)
+            return Result<PayrollCloseAndPayResponseDto>.Failure("La planilla no tiene detalles calculados para cerrar.", ErrorType.Validation);
+
+        // Calcular totales agrupados por tipo de concepto
+        var sueldosJornales = details
+            .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings
+                     && d.Amount > 0)
+            .Sum(d => d.Amount);
+
+        var bonificacionFamiliar = details
+            .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings
+                     && (d.PayrollUpdate.Name.Contains("Bonificación", StringComparison.OrdinalIgnoreCase)
+                      || d.PayrollUpdate.Name.Contains("Familiar", StringComparison.OrdinalIgnoreCase)
+                      || d.PayrollUpdate.Name.Contains("Hijo", StringComparison.OrdinalIgnoreCase))
+                     && d.Amount > 0)
+            .Sum(d => d.Amount);
+
+        var ipsRetencion = details
+            .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Deductions
+                     && (d.PayrollUpdate.Name.Contains("IPS", StringComparison.OrdinalIgnoreCase)
+                      || d.PayrollUpdate.Name.Contains("Aporte", StringComparison.OrdinalIgnoreCase))
+                     && d.Amount > 0)
+            .Sum(d => d.Amount);
+
+        var totalHaberes = details
+            .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings)
+            .Sum(d => d.Amount);
+
+        var totalDescuentos = details
+            .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Deductions)
+            .Sum(d => d.Amount);
+
+        var netoPagado = totalHaberes - totalDescuentos;
+
+        // Buscar cuentas contables por nombre
+        var accountSueldos = await _context.AccountPlans
+            .FirstOrDefaultAsync(a => a.Name.Contains("Sueldos") && a.Name.Contains("Jornales"));
+
+        var accountBonificacion = await _context.AccountPlans
+            .FirstOrDefaultAsync(a => a.Name.Contains("Bonificación") || a.Name.Contains("Familiar"));
+
+        var accountIps = await _context.AccountPlans
+            .FirstOrDefaultAsync(a => a.Name.Contains("IPS") && (a.Name.Contains("Aporte") || a.Name.Contains("Retención")));
+
+        var accountCaja = await _context.AccountPlans
+            .FirstOrDefaultAsync(a => a.Name.Contains("Caja") || a.Name.Contains("Banco"));
+
+        if (accountSueldos is null)
+            return Result<PayrollCloseAndPayResponseDto>.Failure("No se encontró la cuenta contable 'Sueldos y Jornales'.", ErrorType.Validation);
+
+        if (accountCaja is null)
+            return Result<PayrollCloseAndPayResponseDto>.Failure("No se encontró la cuenta contable 'Caja/Banco'.", ErrorType.Validation);
+
+        var entryDetails = new List<CreateEntryDetailDto>();
+
+        // DEBE: Sueldos y Jornales
+        entryDetails.Add(new CreateEntryDetailDto
         {
-            if (!incidentsByEmployeeAndUpdate.TryGetValue(key, out var incidents) || incidents.Count == 0)
-                throw new InvalidOperationException($"{PayrollProcessError.ManualAmountRequired} ({payrollUpdate.Name} - {employee.Name} {employee.Lastname})");
+            AccountPlanId = accountSueldos.Id,
+            Debit = sueldosJornales,
+            Credit = 0m
+        });
 
-            var manualAmount = incidents.Sum(incident => incident.Amount);
-
-            if (existingDetail is null)
+        // DEBE: Bonificación Familiar (si existe cuenta y hay monto)
+        if (bonificacionFamiliar > 0m && accountBonificacion is not null)
+        {
+            entryDetails.Add(new CreateEntryDetailDto
             {
-                existingDetail = new PayrollProcessDetail
-                {
-                    PayrollProcessId = payrollProcessId,
-                    EmployeeId = employee.Id,
-                    PayrollUpdateId = payrollUpdate.Id,
-                    Amount = manualAmount
-                };
-
-                _context.PayrollProcessDetails.Add(existingDetail);
-                detailsByKey[key] = existingDetail;
-            }
-            else
-            {
-                existingDetail.Amount = manualAmount;
-            }
-
-            foreach (var incident in incidents)
-                incident.PayrollProcessId = payrollProcessId;
-
-            return manualAmount;
+                AccountPlanId = accountBonificacion.Id,
+                Debit = bonificacionFamiliar,
+                Credit = 0m
+            });
         }
 
-        if (string.IsNullOrWhiteSpace(payrollUpdate.Formula))
-            throw new InvalidOperationException($"{PayrollProcessError.ManualAmountRequired} ({payrollUpdate.Name})");
-
-        var amount = _formulaEvaluator.EvaluateFormula(payrollUpdate.Formula, variables);
-
-        if (existingDetail is null)
+        // HABER: IPS
+        if (ipsRetencion > 0m && accountIps is not null)
         {
-            existingDetail = new PayrollProcessDetail
+            entryDetails.Add(new CreateEntryDetailDto
             {
-                PayrollProcessId = payrollProcessId,
-                EmployeeId = employee.Id,
-                PayrollUpdateId = payrollUpdate.Id,
-                Amount = amount
-            };
-
-            _context.PayrollProcessDetails.Add(existingDetail);
-            detailsByKey[key] = existingDetail;
+                AccountPlanId = accountIps.Id,
+                Debit = 0m,
+                Credit = ipsRetencion
+            });
         }
-        else
+
+        // HABER: Caja o Banco (neto pagado)
+        entryDetails.Add(new CreateEntryDetailDto
         {
-            existingDetail.Amount = amount;
+            AccountPlanId = accountCaja.Id,
+            Debit = 0m,
+            Credit = netoPagado
+        });
+
+        var totalDebe = entryDetails.Sum(d => d.Debit);
+        var totalHaber = entryDetails.Sum(d => d.Credit);
+
+        // Ajustar diferencia por centésimos si existe
+        if (totalDebe != totalHaber)
+        {
+            var diff = totalDebe - totalHaber;
+            entryDetails.Last().Credit += diff;
         }
 
-        return amount;
+        var entryResult = await _entryService.CreateAutomaticEntryAsync(
+            DateTime.Now,
+            $"Pago de nómina: {process.Name} ({process.Month}/{process.Year})",
+            ModuleEnum.Salary,
+            entryDetails
+        );
+
+        if (!entryResult.IsSuccess)
+            return Result<PayrollCloseAndPayResponseDto>.Failure(entryResult.ErrorMessage!, ErrorType.Failure);
+
+        // Cambiar estado a Pagado
+        var pagadoStatusId = await GetPayrollStatusIdAsync("Pagado");
+        if (pagadoStatusId is not null)
+            process.PayrollStatusId = pagadoStatusId.Value;
+
+        process.PayDate = DateOnly.FromDateTime(DateTime.Now);
+
+        await _context.SaveChangesAsync();
+
+        return Result<PayrollCloseAndPayResponseDto>.Success(new PayrollCloseAndPayResponseDto
+        {
+            PayrollProcessId = process.Id,
+            PayrollProcessName = process.Name,
+            AccountingEntryId = entryResult.Value!.Id,
+            TotalSueldosJornales = sueldosJornales,
+            TotalBonificacionFamiliar = bonificacionFamiliar,
+            TotalIpsRetencion = ipsRetencion,
+            TotalNetoPagado = netoPagado,
+            StatusMessage = $"Planilla cerrada y pagada exitosamente. Asiento contable #{entryResult.Value.Id} generado en el libro diario."
+        });
     }
 
-    private async Task LinkPendingIncidentsToProcessAsync(int payrollProcessId, List<ManualConceptIncident> pendingIncidents)
+    private decimal ResolveCalculatedAmount(PayrollUpdate payrollUpdate, Dictionary<string, decimal> variables)
     {
-        if (pendingIncidents.Count == 0)
-            return;
+        if (string.IsNullOrWhiteSpace(payrollUpdate.Formula))
+            throw new InvalidOperationException($"El concepto '{payrollUpdate.Name}' no tiene fórmula definida.");
 
+        return _formulaEvaluator.EvaluateFormula(payrollUpdate.Formula, variables);
+    }
+
+    private async Task AssignPendingIncidentsAsync(List<ManualConceptIncident> pendingIncidents)
+    {
         foreach (var incident in pendingIncidents)
         {
-            incident.PayrollProcessId = payrollProcessId;
+            incident.Status = ManualConceptIncident.ManualConceptStatus.Assigned;
         }
 
         await Task.CompletedTask;
@@ -793,17 +931,18 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         return assignment.BasicSalary > 0m ? assignment.BasicSalary : assignment.Position.DefaultBasicSalary;
     }
 
-    private async Task<decimal> ResolveDaysWorkedAsync(int employeeId, DateOnly periodStart, DateOnly periodEnd)
+    private async Task<(decimal DiasTrabajados, decimal DiasAusencia, decimal DiasTardanza)> ResolveAttendanceDataAsync(int employeeId, int year, int month)
     {
-        return await _context.Attendances
+        var records = await _context.DailyAttendances
             .AsNoTracking()
-            .Include(attendance => attendance.AttendanceType)
-            .Where(attendance =>
-                attendance.EmployeeId == employeeId &&
-                attendance.Date >= periodStart &&
-                attendance.Date <= periodEnd &&
-                attendance.AttendanceType.AffectsPayroll)
-            .CountAsync();
+            .Where(a => a.EmployeeId == employeeId && a.Date.Year == year && a.Date.Month == month)
+            .ToListAsync();
+
+        var ausencias = records.Count(a => a.Status == AttendanceStatus.Ausente);
+        var tardanzas = records.Count(a => a.Status == AttendanceStatus.LlegadaTardia);
+        var diasTrabajados = Math.Max(0, 30 - ausencias);
+
+        return (diasTrabajados, ausencias, tardanzas);
     }
 
     private async Task<decimal> ResolveChildrenCountAsync(int employeeId, DateOnly referenceDate)

@@ -156,4 +156,24 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
 
         return StatusCode(500);
     }
+
+    [HttpPost("{id}/close-and-pay")]
+    public async Task<ActionResult<PayrollCloseAndPayResponseDto>> CloseAndPay(int id)
+    {
+        var result = await _payrollProcessingService.CloseAndPayAsync(id);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        if (result.ErrorType == ErrorType.Validation)
+            return this.HandleValidationProblem(result);
+
+        if (result.ErrorType == ErrorType.Conflict)
+            return Conflict(result.ErrorMessage);
+
+        return StatusCode(500);
+    }
 }

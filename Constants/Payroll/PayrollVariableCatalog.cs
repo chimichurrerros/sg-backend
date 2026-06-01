@@ -9,27 +9,44 @@ public static class PayrollVariableCatalog
         new PayrollVariableResponseDto
         {
             Code = "SalarioBase",
-            Description = "Salario estipulado en el contrato del empleado."
+            Name = "SalarioBase",
+            Description = "Salario mensual estipulado en el contrato del funcionario."
         },
         new PayrollVariableResponseDto
         {
             Code = "JornalDiario",
-            Description = "SalarioBase / 30."
+            Name = "JornalDiario",
+            Description = "Salario base dividido 30 días. Es el costo de un día de trabajo."
         },
         new PayrollVariableResponseDto
         {
             Code = "DiasTrabajados",
-            Description = "Días asistidos cargados en las novedades del mes."
+            Name = "DiasTrabajados",
+            Description = "Días efectivamente laborados en el mes (30 menos ausencias injustificadas)."
+        },
+        new PayrollVariableResponseDto
+        {
+            Code = "DiasAusencia",
+            Name = "DiasAusencia",
+            Description = "Cantidad de inasistencias injustificadas registradas en el periodo."
+        },
+        new PayrollVariableResponseDto
+        {
+            Code = "DiasTardanza",
+            Name = "DiasTardanza",
+            Description = "Cantidad de llegadas tardías injustificadas registradas en el periodo."
         },
         new PayrollVariableResponseDto
         {
             Code = "CantidadHijos",
-            Description = "Cantidad de hijos menores de 18 años del empleado (obtenidos de su núcleo familiar)."
+            Name = "CantidadHijos",
+            Description = "Número de hijos menores de 18 años asociados al núcleo familiar del empleado."
         },
         new PayrollVariableResponseDto
         {
             Code = "TotalDeducibleIPS",
-            Description = "Variable interna acumulada de ingresos imponibles."
+            Name = "TotalDeducibleIPS",
+            Description = "Suma total acumulada de todos los haberes del mes que tienen activado el parámetro Deducible de IPS."
         }
     };
 
