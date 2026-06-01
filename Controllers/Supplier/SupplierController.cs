@@ -47,6 +47,26 @@ public class SupplierController(SupplierService supplierService) : ControllerBas
     }
 
     /// <summary>
+    /// GET /api/suppliers/eligible?productIds=1&amp;productIds=2&amp;productIds=3
+    /// Retrieves suppliers eligible to quote for the given products,
+    /// based on matching product categories with supplier categories.
+    /// Authentication: Required (Bearer token or cookie)
+    /// </summary>
+    [HttpGet("eligible")]
+    public async Task<ActionResult<EligibleSuppliersWrapperDto>> GetEligibleSuppliers([FromQuery] List<int> productIds)
+    {
+        var result = await _supplierService.GetEligibleSuppliersAsync(productIds);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.Validation)
+            return this.HandleValidationProblem(result);
+
+        return StatusCode(500);
+    }
+
+    /// <summary>
     /// GET /api/suppliers/{id}
     /// Retrieves a single supplier by ID.
     /// Authentication: Required (Bearer token or cookie)

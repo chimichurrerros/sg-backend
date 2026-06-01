@@ -115,6 +115,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<PurchaseReturnReason> PurchaseReturnReasons { get; set; }
 
+    public virtual DbSet<RequestForQuotation> RequestForQuotations { get; set; }
+
+    public virtual DbSet<RequestForQuotationDetail> RequestForQuotationDetails { get; set; }
+
     public virtual DbSet<PurchaseRequest> PurchaseRequests { get; set; }
 
     public virtual DbSet<PurchaseRequestDetail> PurchaseRequestDetails { get; set; }
@@ -968,6 +972,44 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.PurchaseRequestId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PurchaseRequestDetails_PurchaseRequestId_fkey");
+        });
+
+        modelBuilder.Entity<RequestForQuotation>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("RequestForQuotations_pkey");
+
+            entity.Property(e => e.Date)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone");
+            entity.Property(e => e.State)
+                .HasConversion<int>();
+
+            entity.HasOne(d => d.PurchaseRequest).WithMany(p => p.RequestForQuotations)
+                .HasForeignKey(d => d.PurchaseRequestId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("RequestForQuotations_PurchaseRequestId_fkey");
+
+            entity.HasOne(d => d.Supplier).WithMany(p => p.RequestForQuotations)
+                .HasForeignKey(d => d.SupplierId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("RequestForQuotations_SupplierId_fkey");
+        });
+
+        modelBuilder.Entity<RequestForQuotationDetail>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("RequestForQuotationDetails_pkey");
+
+            entity.Property(e => e.QuantityRequested).HasPrecision(10, 2);
+
+            entity.HasOne(d => d.RequestForQuotation).WithMany(p => p.RequestForQuotationDetails)
+                .HasForeignKey(d => d.RequestForQuotationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("RequestForQuotationDetails_RequestForQuotationId_fkey");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.RequestForQuotationDetails)
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("RequestForQuotationDetails_ProductId_fkey");
         });
 
         modelBuilder.Entity<Role>(entity =>

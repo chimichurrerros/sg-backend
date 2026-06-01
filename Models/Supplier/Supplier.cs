@@ -28,4 +28,6 @@ public partial class Supplier
     public virtual ICollection<SupplierCategory> SupplierCategories { get; set; } = new List<SupplierCategory>();
 
     public virtual ICollection<SupplierQuote> SupplierQuotes { get; set; } = new List<SupplierQuote>();
+
+    public virtual ICollection<RequestForQuotation> RequestForQuotations { get; set; } = new List<RequestForQuotation>();
 }

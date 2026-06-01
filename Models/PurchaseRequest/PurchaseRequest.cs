@@ -21,5 +21,7 @@ public partial class PurchaseRequest
 
     public virtual ICollection<SupplierQuote> SupplierQuotes { get; set; } = new List<SupplierQuote>();
 
+    public virtual ICollection<RequestForQuotation> RequestForQuotations { get; set; } = new List<RequestForQuotation>();
+
     public virtual User User { get; set; } = null!;
 }
