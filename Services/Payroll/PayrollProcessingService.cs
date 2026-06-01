@@ -938,8 +938,8 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             .Where(a => a.EmployeeId == employeeId && a.Date.Year == year && a.Date.Month == month)
             .ToListAsync();
 
-        var ausencias = records.Count(a => a.Status == AttendanceStatus.Ausente);
-        var tardanzas = records.Count(a => a.Status == AttendanceStatus.LlegadaTardia);
+        var ausencias = records.Count(a => a.Status == AttendanceStatus.Absent);
+        var tardanzas = records.Count(a => a.Status == AttendanceStatus.Late);
         var diasTrabajados = Math.Max(0, 30 - ausencias);
 
         return (diasTrabajados, ausencias, tardanzas);
