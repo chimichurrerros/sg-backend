@@ -215,6 +215,8 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Name).HasMaxLength(100);
 
+            entity.Property(e => e.IsClosed).HasDefaultValue(false);
+
             // entity.HasOne(d => d.State).WithMany(p => p.AccountantProcesses)
             //     .HasForeignKey(d => d.StateId)
             //     .OnDelete(DeleteBehavior.ClientSetNull)

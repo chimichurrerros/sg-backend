@@ -78,7 +78,7 @@ public class AccountantProcessService(AppDbContext context, IMapper mapper)
         if (process == null) return false;
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        return process.EndDate >= today;
+        return !process.IsClosed && process.EndDate >= today;
     }
 
     public async Task<Result<AccountantProcessWrapperDto>> CreateAsync(CreateAccountantProcessRequestDto request)
