@@ -10,4 +10,8 @@ public class CreateCustomerRequestDto
 
     [Required(ErrorMessage = CustomerError.RucRequired)]
     public string Ruc { get; set; } = null!;
+
+    public DateOnly? BirthDate { get; set; }
+
+    public string? Email { get; set; }
 }

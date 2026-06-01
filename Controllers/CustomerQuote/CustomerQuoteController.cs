@@ -104,6 +104,28 @@ public class CustomerQuoteController(CustomerQuoteService customerQuoteService) 
         return StatusCode(500);
     }
 
+    [HttpPost("{id}/cancel")]
+    public async Task<ActionResult> Cancel(int id)
+    {
+        var result = await _customerQuoteService.CancelAsync(id);
+
+        if (result.IsSuccess)
+            return NoContent();
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        if (result.ErrorType == ErrorType.Conflict)
+            return Conflict(new ProblemDetails
+            {
+                Title = "Conflict",
+                Status = StatusCodes.Status409Conflict,
+                Detail = result.ErrorMessage
+            });
+
+        return StatusCode(500);
+    }
+
     [HttpPut("{id}")]
     public async Task<ActionResult<CustomerQuoteWrapperDto>> Update(int id, UpdateCustomerQuoteRequestDto request)
     {

@@ -16,6 +16,10 @@ public class CustomerQuoteMapper : AutoMapper.Profile
                 opt => opt.MapFrom(src => src.Customer != null ? src.Customer.Name : null))
              .ForMember(dest => dest.CustomerRuc,
                 opt => opt.MapFrom(src => src.Customer != null ? src.Customer.Ruc : null))
+            .ForMember(dest => dest.CustomerBirthDate,
+                opt => opt.MapFrom(src => src.Customer != null ? src.Customer.BirthDate : null))
+            .ForMember(dest => dest.CustomerEmail,
+                opt => opt.MapFrom(src => src.Customer != null ? src.Customer.Email : null))
             .ForMember(dest => dest.UserName,
                 opt => opt.MapFrom(src => src.User != null ? $"{src.User.Name} {src.User.LastName}".Trim() : null))
             .ForMember(dest => dest.Details,

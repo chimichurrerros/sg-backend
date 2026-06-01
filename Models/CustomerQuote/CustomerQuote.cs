@@ -49,6 +49,7 @@ public partial class CustomerQuote
     {
         Open = 0,
         Expired = 1,
-        Closed = 2
+        Closed = 2,
+        Cancelled = 3
     }
 }

@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260531234214_AddQuoteStateCancelled")]
+    partial class AddQuoteStateCancelled
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -906,10 +909,15 @@ namespace BackEnd.Migrations
                     b.Property<ModuleEnum>("Module")
                         .HasColumnType("module_enum");
 
+                    b.Property<int?>("ModuleId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id")
                         .HasName("Entries_pkey");
 
                     b.HasIndex("AccountantProcessId");
+
+                    b.HasIndex("ModuleId");
 
                     b.ToTable("Entries");
                 });
@@ -944,6 +952,52 @@ namespace BackEnd.Migrations
                     b.HasIndex("EntryId");
 
                     b.ToTable("EntryDetails");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.EntryModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id")
+                        .HasName("EntryModels_pkey");
+
+                    b.ToTable("EntryModels");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.EntryModelDetail", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AccountPlanId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EntryModelId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDebit")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id")
+                        .HasName("EntryModelDetails_pkey");
+
+                    b.HasIndex("AccountPlanId");
+
+                    b.HasIndex("EntryModelId");
+
+                    b.ToTable("EntryModelDetails");
                 });
 
             modelBuilder.Entity("BackEnd.Models.LegalPerson", b =>
@@ -1003,6 +1057,25 @@ namespace BackEnd.Migrations
                     b.HasIndex("PayrollUpdateId");
 
                     b.ToTable("ManualConceptIncidents");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.Module", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id")
+                        .HasName("Modules_pkey");
+
+                    b.ToTable("Modules");
                 });
 
             modelBuilder.Entity("BackEnd.Models.PaymentOrder", b =>
@@ -1852,68 +1925,6 @@ namespace BackEnd.Migrations
                     b.ToTable("SalesOrderDetails");
                 });
 
-            modelBuilder.Entity("BackEnd.Models.SalesReturn", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("BillId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("BranchId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("CreditNoteId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("CustomerName")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<string>("CustomerRuc")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<DateTime>("Date")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<int>("SalesOrderId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("SalesOrderNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<decimal>("Total")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)");
-
-                    b.HasKey("Id")
-                        .HasName("SalesReturns_pkey");
-
-                    b.HasIndex("BranchId");
-
-                    b.HasIndex("CreditNoteId");
-
-                    b.ToTable("SalesReturns");
-                });
-
             modelBuilder.Entity("BackEnd.Models.Schedule", b =>
                 {
                     b.Property<int>("Id")
@@ -2458,6 +2469,10 @@ namespace BackEnd.Migrations
                         .IsRequired()
                         .HasConstraintName("Entries_AccountantProcessId_fkey");
 
+                    b.HasOne("BackEnd.Models.Module", null)
+                        .WithMany("Entries")
+                        .HasForeignKey("ModuleId");
+
                     b.Navigation("AccountantProcess");
                 });
 
@@ -2478,6 +2493,25 @@ namespace BackEnd.Migrations
                     b.Navigation("AccountPlan");
 
                     b.Navigation("Entry");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.EntryModelDetail", b =>
+                {
+                    b.HasOne("BackEnd.Models.AccountPlan", "AccountPlan")
+                        .WithMany("EntryModelDetails")
+                        .HasForeignKey("AccountPlanId")
+                        .IsRequired()
+                        .HasConstraintName("EntryModelDetails_AccountPlanId_fkey");
+
+                    b.HasOne("BackEnd.Models.EntryModel", "EntryModel")
+                        .WithMany("EntryModelDetails")
+                        .HasForeignKey("EntryModelId")
+                        .IsRequired()
+                        .HasConstraintName("EntryModelDetails_EntryModelId_fkey");
+
+                    b.Navigation("AccountPlan");
+
+                    b.Navigation("EntryModel");
                 });
 
             modelBuilder.Entity("BackEnd.Models.LegalPerson", b =>
@@ -2884,25 +2918,6 @@ namespace BackEnd.Migrations
                     b.Navigation("SalesOrder");
                 });
 
-            modelBuilder.Entity("BackEnd.Models.SalesReturn", b =>
-                {
-                    b.HasOne("BackEnd.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .IsRequired()
-                        .HasConstraintName("SalesReturns_BranchId_fkey");
-
-                    b.HasOne("BackEnd.Models.CreditNote", "CreditNote")
-                        .WithMany()
-                        .HasForeignKey("CreditNoteId")
-                        .IsRequired()
-                        .HasConstraintName("SalesReturns_CreditNoteId_fkey");
-
-                    b.Navigation("Branch");
-
-                    b.Navigation("CreditNote");
-                });
-
             modelBuilder.Entity("BackEnd.Models.Stock", b =>
                 {
                     b.HasOne("BackEnd.Models.Branch", "Branch")
@@ -2998,6 +3013,8 @@ namespace BackEnd.Migrations
             modelBuilder.Entity("BackEnd.Models.AccountPlan", b =>
                 {
                     b.Navigation("EntryDetails");
+
+                    b.Navigation("EntryModelDetails");
                 });
 
             modelBuilder.Entity("BackEnd.Models.AccountantProcess", b =>
@@ -3100,6 +3117,16 @@ namespace BackEnd.Migrations
             modelBuilder.Entity("BackEnd.Models.Entry", b =>
                 {
                     b.Navigation("EntryDetails");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.EntryModel", b =>
+                {
+                    b.Navigation("EntryModelDetails");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.Module", b =>
+                {
+                    b.Navigation("Entries");
                 });
 
             modelBuilder.Entity("BackEnd.Models.PaymentOrder", b =>

@@ -26,13 +26,17 @@ public class CustomerQuoteResponseDto
 
     public string? CustomerRuc { get; set; }
 
+    public DateOnly? CustomerBirthDate { get; set; }
+
+    public string? CustomerEmail { get; set; }
+
     public int UserId { get; set; }
 
     public string? UserName { get; set; }
 
     public DateTime Date { get; set; }
 
-    public DateTime ExpirationDate => Date.AddDays(10);
+    public DateTime ExpirationDate => DateTimeUtils.AddWorkingDays(Date, 10);
 
     public decimal Total { get; set; }
 
