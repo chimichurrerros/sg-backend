@@ -15,6 +15,13 @@ public class CreditNoteController(CreditNoteService creditNoteService) : Control
 {
     private readonly CreditNoteService _creditNoteService = creditNoteService;
 
+    [HttpGet]
+    public async Task<ActionResult<ListCreditNotesWrapperDto>> GetList([FromQuery] CreditNoteQueryDto queryDto)
+    {
+        var result = await _creditNoteService.GetListAsync(queryDto);
+        return Ok(result.Value);
+    }
+
     [HttpPost]
     public async Task<ActionResult<CreditNoteWrapperDto>> Create(CreateCreditNoteDto request)
     {
