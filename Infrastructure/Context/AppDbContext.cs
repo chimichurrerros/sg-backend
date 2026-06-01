@@ -27,6 +27,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<AttendanceType> AttendanceTypes { get; set; }
 
+    public virtual DbSet<DailyAttendance> DailyAttendances { get; set; }
+
     public virtual DbSet<Bank> Banks { get; set; }
 
     public virtual DbSet<BankMovement> BankMovements { get; set; }
@@ -241,6 +243,21 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("AttendanceTypes_pkey");
 
             entity.Property(e => e.Name).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<DailyAttendance>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("DailyAttendances_pkey");
+
+            entity.Property(e => e.Date).HasColumnType("date");
+            entity.Property(e => e.Status).HasConversion<int>();
+
+            entity.HasOne(d => d.Employee).WithMany()
+                .HasForeignKey(d => d.EmployeeId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("DailyAttendances_EmployeeId_fkey");
+
+            entity.HasIndex(e => new { e.EmployeeId, e.Date }).IsUnique().HasDatabaseName("IX_DailyAttendances_EmployeeId_Date");
         });
 
         modelBuilder.Entity<Bank>(entity =>
