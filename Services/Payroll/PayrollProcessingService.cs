@@ -280,9 +280,14 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
 
     public async Task<Result> UpdatePayrollProcessAsync(int id, PayrollProcessUpdateDto request)
     {
-        var process = await _context.PayrollProcesses.FirstOrDefaultAsync(p => p.Id == id);
+        var process = await _context.PayrollProcesses
+            .Include(p => p.PayrollStatus)
+            .FirstOrDefaultAsync(p => p.Id == id);
         if (process is null)
             return Result.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
+
+        if (IsFinalPayrollStatus(process.PayrollStatus.Name))
+            return Result.Failure(PayrollProcessError.PayrollProcessCannotBeModified, ErrorType.Conflict);
 
         if (!Enum.IsDefined(typeof(PayrollProcess.ProcessTypeEnum), request.ProcessTypeId))
             return Result.Failure("Invalid process type", ErrorType.Validation);
@@ -815,6 +820,109 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             TotalIpsRetencion = ipsRetencion,
             TotalNetoPagado = netoPagado,
             StatusMessage = $"Planilla cerrada y pagada exitosamente. Asiento contable #{entryResult.Value.Id} generado en el libro diario."
+        });
+    }
+
+    public async Task<Result<PayrollEmployeeReceiptDto>> GetEmployeeReceiptAsync(int payrollProcessId, int employeeId)
+    {
+        var process = await _context.PayrollProcesses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == payrollProcessId);
+
+        if (process is null)
+            return Result<PayrollEmployeeReceiptDto>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
+
+        var employee = await _context.Employees
+            .AsNoTracking()
+            .Include(e => e.Branch)
+            .FirstOrDefaultAsync(e => e.Id == employeeId);
+
+        if (employee is null)
+            return Result<PayrollEmployeeReceiptDto>.Failure(EmployeeError.EmployeeNotFound, ErrorType.NotFound);
+
+        var legalPerson = await _context.LegalPersons
+            .AsNoTracking()
+            .Include(lp => lp.Entity)
+            .FirstOrDefaultAsync();
+
+        if (legalPerson is null)
+            return Result<PayrollEmployeeReceiptDto>.Failure("No se encontraron datos de la empresa.", ErrorType.NotFound);
+
+        var position = await _context.PositionByScheduleByEmployees
+            .AsNoTracking()
+            .Where(psbe => psbe.EmployeeId == employeeId
+                       && psbe.StartDate <= (process.PayDate ?? new DateOnly(process.Year, process.Month, DateTime.DaysInMonth(process.Year, process.Month)))
+                       && (psbe.EndDate == null || psbe.EndDate >= new DateOnly(process.Year, process.Month, 1)))
+            .OrderByDescending(psbe => psbe.StartDate)
+            .ThenByDescending(psbe => psbe.Id)
+            .Include(psbe => psbe.Position)
+            .FirstOrDefaultAsync();
+
+        var details = await _context.PayrollProcessDetails
+            .AsNoTracking()
+            .Where(d => d.PayrollProcessId == payrollProcessId && d.EmployeeId == employeeId)
+            .Include(d => d.PayrollUpdate)
+            .ToListAsync();
+
+        if (details.Count == 0)
+            return Result<PayrollEmployeeReceiptDto>.Failure("El empleado no tiene detalles calculados en esta planilla.", ErrorType.NotFound);
+
+        var spanishMonths = new Dictionary<int, string>
+        {
+            { 1, "Enero" }, { 2, "Febrero" }, { 3, "Marzo" }, { 4, "Abril" },
+            { 5, "Mayo" }, { 6, "Junio" }, { 7, "Julio" }, { 8, "Agosto" },
+            { 9, "Septiembre" }, { 10, "Octubre" }, { 11, "Noviembre" }, { 12, "Diciembre" }
+        };
+
+        var period = $"{spanishMonths.GetValueOrDefault(process.Month, process.Month.ToString())}/{process.Year}";
+        var payDate = process.PayDate?.ToString("dd/MM/yyyy") ?? "";
+
+        var earnings = details
+            .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings)
+            .Select(d => new ReceiptConceptDto
+            {
+                ConceptName = d.PayrollUpdate.Name,
+                Amount = d.Amount,
+                IsIpsDeductible = d.PayrollUpdate.IpsDeductible
+            })
+            .ToList();
+
+        var deductions = details
+            .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Deductions)
+            .Select(d => new ReceiptConceptDto
+            {
+                ConceptName = d.PayrollUpdate.Name,
+                Amount = d.Amount,
+                IsIpsDeductible = d.PayrollUpdate.IpsDeductible
+            })
+            .ToList();
+
+        var totalEarnings = earnings.Sum(e => e.Amount);
+        var totalDeductions = deductions.Sum(d => d.Amount);
+        var totalIpsDeductible = details
+            .Where(d => d.PayrollUpdate.IpsDeductible)
+            .Sum(d => d.Amount);
+
+        return Result<PayrollEmployeeReceiptDto>.Success(new PayrollEmployeeReceiptDto
+        {
+            CompanyBusinessName = legalPerson.BussinessName,
+            CompanyCuit = legalPerson.Entity.DocumentNumber,
+            CompanyAddress = legalPerson.Entity.Address ?? "",
+            CompanyPhone = legalPerson.Entity.Phone ?? "",
+            BranchName = employee.Branch?.Name ?? "",
+            BranchAddress = employee.Branch?.Address ?? "",
+            EmployeeName = $"{employee.Name} {employee.Lastname}",
+            EmployeeDocument = employee.DocumentNumber,
+            EmployeeLegajo = employee.FileNumber,
+            PositionName = position?.Position.Name ?? "",
+            Period = period,
+            PayDate = payDate,
+            Earnings = earnings,
+            Deductions = deductions,
+            TotalEarnings = totalEarnings,
+            TotalDeductions = totalDeductions,
+            TotalIpsDeductible = totalIpsDeductible,
+            NetSalary = totalEarnings - totalDeductions
         });
     }
 

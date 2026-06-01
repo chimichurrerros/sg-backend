@@ -61,12 +61,30 @@ public class AttendanceController(AppDbContext context) : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<AttendanceResponseDto>>> GetList([FromQuery] int employeeId, [FromQuery] int year, [FromQuery] int month)
+    public async Task<ActionResult<List<AttendanceResponseDto>>> GetList(
+        [FromQuery] DateOnly? fromDate,
+        [FromQuery] DateOnly? toDate,
+        [FromQuery] int employeeId,
+        [FromQuery] int? year,
+        [FromQuery] int? month)
     {
-        var query = _context.DailyAttendances
+        IQueryable<DailyAttendance> query = _context.DailyAttendances
             .AsNoTracking()
-            .Include(a => a.Employee)
-            .Where(a => a.Date.Year == year && a.Date.Month == month);
+            .Include(a => a.Employee);
+
+        if (fromDate.HasValue && toDate.HasValue)
+        {
+            query = query.Where(a => a.Date >= fromDate.Value && a.Date <= toDate.Value);
+        }
+        else if (year.HasValue && month.HasValue)
+        {
+            query = query.Where(a => a.Date.Year == year.Value && a.Date.Month == month.Value);
+        }
+        else
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            query = query.Where(a => a.Date.Year == today.Year && a.Date.Month == today.Month);
+        }
 
         if (employeeId > 0)
             query = query.Where(a => a.EmployeeId == employeeId);
