@@ -5,5 +5,9 @@ appsettings.json
 .vscode/
 .md/
 todo*
+<<<<<<< HEAD
 dotnet/
 .dotnet/
+=======
+.dotnet
+>>>>>>> NewContabilidad

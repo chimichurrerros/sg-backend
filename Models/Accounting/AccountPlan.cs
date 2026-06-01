@@ -18,5 +18,4 @@ public partial class AccountPlan
     public virtual AccountantProcess AccountantProcess { get; set; } = null!; // ID_PERIODO
     public virtual ICollection<EntryDetail> EntryDetails { get; set; } = new List<EntryDetail>();
 
-    public virtual ICollection<EntryModelDetail> EntryModelDetails { get; set; } = new List<EntryModelDetail>();
 }

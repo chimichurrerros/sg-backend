@@ -65,15 +65,15 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<EntryDetail> EntryDetails { get; set; }
 
-    public virtual DbSet<EntryModel> EntryModels { get; set; }
+    // public virtual DbSet<EntryModel> EntryModels { get; set; }
 
-    public virtual DbSet<EntryModelDetail> EntryModelDetails { get; set; }
+    // public virtual DbSet<EntryModelDetail> EntryModelDetails { get; set; }
 
     public virtual DbSet<LegalPerson> LegalPersons { get; set; }
 
     // public virtual DbSet<Lote> Lotes { get; set; }
 
-    public virtual DbSet<Module> Modules { get; set; }
+    //public virtual DbSet<Module> Modules { get; set; }
 
     public virtual DbSet<PaymentOrder> PaymentOrders { get; set; }
 
@@ -548,27 +548,27 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("EntryDetails_EntryId_fkey");
         });
 
-        modelBuilder.Entity<EntryModel>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("EntryModels_pkey");
+        // modelBuilder.Entity<EntryModel>(entity =>
+        // {
+        //     entity.HasKey(e => e.Id).HasName("EntryModels_pkey");
 
-            entity.Property(e => e.Name).HasMaxLength(100);
-        });
+        //     entity.Property(e => e.Name).HasMaxLength(100);
+        // });
 
-        modelBuilder.Entity<EntryModelDetail>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("EntryModelDetails_pkey");
+        // modelBuilder.Entity<EntryModelDetail>(entity =>
+        // {
+        //     entity.HasKey(e => e.Id).HasName("EntryModelDetails_pkey");
 
-            entity.HasOne(d => d.AccountPlan).WithMany(p => p.EntryModelDetails)
-                .HasForeignKey(d => d.AccountPlanId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("EntryModelDetails_AccountPlanId_fkey");
+        //     entity.HasOne(d => d.AccountPlan).WithMany(p => p.EntryModelDetails)
+        //         .HasForeignKey(d => d.AccountPlanId)
+        //         .OnDelete(DeleteBehavior.ClientSetNull)
+        //         .HasConstraintName("EntryModelDetails_AccountPlanId_fkey");
 
-            entity.HasOne(d => d.EntryModel).WithMany(p => p.EntryModelDetails)
-                .HasForeignKey(d => d.EntryModelId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("EntryModelDetails_EntryModelId_fkey");
-        });
+        //     entity.HasOne(d => d.EntryModel).WithMany(p => p.EntryModelDetails)
+        //         .HasForeignKey(d => d.EntryModelId)
+        //         .OnDelete(DeleteBehavior.ClientSetNull)
+        //         .HasConstraintName("EntryModelDetails_EntryModelId_fkey");
+        // });
 
         modelBuilder.Entity<LegalPerson>(entity =>
         {
@@ -596,12 +596,12 @@ public partial class AppDbContext : DbContext
         //         .HasConstraintName("Lotes_ProductId_fkey");
         // });
 
-        modelBuilder.Entity<Module>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("Modules_pkey");
+        // modelBuilder.Entity<Module>(entity =>
+        // {
+        //     entity.HasKey(e => e.Id).HasName("Modules_pkey");
 
-            entity.Property(e => e.Name).HasMaxLength(50);
-        });
+        //     entity.Property(e => e.Name).HasMaxLength(50);
+        // });
 
         modelBuilder.Entity<PaymentOrder>(entity =>
         {

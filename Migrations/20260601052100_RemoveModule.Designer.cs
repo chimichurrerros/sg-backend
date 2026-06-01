@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260601052100_RemoveModule")]
+    partial class RemoveModule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -549,12 +552,6 @@ namespace BackEnd.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateOnly?>("BirthDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Email")
-                        .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1852,68 +1849,6 @@ namespace BackEnd.Migrations
                     b.ToTable("SalesOrderDetails");
                 });
 
-            modelBuilder.Entity("BackEnd.Models.SalesReturn", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("BillId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("BranchId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("CreditNoteId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("CustomerName")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<string>("CustomerRuc")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<DateTime>("Date")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<int>("SalesOrderId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("SalesOrderNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<decimal>("Total")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)");
-
-                    b.HasKey("Id")
-                        .HasName("SalesReturns_pkey");
-
-                    b.HasIndex("BranchId");
-
-                    b.HasIndex("CreditNoteId");
-
-                    b.ToTable("SalesReturns");
-                });
-
             modelBuilder.Entity("BackEnd.Models.Schedule", b =>
                 {
                     b.Property<int>("Id")
@@ -2882,25 +2817,6 @@ namespace BackEnd.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("SalesOrder");
-                });
-
-            modelBuilder.Entity("BackEnd.Models.SalesReturn", b =>
-                {
-                    b.HasOne("BackEnd.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .IsRequired()
-                        .HasConstraintName("SalesReturns_BranchId_fkey");
-
-                    b.HasOne("BackEnd.Models.CreditNote", "CreditNote")
-                        .WithMany()
-                        .HasForeignKey("CreditNoteId")
-                        .IsRequired()
-                        .HasConstraintName("SalesReturns_CreditNoteId_fkey");
-
-                    b.Navigation("Branch");
-
-                    b.Navigation("CreditNote");
                 });
 
             modelBuilder.Entity("BackEnd.Models.Stock", b =>
