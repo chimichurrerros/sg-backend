@@ -5,3 +5,5 @@ appsettings.json
 .vscode/
 .md/
 todo*
+dotnet/
+.dotnet/

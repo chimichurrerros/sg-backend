@@ -60,8 +60,6 @@ public partial class Employee
 
     public virtual Branch? Branch { get; set; }
 
-    public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
-
     public virtual ICollection<Department> Departments { get; set; } = new List<Department>();
 
     public virtual ICollection<EmployeeRelation> EmployeeRelations { get; set; } = new List<EmployeeRelation>();

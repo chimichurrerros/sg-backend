@@ -109,4 +109,54 @@ public class EntryService(AppDbContext context, IMapper mapper, AccountantProces
 
         return Result<bool>.Success(true);
     }
+
+    public async Task<Result<Entry>> CreateAutomaticEntryAsync(
+        DateTime date, 
+        string description, 
+        ModuleEnum module, 
+        List<CreateEntryDetailDto> details)
+    {
+        if (details == null || !details.Any())
+        {
+            return Result<Entry>.Failure("El asiento contable debe tener al menos un detalle.", ErrorType.Validation);
+        }
+
+        // Validar partida doble
+        var totalDebit = details.Sum(d => d.Debit);
+        var totalCredit = details.Sum(d => d.Credit);
+        if (totalDebit != totalCredit)
+        {
+            return Result<Entry>.Failure($"El asiento contable no está balanceado. Debe ({totalDebit}) != Haber ({totalCredit}).", ErrorType.Validation);
+        }
+
+        // Buscar proceso contable activo para la fecha
+        var dateOnly = DateOnly.FromDateTime(date);
+        var activeProcess = await _context.AccountantProcesses
+            .FirstOrDefaultAsync(ap => ap.StartDate <= dateOnly && ap.EndDate >= dateOnly);
+
+        if (activeProcess == null)
+        {
+            return Result<Entry>.Failure($"No existe un período contable activo para la fecha {date:dd/MM/yyyy}.", ErrorType.Validation);
+        }
+
+        var entry = new Entry
+        {
+            Date = date,
+            Description = description,
+            Module = module,
+            AccountantProcessId = activeProcess.Id,
+            EntryDetails = details.Select(d => new EntryDetail
+            {
+                AccountPlanId = d.AccountPlanId,
+                Debit = d.Debit,
+                Credit = d.Credit
+            }).ToList()
+        };
+
+        _context.Entries.Add(entry);
+        await _context.SaveChangesAsync();
+
+        return Result<Entry>.Success(entry);
+    }
 }
+

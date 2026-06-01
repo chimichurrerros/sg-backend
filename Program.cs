@@ -67,6 +67,7 @@ builder.Services.AddScoped<IEmployeeAssignmentService, EmployeeAssignmentService
 builder.Services.AddScoped<AccountantProcessService>();
 builder.Services.AddScoped<AccountPlanService>();
 builder.Services.AddScoped<EntryService>();
+builder.Services.AddScoped<AccountingReportService>();
 // ------------------------------------------------------------------------------------------------------
 // Authorization configuration
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
@@ -86,7 +87,9 @@ builder.Services.AddCors(options =>
             if (explicitOrigins.Contains(origin))
                 return true;
             var uri = new Uri(origin);
-            return uri.Host.Equals("mbeju.xyz", StringComparison.OrdinalIgnoreCase)
+            return uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.Equals("mbeju.xyz", StringComparison.OrdinalIgnoreCase)
                 || uri.Host.EndsWith(".mbeju.xyz", StringComparison.OrdinalIgnoreCase)
                 || uri.Host.EndsWith(".netlify.app", StringComparison.OrdinalIgnoreCase);
         })
