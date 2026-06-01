@@ -121,6 +121,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Role> Roles { get; set; }
 
+    public virtual DbSet<SalesReturn> SalesReturns { get; set; }
+
     public virtual DbSet<SalesOrder> SalesOrders { get; set; }
 
     public virtual DbSet<SalesOrderDetail> SalesOrderDetails { get; set; }
@@ -973,6 +975,30 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("Roles_pkey");
 
             entity.Property(e => e.Name).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<SalesReturn>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("SalesReturns_pkey");
+
+            entity.Property(e => e.Date)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone");
+            entity.Property(e => e.Total).HasPrecision(15, 2);
+            entity.Property(e => e.SalesOrderNumber).HasMaxLength(50);
+            entity.Property(e => e.Reason).HasMaxLength(500);
+            entity.Property(e => e.CustomerName).HasMaxLength(150);
+            entity.Property(e => e.CustomerRuc).HasMaxLength(20);
+
+            entity.HasOne(d => d.CreditNote).WithMany()
+                .HasForeignKey(d => d.CreditNoteId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("SalesReturns_CreditNoteId_fkey");
+
+            entity.HasOne(d => d.Branch).WithMany()
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("SalesReturns_BranchId_fkey");
         });
 
         modelBuilder.Entity<SalesOrder>(entity =>
