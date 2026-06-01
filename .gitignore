@@ -6,3 +6,4 @@ appsettings.json
 .md/
 todo*
 dotnet/
+.dotnet/
