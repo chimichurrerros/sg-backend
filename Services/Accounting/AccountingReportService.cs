@@ -148,7 +148,7 @@ public class AccountingReportService(AppDbContext context)
 
             var allDetails = await detailsQuery.ToListAsync();
 
-            var initialDetails = allDetails;
+            var initialDetails = new List<EntryDetail>();
             var movementDetails = allDetails;
 
             if (startDate.HasValue)
