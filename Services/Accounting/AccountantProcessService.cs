@@ -58,6 +58,20 @@ public class AccountantProcessService(AppDbContext context, IMapper mapper)
         return Result<AccountantProcessWrapperDto>.Success(new AccountantProcessWrapperDto { AccountantProcess = ap });
     }
 
+    public async Task<Result<AccountantProcessWrapperDto>> GetLastAsync()
+    {
+        var ap = await _context.AccountantProcesses
+            .AsNoTracking()
+            .OrderByDescending(u => u.Id)
+            .ProjectTo<AccountantProcessResponseDto>(_mapper.ConfigurationProvider)
+            .FirstOrDefaultAsync();
+
+        if (ap == null)
+            return Result<AccountantProcessWrapperDto>.Failure(ApplicationError.NotFound, ErrorType.NotFound);
+
+        return Result<AccountantProcessWrapperDto>.Success(new AccountantProcessWrapperDto { AccountantProcess = ap });
+    }
+
     public async Task<bool> IsProcessActiveAsync(int processId)
     {
         var process = await _context.AccountantProcesses.FindAsync(processId);

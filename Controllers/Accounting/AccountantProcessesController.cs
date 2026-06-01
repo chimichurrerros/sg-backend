@@ -38,6 +38,20 @@ public class AccountantProcessesController(AccountantProcessService accountantPr
         return StatusCode(500);
     }
 
+    [HttpGet("last")]
+    public async Task<ActionResult<AccountantProcessWrapperDto>> GetLast()
+    {
+        var result = await _accountantProcessService.GetLastAsync();
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        return StatusCode(500);
+    }
+
     [HttpGet("{id}")]
     public async Task<ActionResult<AccountantProcessWrapperDto>> GetById(int id)
     {
