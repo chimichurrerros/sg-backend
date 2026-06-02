@@ -36,9 +36,9 @@ public class SupplierQuoteService(AppDbContext context, IMapper mapper)
         });
     }
 
-    public async Task<Result<ListSupplierQuotesWrapperDto>> GetListAsync(PaginationRequestDto pagination)
+    public async Task<Result<ListSupplierQuotesWrapperDto>> GetListAsync(SupplierQuoteQueryDto query)
     {
-        var query = _context.SupplierQuotes
+        IQueryable<SupplierQuote> rQuery = _context.SupplierQuotes
             .AsNoTracking()
             .Include(q => q.Supplier)
             .Include(q => q.PurchaseOrders)
@@ -47,17 +47,44 @@ public class SupplierQuoteService(AppDbContext context, IMapper mapper)
             .Include(q => q.SupplierQuoteDetails)
                 .ThenInclude(d => d.Product);
 
-        var total = await query.CountAsync();
+        if (query.SupplierId.HasValue)
+            rQuery = rQuery.Where(q => q.SupplierId == query.SupplierId.Value);
 
-        var quotes = await query
+        if (query.PurchaseRequestId.HasValue)
+            rQuery = rQuery.Where(q => q.PurchaseRequestId == query.PurchaseRequestId.Value);
+
+        if (query.RequestForQuotationId.HasValue)
+            rQuery = rQuery.Where(q => q.RequestForQuotationId == query.RequestForQuotationId.Value);
+
+        if (query.State.HasValue)
+            rQuery = rQuery.Where(q => (int)q.State == query.State.Value);
+
+        if (query.Date.HasValue)
+            rQuery = rQuery.Where(q => DateOnly.FromDateTime(q.Date) == query.Date.Value);
+
+        if (query.StartDate.HasValue)
+            rQuery = rQuery.Where(q => DateOnly.FromDateTime(q.Date) >= query.StartDate.Value);
+
+        if (query.EndDate.HasValue)
+            rQuery = rQuery.Where(q => DateOnly.FromDateTime(q.Date) <= query.EndDate.Value);
+
+        if (query.MinTotal.HasValue)
+            rQuery = rQuery.Where(q => q.Total >= query.MinTotal.Value);
+
+        if (query.MaxTotal.HasValue)
+            rQuery = rQuery.Where(q => q.Total <= query.MaxTotal.Value);
+
+        var total = await rQuery.CountAsync();
+
+        var quotes = await rQuery
             .OrderByDescending(q => q.Id)
-            .Skip((pagination.Page - 1) * pagination.PageSize)
-            .Take(pagination.PageSize)
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
             .ToListAsync();
 
         var dtos = _mapper.Map<List<SupplierQuoteResponseDto>>(quotes);
 
-        var paginationData = new Pagination(pagination.Page, pagination.PageSize, total);
+        var paginationData = new Pagination(query.Page, query.PageSize, total);
 
         return Result<ListSupplierQuotesWrapperDto>.Success(new ListSupplierQuotesWrapperDto
         {
