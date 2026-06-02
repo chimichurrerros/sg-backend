@@ -229,42 +229,53 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
     {
         var process = await _context.PayrollProcesses
             .AsNoTracking()
-            .FirstOrDefaultAsync(payrollProcess => payrollProcess.Id == processId);
+            .FirstOrDefaultAsync(p => p.Id == processId);
 
         if (process is null)
             return Result<List<EligibleEmployeeResponseDto>>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
 
-        var existingEmployeeIds = await _context.PayrollProcessDetails
+        var employeeIdsInProcess = await _context.PayrollProcessDetails
             .AsNoTracking()
-            .Where(detail => detail.PayrollProcessId == processId)
-            .Select(detail => detail.EmployeeId)
+            .Where(d => d.PayrollProcessId == processId)
+            .Select(d => d.EmployeeId)
             .Distinct()
             .ToListAsync();
 
-        var eligibleEmployees = await _context.Employees
+        var referenceDate = process.PayDate ?? new DateOnly(process.Year, process.Month, DateTime.DaysInMonth(process.Year, process.Month));
+
+        var employees = await _context.Employees
             .AsNoTracking()
-            .Where(employee => employee.IsActive && !existingEmployeeIds.Contains(employee.Id))
-            .OrderBy(employee => employee.Name)
-            .ThenBy(employee => employee.Lastname)
-            .Select(employee => new EligibleEmployeeResponseDto
-            {
-                Id = employee.Id,
-                FileNumber = employee.FileNumber,
-                FirstName = employee.Name,
-                LastName = employee.Lastname,
-                BranchName = employee.Branch != null ? employee.Branch.Name : null,
-                AreaName = employee.Area.Name,
-                PositionName = _context.PositionByScheduleByEmployees
-                    .Where(psbe => psbe.EmployeeId == employee.Id
-                                && psbe.StartDate <= DateOnly.FromDateTime(DateTime.Now)
-                                && (psbe.EndDate == null || psbe.EndDate >= DateOnly.FromDateTime(DateTime.Now)))
-                    .OrderByDescending(psbe => psbe.StartDate)
-                    .Select(psbe => psbe.Position.Name)
-                    .FirstOrDefault()
-            })
+            .Where(e => e.IsActive && !employeeIdsInProcess.Contains(e.Id))
+            .Include(e => e.Branch)
+            .Include(e => e.Area)
+            .Include(e => e.PositionByScheduleByEmployees.Where(psbe =>
+                psbe.StartDate <= referenceDate &&
+                (psbe.EndDate == null || psbe.EndDate >= referenceDate)))
+                .ThenInclude(psbe => psbe.Position)
+            .OrderBy(e => e.Name)
+            .ThenBy(e => e.Lastname)
             .ToListAsync();
 
-        return Result<List<EligibleEmployeeResponseDto>>.Success(eligibleEmployees);
+        var result = employees.Select(e =>
+        {
+            var currentPosition = e.PositionByScheduleByEmployees
+                .OrderByDescending(psbe => psbe.StartDate)
+                .ThenByDescending(psbe => psbe.Id)
+                .FirstOrDefault();
+
+            return new EligibleEmployeeResponseDto
+            {
+                Id = e.Id,
+                FileNumber = e.FileNumber,
+                FirstName = e.Name,
+                LastName = e.Lastname,
+                BranchName = e.Branch?.Name,
+                AreaName = e.Area?.Name,
+                PositionName = currentPosition?.Position?.Name
+            };
+        }).ToList();
+
+        return Result<List<EligibleEmployeeResponseDto>>.Success(result);
     }
 
     public async Task<Result<int>> AddEmployeesAsync(int processId, int[] employeeIds)
@@ -468,44 +479,58 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
     {
         var process = await _context.PayrollProcesses
             .AsNoTracking()
-            .FirstOrDefaultAsync(payrollProcess => payrollProcess.Id == processId);
+            .FirstOrDefaultAsync(p => p.Id == processId);
 
         if (process is null)
             return Result<List<PayrollDetailSummaryResponseDto>>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
 
-        var summaries = await _context.PayrollProcessDetails
+        var referenceDate = process.PayDate ?? new DateOnly(process.Year, process.Month, DateTime.DaysInMonth(process.Year, process.Month));
+
+        var details = await _context.PayrollProcessDetails
             .AsNoTracking()
-            .Where(detail => detail.PayrollProcessId == processId)
-            .GroupBy(detail => new
-            {
-                detail.EmployeeId,
-                detail.Employee.FileNumber,
-                detail.Employee.Name,
-                detail.Employee.Lastname,
-                BranchName = detail.Employee.Branch != null ? detail.Employee.Branch.Name : null,
-                AreaName = detail.Employee.Area.Name,
-                PositionName = _context.PositionByScheduleByEmployees
-                    .Where(psbe => psbe.EmployeeId == detail.EmployeeId
-                                && psbe.StartDate <= DateOnly.FromDateTime(DateTime.Now)
-                                && (psbe.EndDate == null || psbe.EndDate >= DateOnly.FromDateTime(DateTime.Now)))
-                    .OrderByDescending(psbe => psbe.StartDate)
-                    .Select(psbe => psbe.Position.Name)
-                    .FirstOrDefault()
-            })
-            .Select(group => new PayrollDetailSummaryResponseDto
-            {
-                EmployeeId = group.Key.EmployeeId,
-                FileNumber = group.Key.FileNumber,
-                FullName = group.Key.Name + " " + group.Key.Lastname,
-                BranchName = group.Key.BranchName,
-                AreaName = group.Key.AreaName,
-                PositionName = group.Key.PositionName,
-                SueldoBruto = group.Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings).Sum(d => d.Amount),
-                Descuentos = group.Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Deductions).Sum(d => d.Amount),
-                SueldoNeto = group.Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings).Sum(d => d.Amount)
-                           - group.Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Deductions).Sum(d => d.Amount)
-            })
+            .Where(d => d.PayrollProcessId == processId)
+            .Include(d => d.Employee).ThenInclude(e => e.Branch)
+            .Include(d => d.Employee).ThenInclude(e => e.Area)
+            .Include(d => d.Employee).ThenInclude(e => e.PositionByScheduleByEmployees).ThenInclude(psbe => psbe.Position)
+            .Include(d => d.PayrollUpdate)
             .ToListAsync();
+
+        var summaries = details
+            .GroupBy(d => d.Employee)
+            .Select(g =>
+            {
+                var employee = g.Key;
+                var sueldoBruto = g
+                    .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings)
+                    .Sum(d => d.Amount);
+                var descuentos = g
+                    .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Deductions)
+                    .Sum(d => d.Amount);
+
+                var currentPosition = employee.PositionByScheduleByEmployees
+                    .Where(psbe =>
+                        psbe.StartDate <= referenceDate &&
+                        (psbe.EndDate == null || psbe.EndDate >= referenceDate))
+                    .OrderByDescending(psbe => psbe.StartDate)
+                    .ThenByDescending(psbe => psbe.Id)
+                    .Select(psbe => psbe.Position)
+                    .FirstOrDefault();
+
+                return new PayrollDetailSummaryResponseDto
+                {
+                    EmployeeId = employee.Id,
+                    FileNumber = employee.FileNumber,
+                    FullName = $"{employee.Name} {employee.Lastname}",
+                    BranchName = employee.Branch?.Name,
+                    AreaName = employee.Area?.Name,
+                    PositionName = currentPosition?.Name,
+                    SueldoBruto = sueldoBruto,
+                    Descuentos = descuentos,
+                    SueldoNeto = sueldoBruto - descuentos
+                };
+            })
+            .OrderBy(s => s.FullName)
+            .ToList();
 
         return Result<List<PayrollDetailSummaryResponseDto>>.Success(summaries);
     }
@@ -809,10 +834,6 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
                     ["DiasAusencia"] = attendanceData.DiasAusencia,
                     ["DiasTardanza"] = attendanceData.DiasTardanza,
                     ["CantidadHijos"] = cantidadHijos,
-<<<<<<< HEAD
-                    ["SueldoMinimo"] = SueldoMinimo,
-                    ["TotalDeducibleIPS"] = 0m
-=======
                     ["TotalDeducibleIPS"] = 0m,
                     ["AniosAntiguedad"] = aniosAntiguedad,
                     ["SueldoMinimo"] = sueldoMinimo,
@@ -820,7 +841,6 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
                     ["HorasTardanza"] = horasTardanza,
                     ["CantidadHoras50"] = 0m,
                     ["CantidadHoras100"] = 0m
->>>>>>> f2106ea2e1fd48c0df24fb0c460216e542820eaf
                 };
 
                 var totalDeducibleIPS = 0m;
@@ -939,165 +959,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         }
     }
 
-    public async Task<Result<List<EligibleEmployeeResponseDto>>> GetEligibleEmployeesAsync(int processId)
-    {
-        var process = await _context.PayrollProcesses
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.Id == processId);
 
-        if (process is null)
-            return Result<List<EligibleEmployeeResponseDto>>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
-
-        var employeeIdsInProcess = await _context.PayrollProcessDetails
-            .AsNoTracking()
-            .Where(d => d.PayrollProcessId == processId)
-            .Select(d => d.EmployeeId)
-            .Distinct()
-            .ToListAsync();
-
-        var referenceDate = process.PayDate ?? new DateOnly(process.Year, process.Month, DateTime.DaysInMonth(process.Year, process.Month));
-
-        var employees = await _context.Employees
-            .AsNoTracking()
-            .Where(e => e.IsActive && !employeeIdsInProcess.Contains(e.Id))
-            .Include(e => e.Branch)
-            .Include(e => e.Area)
-            .Include(e => e.PositionByScheduleByEmployees.Where(psbe =>
-                psbe.StartDate <= referenceDate &&
-                (psbe.EndDate == null || psbe.EndDate >= referenceDate)))
-                .ThenInclude(psbe => psbe.Position)
-            .OrderBy(e => e.Name)
-            .ThenBy(e => e.Lastname)
-            .ToListAsync();
-
-        var result = employees.Select(e =>
-        {
-            var currentPosition = e.PositionByScheduleByEmployees
-                .OrderByDescending(psbe => psbe.StartDate)
-                .ThenByDescending(psbe => psbe.Id)
-                .FirstOrDefault();
-
-            return new EligibleEmployeeResponseDto
-            {
-                Id = e.Id,
-                FileNumber = e.FileNumber,
-                FirstName = e.Name,
-                LastName = e.Lastname,
-                BranchName = e.Branch?.Name,
-                AreaName = e.Area?.Name,
-                PositionName = currentPosition?.Position?.Name
-            };
-        }).ToList();
-
-        return Result<List<EligibleEmployeeResponseDto>>.Success(result);
-    }
-
-    public async Task<Result<int>> AddEmployeesToProcessAsync(int processId, List<int> employeeIds)
-    {
-        var process = await _context.PayrollProcesses
-            .FirstOrDefaultAsync(p => p.Id == processId);
-
-        if (process is null)
-            return Result<int>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
-
-        if (process.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Open)
-            return Result<int>.Failure(PayrollProcessError.PayrollProcessMustBeOpen, ErrorType.Conflict);
-
-        var existingEmployeeIds = await _context.PayrollProcessDetails
-            .Where(d => d.PayrollProcessId == processId)
-            .Select(d => d.EmployeeId)
-            .Distinct()
-            .ToListAsync();
-
-        var newEmployeeIds = employeeIds.Except(existingEmployeeIds).ToList();
-
-        if (newEmployeeIds.Count == 0)
-            return Result<int>.Success(0);
-
-        var payrollUpdates = await _context.PayrollUpdates
-            .AsNoTracking()
-            .ToListAsync();
-
-        var details = new List<PayrollProcessDetail>();
-        foreach (var employeeId in newEmployeeIds)
-        {
-            foreach (var update in payrollUpdates)
-            {
-                details.Add(new PayrollProcessDetail
-                {
-                    PayrollProcessId = processId,
-                    EmployeeId = employeeId,
-                    PayrollUpdateId = update.Id,
-                    Amount = 0m
-                });
-            }
-        }
-
-        _context.PayrollProcessDetails.AddRange(details);
-        await _context.SaveChangesAsync();
-
-        return Result<int>.Success(newEmployeeIds.Count);
-    }
-
-    public async Task<Result<List<PayrollDetailSummaryResponseDto>>> GetDetailSummariesAsync(int processId)
-    {
-        var process = await _context.PayrollProcesses
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.Id == processId);
-
-        if (process is null)
-            return Result<List<PayrollDetailSummaryResponseDto>>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
-
-        var referenceDate = process.PayDate ?? new DateOnly(process.Year, process.Month, DateTime.DaysInMonth(process.Year, process.Month));
-
-        var details = await _context.PayrollProcessDetails
-            .AsNoTracking()
-            .Where(d => d.PayrollProcessId == processId)
-            .Include(d => d.Employee).ThenInclude(e => e.Branch)
-            .Include(d => d.Employee).ThenInclude(e => e.Area)
-            .Include(d => d.Employee).ThenInclude(e => e.PositionByScheduleByEmployees).ThenInclude(psbe => psbe.Position)
-            .Include(d => d.PayrollUpdate)
-            .ToListAsync();
-
-        var summaries = details
-            .GroupBy(d => d.Employee)
-            .Select(g =>
-            {
-                var employee = g.Key;
-                var sueldoBruto = g
-                    .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings)
-                    .Sum(d => d.Amount);
-                var descuentos = g
-                    .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Deductions)
-                    .Sum(d => d.Amount);
-
-                var currentPosition = employee.PositionByScheduleByEmployees
-                    .Where(psbe =>
-                        psbe.StartDate <= referenceDate &&
-                        (psbe.EndDate == null || psbe.EndDate >= referenceDate))
-                    .OrderByDescending(psbe => psbe.StartDate)
-                    .ThenByDescending(psbe => psbe.Id)
-                    .Select(psbe => psbe.Position)
-                    .FirstOrDefault();
-
-                return new PayrollDetailSummaryResponseDto
-                {
-                    EmployeeId = employee.Id,
-                    FileNumber = employee.FileNumber,
-                    FullName = $"{employee.Name} {employee.Lastname}",
-                    BranchName = employee.Branch?.Name,
-                    AreaName = employee.Area?.Name,
-                    PositionName = currentPosition?.Name,
-                    SueldoBruto = sueldoBruto,
-                    Descuentos = descuentos,
-                    SueldoNeto = sueldoBruto - descuentos
-                };
-            })
-            .OrderBy(s => s.FullName)
-            .ToList();
-
-        return Result<List<PayrollDetailSummaryResponseDto>>.Success(summaries);
-    }
 
     public async Task<Result<PayrollCloseResponseDto>> CloseProcessAsync(int payrollProcessId)
     {
