@@ -47,6 +47,12 @@ public static class PayrollVariableCatalog
             Code = "TotalDeducibleIPS",
             Name = "TotalDeducibleIPS",
             Description = "Suma total acumulada de todos los haberes del mes que tienen activado el parámetro Deducible de IPS."
+        },
+        new PayrollVariableResponseDto
+        {
+            Code = "SueldoMinimo",
+            Name = "SueldoMinimo",
+            Description = "Salario mínimo legal vigente en Paraguay."
         }
     };
 
