@@ -95,7 +95,7 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
             new(ClaimTypes.Name, user.Name),
             new(ClaimTypes.Surname, user.LastName),
             new(ClaimTypes.Role, user.Role!.Name),
-            new("BranchId", user.BranchId.ToString())
+            new("BranchId", user.BranchId == null ? string.Empty : user.BranchId.ToString()!)
         };
 
         if (user.Role!.Permissions is { } permissions) // I need this to suppress a warning
