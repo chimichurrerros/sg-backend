@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Accounting;
 
 [Route("api/entries")]
@@ -17,6 +18,7 @@ public class EntriesController(EntryService entryService) : ControllerBase
     private readonly EntryService _entryService = entryService;
 
     [HttpGet]
+    [HasPermission("entries.view")]
     public async Task<ActionResult<ListEntriesWrapperDto>> GetList([FromQuery] PaginationRequestDto query)
     {
         var result = await _entryService.GetListAsync(query);
@@ -28,6 +30,7 @@ public class EntriesController(EntryService entryService) : ControllerBase
     }
 
     [HttpGet("all")]
+    [HasPermission("entries.view")]
     public async Task<ActionResult<ListEntriesWrapperDto>> GetAll()
     {
         var result = await _entryService.GetAllAsync();
@@ -39,6 +42,7 @@ public class EntriesController(EntryService entryService) : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [HasPermission("entries.view")]
     public async Task<ActionResult<EntryWrapperDto>> GetById(int id)
     {
         var result = await _entryService.GetByIdAsync(id);
@@ -53,6 +57,7 @@ public class EntriesController(EntryService entryService) : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission("entries.create")]
     public async Task<ActionResult<EntryWrapperDto>> Create(CreateEntryRequestDto request)
     {
         var result = await _entryService.CreateAsync(request);
@@ -70,6 +75,7 @@ public class EntriesController(EntryService entryService) : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [HasPermission("entries.update")]
     public async Task<ActionResult<EntryWrapperDto>> Update(int id, UpdateEntryRequestDto request)
     {
         var result = await _entryService.UpdateAsync(id, request);
@@ -87,6 +93,7 @@ public class EntriesController(EntryService entryService) : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [HasPermission("entries.delete")]
     public async Task<ActionResult> Delete(int id)
     {
         var result = await _entryService.DeleteAsync(id);

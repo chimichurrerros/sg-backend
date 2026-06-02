@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Accounting;
 
 [Route("api/accounting/reports")]
@@ -17,6 +18,7 @@ public class AccountingReportsController(AccountingReportService reportService) 
     private readonly AccountingReportService _reportService = reportService;
 
     [HttpGet("libro-diario")]
+    [HasPermission("accountingReports.view")]
     public async Task<ActionResult<JournalBookDto>> GetJournalBook(
         [FromQuery] int accountantProcessId, 
         [FromQuery] DateTime? startDate, 
@@ -37,6 +39,7 @@ public class AccountingReportsController(AccountingReportService reportService) 
     }
 
     [HttpGet("libro-mayor")]
+    [HasPermission("accountingReports.view")]
     public async Task<ActionResult<LedgerBookDto>> GetLedgerBook(
         [FromQuery] int accountantProcessId, 
         [FromQuery] int? accountPlanId, 
@@ -58,6 +61,7 @@ public class AccountingReportsController(AccountingReportService reportService) 
     }
 
     [HttpGet("balance-general")]
+    [HasPermission("accountingReports.view")]
     public async Task<ActionResult<BalanceSheetDto>> GetBalanceSheet(
         [FromQuery] int accountantProcessId, 
         [FromQuery] DateTime? endDate)
@@ -77,6 +81,7 @@ public class AccountingReportsController(AccountingReportService reportService) 
     }
 
     [HttpGet("balance-sumas-saldos")]
+    [HasPermission("accountingReports.view")]
     public async Task<ActionResult<TrialBalanceDto>> GetTrialBalance(
         [FromQuery] int accountantProcessId, 
         [FromQuery] DateTime? startDate, 
@@ -97,6 +102,7 @@ public class AccountingReportsController(AccountingReportService reportService) 
     }
 
     [HttpGet("balance-resultados")]
+    [HasPermission("accountingReports.view")]
     public async Task<ActionResult<IncomeStatementDto>> GetIncomeStatement(
         [FromQuery] int accountantProcessId, 
         [FromQuery] DateTime? startDate, 

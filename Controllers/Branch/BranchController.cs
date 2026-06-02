@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Branch;
 
 [Route("api/branches")]
@@ -17,6 +18,7 @@ public class BranchController(BranchService branchService) : ControllerBase
     private readonly BranchService _branchService = branchService;
 
     [HttpGet]
+    [HasPermission("branches.view")]
     public async Task<ActionResult<ListBranchesWrapperDto>> GetListBranches([FromQuery] PaginationRequestDto pagination)
     {
         var result = await _branchService.GetListAsync(pagination);
@@ -28,6 +30,7 @@ public class BranchController(BranchService branchService) : ControllerBase
     }
 
     [HttpGet("all")]
+    [HasPermission("branches.view")]
     public async Task<ActionResult<ListBranchesWrapperDto>> GetAllBranches()
     {
         var result = await _branchService.GetAllAsync();
@@ -39,6 +42,7 @@ public class BranchController(BranchService branchService) : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [HasPermission("branches.view")]
     public async Task<ActionResult<BranchWrapperDto>> GetBranchById(int id)
     {
         var result = await _branchService.GetByIdAsync(id);
@@ -53,6 +57,7 @@ public class BranchController(BranchService branchService) : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission("branches.create")]
     public async Task<ActionResult<BranchWrapperDto>> Create(BranchRequestDto request)
     {
         var result = await _branchService.CreateAsync(request);
@@ -67,6 +72,7 @@ public class BranchController(BranchService branchService) : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [HasPermission("branches.update")]
     public async Task<ActionResult<BranchWrapperDto>> Update(int id, BranchRequestDto request)
     {
         var result = await _branchService.UpdateAsync(id, request);
@@ -81,6 +87,7 @@ public class BranchController(BranchService branchService) : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [HasPermission("branches.delete")]
     public async Task<ActionResult> Delete(int id)
     {
         var result = await _branchService.DeleteAsync(id);

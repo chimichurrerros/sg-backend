@@ -6,6 +6,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Payroll;
 
 [Route("api/manual-concepts")]
@@ -16,6 +17,7 @@ public class ManualConceptsController(PayrollProcessingService payrollProcessing
     private readonly PayrollProcessingService _payrollProcessingService = payrollProcessingService;
 
     [HttpPost]
+    [HasPermission("manualConcepts.create")]
     public async Task<ActionResult<ManualConceptIncidentResponseDto>> Create(ManualConceptIncidentCreateDto request)
     {
         var result = await _payrollProcessingService.CreateManualConceptIncidentAsync(request);
@@ -33,6 +35,7 @@ public class ManualConceptsController(PayrollProcessingService payrollProcessing
     }
 
     [HttpPut("{id:int}")]
+    [HasPermission("manualConcepts.update")]
     public async Task<ActionResult<ManualConceptIncidentResponseDto>> Update(int id, ManualConceptIncidentCreateDto request)
     {
         var result = await _payrollProcessingService.UpdateManualConceptIncidentAsync(id, request);
@@ -53,6 +56,7 @@ public class ManualConceptsController(PayrollProcessingService payrollProcessing
     }
 
     [HttpDelete("{id:int}")]
+    [HasPermission("manualConcepts.delete")]
     public async Task<ActionResult> Delete(int id)
     {
         var result = await _payrollProcessingService.DeleteManualConceptIncidentAsync(id);
@@ -70,6 +74,7 @@ public class ManualConceptsController(PayrollProcessingService payrollProcessing
     }
 
     [HttpGet("pending")]
+    [HasPermission("manualConcepts.view")]
     public async Task<ActionResult<List<ManualConceptIncidentResponseDto>>> GetPending()
     {
         var result = await _payrollProcessingService.GetPendingManualConceptIncidentsAsync();

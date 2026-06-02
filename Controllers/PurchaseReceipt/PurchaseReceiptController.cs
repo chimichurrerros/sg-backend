@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.PurchaseReceipt;
 
 [Route("api/purchase-receipts")]
@@ -17,6 +18,7 @@ public class PurchaseReceiptController(PurchaseReceiptService purchaseReceiptSer
     private readonly PurchaseReceiptService _purchaseReceiptService = purchaseReceiptService;
 
     [HttpPost]
+    [HasPermission("purchaseReceipts.create")]
     public async Task<ActionResult<BillWrapperDto>> ReceivePurchaseOrder(CreatePurchaseReceiptDto request)
     {
         var result = await _purchaseReceiptService.ReceivePurchaseOrderAsync(request);
@@ -34,6 +36,7 @@ public class PurchaseReceiptController(PurchaseReceiptService purchaseReceiptSer
     }
 
     [HttpGet("all")]
+    [HasPermission("purchaseReceipts.view")]
     public async Task<ActionResult<ListBillsWrapperDto>> GetAll()
     {
         var result = await _purchaseReceiptService.GetAllAsync();

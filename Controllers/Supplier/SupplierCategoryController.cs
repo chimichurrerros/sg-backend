@@ -6,6 +6,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers;
 
 [Route("api/suppliercategories")]
@@ -16,6 +17,7 @@ public class SupplierCategoriesController(SupplierCategoryService supplierCatego
     private readonly SupplierCategoryService _service = supplierCategoryService;
 
     [HttpGet("supplier/{supplierId}")]
+    [HasPermission("supplierCategories.view")]
     public async Task<ActionResult<SupplierCategoryWrapperDto>> GetBySupplierId(int supplierId)
     {
         var result = await _service.GetBySupplierIdAsync(supplierId);
@@ -27,6 +29,7 @@ public class SupplierCategoriesController(SupplierCategoryService supplierCatego
     }
 
     [HttpPost]
+    [HasPermission("supplierCategories.create")]
     public async Task<ActionResult<SupplierCategoryResponseDto>> Create([FromBody] SupplierCategoryRequestDto request)
     {
         var result = await _service.CreateAsync(request);
@@ -41,6 +44,7 @@ public class SupplierCategoriesController(SupplierCategoryService supplierCatego
     }
 
     [HttpDelete("{id}")]
+    [HasPermission("supplierCategories.delete")]
     public async Task<ActionResult> Delete(int id)
     {
         var result = await _service.DeleteAsync(id);

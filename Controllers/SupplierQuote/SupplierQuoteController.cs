@@ -6,6 +6,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.SupplierQuote;
 
 [Route("api/supplierquotes")]
@@ -16,6 +17,7 @@ public class SupplierQuoteController(SupplierQuoteService supplierQuoteService) 
     private readonly SupplierQuoteService _supplierQuoteService = supplierQuoteService;
 
     [HttpGet]
+    [HasPermission("supplierQuotes.view")]
     public async Task<ActionResult<ListSupplierQuotesWrapperDto>> GetList([FromQuery] SupplierQuoteQueryDto query)
     {
         var result = await _supplierQuoteService.GetListAsync(query);
@@ -25,6 +27,7 @@ public class SupplierQuoteController(SupplierQuoteService supplierQuoteService) 
     }
 
     [HttpGet("all")]
+    [HasPermission("supplierQuotes.view")]
     public async Task<ActionResult<ListSupplierQuotesWrapperDto>> GetAll()
     {
         var result = await _supplierQuoteService.GetAllAsync();
@@ -34,6 +37,7 @@ public class SupplierQuoteController(SupplierQuoteService supplierQuoteService) 
     }
 
     [HttpGet("{id}")]
+    [HasPermission("supplierQuotes.view")]
     public async Task<ActionResult<SupplierQuoteWrapperDto>> GetById(int id)
     {
         var result = await _supplierQuoteService.GetByIdAsync(id);
@@ -47,6 +51,7 @@ public class SupplierQuoteController(SupplierQuoteService supplierQuoteService) 
     }
 
     [HttpPost]
+    [HasPermission("supplierQuotes.create")]
     public async Task<ActionResult<SupplierQuoteWrapperDto>> Create(CreateSupplierQuoteRequestDto request)
     {
         var result = await _supplierQuoteService.CreateAsync(request);
@@ -60,6 +65,7 @@ public class SupplierQuoteController(SupplierQuoteService supplierQuoteService) 
     }
 
     [HttpPut("{id}")]
+    [HasPermission("supplierQuotes.update")]
     public async Task<ActionResult<SupplierQuoteWrapperDto>> Update(int id, UpdateSupplierQuoteRequestDto request)
     {
         var result = await _supplierQuoteService.UpdateAsync(id, request);

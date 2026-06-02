@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Bill;
 
 [Route("api/bills")]
@@ -17,6 +18,7 @@ public class BillController(BillService billService) : ControllerBase
     private readonly BillService _billService = billService;
 
     [HttpGet]
+    [HasPermission("bills.view")]
     public async Task<ActionResult<ListBillsWrapperDto>> GetListBills([FromQuery] BillQueryDto query)
     {
         var result = await _billService.GetListAsync(query);
@@ -25,6 +27,7 @@ public class BillController(BillService billService) : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [HasPermission("bills.view")]
     public async Task<ActionResult<BillWrapperDto>> GetBillById(int id)
     {
         var result = await _billService.GetByIdAsync(id);
@@ -34,6 +37,7 @@ public class BillController(BillService billService) : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission("bills.create")]
     public async Task<ActionResult<BillWrapperDto>> Create(CreateBillRequestDto request)
     {
         var result = await _billService.CreateAsync(request);
@@ -42,6 +46,7 @@ public class BillController(BillService billService) : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [HasPermission("bills.update")]
     public async Task<ActionResult<BillWrapperDto>> Update(int id, UpdateBillRequestDto request)
     {
         var result = await _billService.UpdateAsync(id, request);

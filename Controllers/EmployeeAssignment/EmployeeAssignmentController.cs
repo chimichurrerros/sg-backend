@@ -5,6 +5,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.EmployeeAssignment;
 
 [Route("api/employee-assignments")]
@@ -15,6 +16,7 @@ public class EmployeeAssignmentController(IEmployeeAssignmentService employeeAss
     private readonly IEmployeeAssignmentService _employeeAssignmentService = employeeAssignmentService;
 
     [HttpPost]
+    [HasPermission("employeeAssignments.create")]
     public async Task<ActionResult<PositionByScheduleByEmployeeDto>> Assign(PositionByScheduleByEmployeeDto dto)
     {
         dto.Id = 0;
@@ -33,6 +35,7 @@ public class EmployeeAssignmentController(IEmployeeAssignmentService employeeAss
     }
 
     [HttpPut("{id}")]
+    [HasPermission("employeeAssignments.update")]
     public async Task<ActionResult<PositionByScheduleByEmployeeDto>> Update(int id, PositionByScheduleByEmployeeDto dto)
     {
         dto.Id = id;
