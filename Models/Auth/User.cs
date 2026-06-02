@@ -13,6 +13,9 @@ public partial class User
     public string Email { get; set; } = null!;
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    
+    public int? BranchId { get; set; }
+    public virtual Branch? Branch { get; set; }
 
     public virtual ICollection<CustomerQuote> CustomerQuotes { get; set; } = new List<CustomerQuote>();
 
@@ -21,4 +24,5 @@ public partial class User
     public virtual Role Role { get; set; } = null!;
 
     public virtual ICollection<SalesOrder> SalesOrders { get; set; } = new List<SalesOrder>();
+
 }

@@ -53,6 +53,7 @@ public class UserService(AppDbContext context, IMapper mapper)
 	{
 		var user = await _context.Users
 			.Include(u => u.Role)
+			.Include(u => u.Branch)
 			.FirstOrDefaultAsync(u => u.Id == id);
 
 		if (user == null)

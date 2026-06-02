@@ -15,4 +15,7 @@ public class RegisterRequestDto
     [Required(ErrorMessage = UserError.PasswordRequired)]
     [MinLength(8, ErrorMessage = UserError.PasswordLength)]
     public string Password { get; set; } = null!;
+
+    [Required(ErrorMessage = BranchError.BranchRequired)]
+    public int BranchId { get; set; }
 }
