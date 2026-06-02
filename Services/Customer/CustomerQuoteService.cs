@@ -166,7 +166,7 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
         try
-        {
+         {
             var quote = new CustomerQuote
             {
                 CustomerId = customerIdResult.Value,
@@ -268,7 +268,7 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
         try
-        {
+         {
             quote.CustomerId = customerIdResult.Value;
             quote.UserId = userId;
             quote.BranchId = branchId;
@@ -311,7 +311,7 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
     {
         var quote = await _context.CustomerQuotes
             .Include(q => q.CustomerQuoteDetails)
-            .ThenInclude(d => d.Product)
+                .ThenInclude(d => d.Product)
             .FirstOrDefaultAsync(q => q.Id == quoteId);
 
         if (quote == null)
@@ -324,6 +324,25 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
 
         if (quote.Status == CustomerQuote.QuoteStatus.Closed)
             return Result<SalesOrderWrapperDto>.Failure(CustomerQuoteError.QuoteAlreadySold, ErrorType.Conflict);
+
+        // --- MODIFICADO: VALIDACIÓN ESTRICTA DE STOCK ANTES DE EMITIR LA VENTA ---
+        foreach (var detail in quote.CustomerQuoteDetails)
+        {
+            // Buscamos el registro de stock correspondiente al producto y a la sucursal del presupuesto
+            var stock = await _context.Set<Stock>()
+                .FirstOrDefaultAsync(s => s.ProductId == detail.ProductId && s.BranchId == quote.BranchId);
+
+            if (stock == null || stock.Quantity < detail.Quantity)
+            {
+                var productName = detail.Product?.Name ?? $"ID {detail.ProductId}";
+                var availableStock = stock?.Quantity ?? 0;
+
+                return Result<SalesOrderWrapperDto>.Failure(
+                    $"Stock insuficiente para procesar el presupuesto. Producto: '{productName}'. Requerido: {detail.Quantity}, Disponible: {availableStock}.", 
+                    ErrorType.Validation);
+            }
+        }
+        // ------------------------------------------------------------------------
 
         var details = quote.CustomerQuoteDetails.Select(d => new CreateSalesOrderDetailRequestDto
         {
