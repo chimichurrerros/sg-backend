@@ -683,18 +683,26 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
 
         var netoPagado = totalHaberes - totalDescuentos;
 
-        // Buscar cuentas contables por nombre
+        // Buscar proceso contable activo para la fecha actual (de pago)
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var activeProcess = await _context.AccountantProcesses
+            .FirstOrDefaultAsync(ap => !ap.IsClosed && ap.StartDate <= today && ap.EndDate >= today);
+
+        if (activeProcess == null)
+            return Result<PayrollCloseAndPayResponseDto>.Failure($"No existe un período contable activo para la fecha actual ({today:dd/MM/yyyy}).", ErrorType.Validation);
+
+        // Buscar cuentas contables por nombre y pertenecientes al periodo activo
         var accountSueldos = await _context.AccountPlans
-            .FirstOrDefaultAsync(a => a.Name.Contains("Sueldos") && a.Name.Contains("Jornales"));
+            .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Name.Contains("Sueldos") && a.Name.Contains("Jornales"));
 
         var accountBonificacion = await _context.AccountPlans
-            .FirstOrDefaultAsync(a => a.Name.Contains("Bonificación") || a.Name.Contains("Familiar"));
+            .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && (a.Name.Contains("Bonificación") || a.Name.Contains("Familiar")));
 
         var accountIps = await _context.AccountPlans
-            .FirstOrDefaultAsync(a => a.Name.Contains("IPS") && (a.Name.Contains("Aporte") || a.Name.Contains("Retención")));
+            .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Name.Contains("IPS") && (a.Name.Contains("Aporte") || a.Name.Contains("Retención")));
 
         var accountCaja = await _context.AccountPlans
-            .FirstOrDefaultAsync(a => a.Name.Contains("Caja") || a.Name.Contains("Banco"));
+            .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && (a.Name.Contains("Caja") || a.Name.Contains("Banco")));
 
         if (accountSueldos is null)
             return Result<PayrollCloseAndPayResponseDto>.Failure("No se encontró la cuenta contable 'Sueldos y Jornales'.", ErrorType.Validation);
