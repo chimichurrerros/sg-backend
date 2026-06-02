@@ -1196,9 +1196,6 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             .Include(lp => lp.Entity)
             .FirstOrDefaultAsync();
 
-        if (legalPerson is null)
-            return Result<PayrollEmployeeReceiptDto>.Failure("No se encontraron datos de la empresa.", ErrorType.NotFound);
-
         var position = await _context.PositionByScheduleByEmployees
             .AsNoTracking()
             .Where(psbe => psbe.EmployeeId == employeeId
@@ -1256,10 +1253,10 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
 
         return Result<PayrollEmployeeReceiptDto>.Success(new PayrollEmployeeReceiptDto
         {
-            CompanyBusinessName = legalPerson.BussinessName,
-            CompanyCuit = legalPerson.Entity.DocumentNumber,
-            CompanyAddress = legalPerson.Entity.Address ?? "",
-            CompanyPhone = legalPerson.Entity.Phone ?? "",
+            CompanyBusinessName = legalPerson?.BussinessName ?? "",
+            CompanyCuit = legalPerson?.Entity?.DocumentNumber ?? "",
+            CompanyAddress = legalPerson?.Entity?.Address ?? "",
+            CompanyPhone = legalPerson?.Entity?.Phone ?? "",
             BranchName = employee.Branch?.Name ?? "",
             BranchAddress = employee.Branch?.Address ?? "",
             EmployeeName = $"{employee.Name} {employee.Lastname}",
