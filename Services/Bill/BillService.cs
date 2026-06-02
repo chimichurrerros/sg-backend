@@ -55,6 +55,19 @@ public class BillService(AppDbContext context, IMapper mapper)
             query = query.Where(b => b.Customer != null && b.Customer.Ruc.ToLower().Contains(queryDto.CustomerRuc.ToLower()));
         }
 
+        if (queryDto.IsPurchaseBill.HasValue)
+        {
+            if (queryDto.IsPurchaseBill.Value)
+                query = query.Where(b => b.PurchaseOrderForSupplierId != null);
+            else
+                query = query.Where(b => b.SalesOrderId != null);
+        }
+
+        if (queryDto.PurchaseOrderForSupplierId.HasValue)
+        {
+            query = query.Where(b => b.PurchaseOrderForSupplierId == queryDto.PurchaseOrderForSupplierId.Value);
+        }
+
         var totalElements = await query.CountAsync();
 
         var bills = await query
@@ -91,7 +104,7 @@ public class BillService(AppDbContext context, IMapper mapper)
             BillState = request.BillState,
             CustomerId = request.CustomerId,
             SalesOrderId = request.SalesOrderId,
-            PurchaseOrderId = request.PurchaseOrderId,
+            PurchaseOrderForSupplierId = request.PurchaseOrderForSupplierId,
             Stamp = request.Stamp,
             Number = request.Number,
             Date = request.Date,
@@ -118,7 +131,7 @@ public class BillService(AppDbContext context, IMapper mapper)
         bill.BillType = request.BillType;
         bill.CustomerId = request.CustomerId;
         bill.SalesOrderId = request.SalesOrderId;
-        bill.PurchaseOrderId = request.PurchaseOrderId;
+        bill.PurchaseOrderForSupplierId = request.PurchaseOrderForSupplierId;
         bill.Stamp = request.Stamp;
         bill.Number = request.Number;
         bill.Date = request.Date;

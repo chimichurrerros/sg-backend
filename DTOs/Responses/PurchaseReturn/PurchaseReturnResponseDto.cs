@@ -24,7 +24,7 @@ public class PurchaseReturnDetailResponseDto
 public class PurchaseReturnResponseDto
 {
     public int Id { get; set; }
-    public int PurchaseOrderId { get; set; }
+    public int PurchaseOrderForSupplierId { get; set; }
     public int? BillId { get; set; }
     public int BranchId { get; set; }
     public string BranchName { get; set; } = string.Empty;

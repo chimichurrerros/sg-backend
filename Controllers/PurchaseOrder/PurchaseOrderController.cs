@@ -17,9 +17,9 @@ public class PurchaseOrderController(PurchaseOrderService purchaseOrderService) 
     private readonly PurchaseOrderService _purchaseOrderService = purchaseOrderService;
 
     [HttpGet]
-    public async Task<ActionResult<ListPurchaseOrdersWrapperDto>> GetList([FromQuery] PaginationRequestDto pagination)
+    public async Task<ActionResult<ListPurchaseOrdersWrapperDto>> GetList([FromQuery] PurchaseOrderQueryDto query)
     {
-        var result = await _purchaseOrderService.GetListAsync(pagination);
+        var result = await _purchaseOrderService.GetListAsync(query);
         if (result.IsSuccess)
             return Ok(result.Value);
         return StatusCode(500);
@@ -63,19 +63,6 @@ public class PurchaseOrderController(PurchaseOrderService purchaseOrderService) 
         return StatusCode(500);
     }
 
-    [HttpGet("{id}/suppliers")]
-    public async Task<ActionResult<BackEnd.DTOs.Responses.Supplier.ListSuppliersWrapperDto>> GetSuppliers(int id)
-    {
-        var result = await _purchaseOrderService.GetSuppliersByPurchaseOrderIdAsync(id);
-        if (result.IsSuccess)
-            return Ok(result.Value);
-
-        if (result.ErrorType == ErrorType.NotFound)
-            return this.HandleNotFoundProblem(result);
-
-        return StatusCode(500);
-    }
-
     [HttpPost]
     public async Task<ActionResult<PurchaseOrderWrapperDto>> Create(CreatePurchaseOrderRequestDto request)
     {
@@ -92,18 +79,15 @@ public class PurchaseOrderController(PurchaseOrderService purchaseOrderService) 
         return StatusCode(500);
     }
 
-    [HttpPut("{id}")]
-    public async Task<ActionResult<PurchaseOrderWrapperDto>> Update(int id, UpdatePurchaseOrderRequestDto request)
+    [HttpPut("{id}/cancel")]
+    public async Task<ActionResult> Cancel(int id)
     {
-        var result = await _purchaseOrderService.UpdateAsync(id, request);
+        var result = await _purchaseOrderService.CancelMainOrderAsync(id);
         if (result.IsSuccess)
-            return Ok(result.Value);
+            return NoContent();
 
         if (result.ErrorType == ErrorType.NotFound)
             return this.HandleNotFoundProblem(result);
-
-        if (result.ErrorType == ErrorType.Validation)
-            return this.HandleValidationProblem(result);
 
         return StatusCode(500);
     }

@@ -12,4 +12,6 @@ public class BillQueryDto : PaginationRequestDto
     public DateOnly? StartDate { get; set; }
     public DateOnly? EndDate { get; set; }
     public string? CustomerRuc { get; set; }
+    public bool? IsPurchaseBill { get; set; }
+    public int? PurchaseOrderForSupplierId { get; set; }
 }
