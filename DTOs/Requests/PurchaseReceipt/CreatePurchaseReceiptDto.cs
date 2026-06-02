@@ -5,7 +5,7 @@ namespace BackEnd.DTOs.Requests.PurchaseReceipt;
 
 public class CreatePurchaseReceiptDto
 {
-    public int PurchaseOrderId { get; set; }
+    public int PurchaseOrderForSupplierId { get; set; }
     public string BillNumber { get; set; } = null!;
     public string Stamp { get; set; } = null!;
     public DateOnly Date { get; set; }

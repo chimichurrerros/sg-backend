@@ -19,7 +19,7 @@ public partial class SupplierQuote
 
     public SupplierQuoteStateEnum State { get; set; } = SupplierQuoteStateEnum.Pending;
 
-    public virtual ICollection<PurchaseOrder> PurchaseOrders { get; set; } = new List<PurchaseOrder>();
+    public virtual ICollection<PurchaseOrderForSupplier> PurchaseOrdersForSupplier { get; set; } = new List<PurchaseOrderForSupplier>();
 
     public virtual PurchaseRequest PurchaseRequest { get; set; } = null!;
 

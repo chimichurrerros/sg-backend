@@ -28,14 +28,17 @@ public class PurchaseReceiptService(
         if (request.Details == null || request.Details.Count == 0)
             return Result<BillWrapperDto>.Failure(PurchaseReceiptError.DetailsRequired, ErrorType.Validation);
 
-        var purchaseOrder = await _context.PurchaseOrders
-            .Include(po => po.PurchaseOrderDetails)
-            .FirstOrDefaultAsync(po => po.Id == request.PurchaseOrderId);
+        var purchaseOrderForSupplier = await _context.PurchaseOrdersForSupplier
+            .Include(pos => pos.PurchaseOrderDetails)
+            .Include(pos => pos.PurchaseOrder)
+                .ThenInclude(po => po.PurchaseRequest)
+            .Include(pos => pos.Supplier)
+            .FirstOrDefaultAsync(pos => pos.Id == request.PurchaseOrderForSupplierId);
 
-        if (purchaseOrder == null)
+        if (purchaseOrderForSupplier == null)
             return Result<BillWrapperDto>.Failure(PurchaseReceiptError.PurchaseOrderNotFound, ErrorType.NotFound);
 
-        var paymentConfirmationResult = await _paymentOrderService.IsPaymentConfirmedAsync(request.PurchaseOrderId);
+        var paymentConfirmationResult = await _paymentOrderService.IsPaymentConfirmedAsync(request.PurchaseOrderForSupplierId);
         if (!paymentConfirmationResult.IsSuccess)
             return Result<BillWrapperDto>.Failure(paymentConfirmationResult.ErrorMessage!, paymentConfirmationResult.ErrorType);
 
@@ -52,7 +55,7 @@ public class PurchaseReceiptService(
             // Procesar cada producto recibido
             foreach (var detail in request.Details)
             {
-                var poDetail = purchaseOrder.PurchaseOrderDetails.FirstOrDefault(d => d.ProductId == detail.ProductId);
+                var poDetail = purchaseOrderForSupplier.PurchaseOrderDetails.FirstOrDefault(d => d.ProductId == detail.ProductId);
 
                 if (poDetail == null)
                 {
@@ -87,12 +90,12 @@ public class PurchaseReceiptService(
                 taxTotal += lineTax;
             }
 
-            var allReceived = purchaseOrder.PurchaseOrderDetails.All(d => d.QuantityReceived >= d.QuantityOrdered);
-            purchaseOrder.State = allReceived
-                ? PurchaseOrderStateEnum.Received
-                : PurchaseOrderStateEnum.PartiallyReceived;
+            var allReceived = purchaseOrderForSupplier.PurchaseOrderDetails.All(d => d.QuantityReceived >= d.QuantityOrdered);
+            purchaseOrderForSupplier.State = allReceived
+                ? PurchaseOrderForSupplierStateEnum.Received
+                : PurchaseOrderForSupplierStateEnum.PartiallyReceived;
 
-            _context.PurchaseOrders.Update(purchaseOrder);
+            _context.PurchaseOrdersForSupplier.Update(purchaseOrderForSupplier);
 
             await _context.SaveChangesAsync();
 
@@ -102,7 +105,7 @@ public class PurchaseReceiptService(
                 BillType = BillTypeEnum.CONTADO, // Se podría hacer parametrizable
                 BillState = BillStateEnum.Pending,
                 CustomerId = null, // Es factura de compra, no hay cliente asociado
-                PurchaseOrderId = purchaseOrder.Id,
+                PurchaseOrderForSupplierId = purchaseOrderForSupplier.Id,
                 Number = request.BillNumber,
                 Stamp = request.Stamp,
                 Date = request.Date,
@@ -117,7 +120,7 @@ public class PurchaseReceiptService(
             // 4. Crear Detalles de la Factura
             foreach (var detail in request.Details)
             {
-                var poDetail = purchaseOrder.PurchaseOrderDetails.First(d => d.ProductId == detail.ProductId);
+                var poDetail = purchaseOrderForSupplier.PurchaseOrderDetails.First(d => d.ProductId == detail.ProductId);
 
                 var billDetail = new BillDetail
                 {
@@ -146,7 +149,7 @@ public class PurchaseReceiptService(
     {
         var bills = await _context.Bills
             .AsNoTracking()
-            .Where(b => b.PurchaseOrderId != null)
+            .Where(b => b.PurchaseOrderForSupplierId != null)
             .OrderByDescending(b => b.Id)
             .ProjectTo<BillResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
