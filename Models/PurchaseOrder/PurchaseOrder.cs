@@ -7,11 +7,7 @@ public partial class PurchaseOrder
 {
     public int Id { get; set; }
 
-    public int SupplierId { get; set; }
-
     public int PurchaseRequestId { get; set; }
-
-    public int? SupplierQuoteId { get; set; }
 
     public string Number { get; set; } = null!;
 
@@ -21,13 +17,7 @@ public partial class PurchaseOrder
 
     public PurchaseOrderStateEnum State { get; set; } = PurchaseOrderStateEnum.Pending;
 
-    public virtual ICollection<Bill> Bills { get; set; } = new List<Bill>();
-
-    public virtual ICollection<PurchaseOrderDetail> PurchaseOrderDetails { get; set; } = new List<PurchaseOrderDetail>();
-
     public virtual PurchaseRequest PurchaseRequest { get; set; } = null!;
 
-    public virtual Supplier Supplier { get; set; } = null!;
-
-    public virtual SupplierQuote? SupplierQuote { get; set; }
+    public virtual ICollection<PurchaseOrderForSupplier> PurchaseOrdersForSupplier { get; set; } = new List<PurchaseOrderForSupplier>();
 }

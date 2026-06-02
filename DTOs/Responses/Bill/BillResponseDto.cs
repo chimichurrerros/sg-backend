@@ -10,7 +10,7 @@ public class BillResponseDto
     public BillStateEnum BillState { get; set; }
     public int CustomerId { get; set; }
     public int? SalesOrderId { get; set; }
-    public int? PurchaseOrderId { get; set; }
+    public int? PurchaseOrderForSupplierId { get; set; }
     public string? Stamp { get; set; }
     public string Number { get; set; } = null!;
     public DateOnly Date { get; set; }

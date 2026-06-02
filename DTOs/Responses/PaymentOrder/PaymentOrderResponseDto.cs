@@ -6,7 +6,7 @@ public class PaymentOrderBillDto
 {
     public int Id { get; set; }
     public int BillId { get; set; }
-    public int PurchaseOrderId { get; set; }
+    public int PurchaseOrderForSupplierId { get; set; }
     public decimal Amount { get; set; }
     public string BillNumber { get; set; } = string.Empty;
 }
@@ -34,7 +34,7 @@ public class PaymentOrderResponseDto
 {
     public int Id { get; set; }
     public int SupplierId { get; set; }
-    public int PurchaseOrderId { get; set; }
+    public int PurchaseOrderForSupplierId { get; set; }
     public DateTime Date { get; set; }
     public decimal Total { get; set; }
     public string StateId { get; set; } = string.Empty;

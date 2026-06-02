@@ -15,7 +15,7 @@ public partial class Bill
 
     public int? SalesOrderId { get; set; }
 
-    public int? PurchaseOrderId { get; set; }
+    public int? PurchaseOrderForSupplierId { get; set; }
 
     public string? Stamp { get; set; }
 
@@ -41,7 +41,7 @@ public partial class Bill
 
     public virtual ICollection<PaymentOrderBill> PaymentOrderBills { get; set; } = new List<PaymentOrderBill>();
 
-    public virtual PurchaseOrder? PurchaseOrder { get; set; }
+    public virtual PurchaseOrderForSupplier? PurchaseOrderForSupplier { get; set; }
 
     public virtual SalesOrder? SalesOrder { get; set; }
 }

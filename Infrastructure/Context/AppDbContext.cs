@@ -103,6 +103,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<PurchaseOrder> PurchaseOrders { get; set; }
 
+    public virtual DbSet<PurchaseOrderForSupplier> PurchaseOrdersForSupplier { get; set; }
+
     public virtual DbSet<PurchaseOrderDetail> PurchaseOrderDetails { get; set; }
 
     public virtual DbSet<PurchaseReturn> PurchaseReturns { get; set; }
@@ -284,9 +286,9 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("Bills_CustomerId_fkey");
 
-            entity.HasOne(d => d.PurchaseOrder).WithMany(p => p.Bills)
-                .HasForeignKey(d => d.PurchaseOrderId)
-                .HasConstraintName("Bills_PurchaseOrderId_fkey");
+            entity.HasOne(d => d.PurchaseOrderForSupplier).WithMany(p => p.Bills)
+                .HasForeignKey(d => d.PurchaseOrderForSupplierId)
+                .HasConstraintName("Bills_PurchaseOrderForSupplierId_fkey");
 
             entity.HasOne(d => d.SalesOrder).WithMany(p => p.Bills)
                 .HasForeignKey(d => d.SalesOrderId)
@@ -816,19 +818,37 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.State)
                 .HasConversion<int>();
 
-            entity.HasOne(d => d.Supplier).WithMany(p => p.PurchaseOrders)
-                .HasForeignKey(d => d.SupplierId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("PurchaseOrders_SupplierId_fkey");
-
-            entity.HasOne(d => d.PurchaseRequest).WithMany(p => p.PurchaseOrders)
+            entity.HasOne(d => d.PurchaseRequest).WithMany()
                 .HasForeignKey(d => d.PurchaseRequestId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PurchaseOrders_PurchaseRequestId_fkey");
+        });
 
-            entity.HasOne(d => d.SupplierQuote).WithMany(p => p.PurchaseOrders)
+        modelBuilder.Entity<PurchaseOrderForSupplier>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PurchaseOrdersForSupplier_pkey");
+
+            entity.Property(e => e.Date)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone");
+            entity.Property(e => e.Number).HasMaxLength(50);
+            entity.Property(e => e.Total).HasPrecision(15, 2);
+            entity.Property(e => e.State)
+                .HasConversion<int>();
+
+            entity.HasOne(d => d.PurchaseOrder).WithMany(p => p.PurchaseOrdersForSupplier)
+                .HasForeignKey(d => d.PurchaseOrderId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseOrdersForSupplier_PurchaseOrderId_fkey");
+
+            entity.HasOne(d => d.Supplier).WithMany(p => p.PurchaseOrdersForSupplier)
+                .HasForeignKey(d => d.SupplierId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseOrdersForSupplier_SupplierId_fkey");
+
+            entity.HasOne(d => d.SupplierQuote).WithMany(p => p.PurchaseOrdersForSupplier)
                 .HasForeignKey(d => d.SupplierQuoteId)
-                .HasConstraintName("PurchaseOrders_SupplierQuoteId_fkey");
+                .HasConstraintName("PurchaseOrdersForSupplier_SupplierQuoteId_fkey");
         });
 
         modelBuilder.Entity<PurchaseOrderDetail>(entity =>
@@ -850,10 +870,10 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.SupplierQuoteDetailId)
                 .HasConstraintName("PurchaseOrderDetails_SupplierQuoteDetailId_fkey");
 
-            entity.HasOne(d => d.PurchaseOrder).WithMany(p => p.PurchaseOrderDetails)
-                .HasForeignKey(d => d.PurchaseOrderId)
+            entity.HasOne(d => d.PurchaseOrderForSupplier).WithMany(p => p.PurchaseOrderDetails)
+                .HasForeignKey(d => d.PurchaseOrderForSupplierId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("PurchaseOrderDetails_PurchaseOrderId_fkey");
+                .HasConstraintName("PurchaseOrderDetails_PurchaseOrderForSupplierId_fkey");
         });
 
         modelBuilder.Entity<PurchaseReturnReason>(entity =>
@@ -888,10 +908,10 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PurchaseReturns_BranchId_fkey");
 
-            entity.HasOne(d => d.PurchaseOrder).WithMany()
-                .HasForeignKey(d => d.PurchaseOrderId)
+            entity.HasOne(d => d.PurchaseOrderForSupplier).WithMany()
+                .HasForeignKey(d => d.PurchaseOrderForSupplierId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("PurchaseReturns_PurchaseOrderId_fkey");
+                .HasConstraintName("PurchaseReturns_PurchaseOrderForSupplierId_fkey");
 
             entity.HasOne(d => d.Reason).WithMany(p => p.PurchaseReturns)
                 .HasForeignKey(d => d.ReasonId)
