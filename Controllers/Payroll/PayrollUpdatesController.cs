@@ -31,4 +31,14 @@ public class PayrollUpdatesController(PayrollUpdateService payrollUpdateService)
         if (result.ErrorType == ErrorType.Validation) return this.HandleValidationProblem(result);
         return StatusCode(500);
     }
+
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<PayrollUpdateResponseDto>> Update(int id, PayrollUpdateCreateDto request)
+    {
+        var result = await _payrollUpdateService.UpdateAsync(id, request);
+        if (result.IsSuccess) return Ok(result.Value);
+        if (result.ErrorType == ErrorType.Validation) return this.HandleValidationProblem(result);
+        if (result.ErrorType == ErrorType.NotFound) return this.HandleNotFoundProblem(result);
+        return StatusCode(500);
+    }
 }

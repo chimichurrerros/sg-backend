@@ -176,4 +176,24 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
 
         return StatusCode(500);
     }
+
+    [HttpGet("{processId}/receipt/{employeeId}")]
+    public async Task<ActionResult<PayrollEmployeeReceiptDto>> GetEmployeeReceipt(int processId, int employeeId)
+    {
+        var result = await _payrollProcessingService.GetEmployeeReceiptAsync(processId, employeeId);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        if (result.ErrorType == ErrorType.Validation)
+            return this.HandleValidationProblem(result);
+
+        if (result.ErrorType == ErrorType.Conflict)
+            return Conflict(result.ErrorMessage);
+
+        return StatusCode(500);
+    }
 }

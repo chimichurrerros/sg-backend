@@ -14,5 +14,6 @@ public class AccountantProcessMapper : AutoMapper.Profile
 
         CreateMap<CreateAccountantProcessRequestDto, AccountantProcess>();
 
+        CreateMap<UpdateAccountantProcessRequestDto, AccountantProcess>();
     }
 }

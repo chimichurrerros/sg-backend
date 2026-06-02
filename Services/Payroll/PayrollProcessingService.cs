@@ -158,13 +158,13 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         if (process is null)
             return Result.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
 
-        var status = await _context.PayrollStatuses.FirstOrDefaultAsync(status => status.Id == request.PayrollStatusId);
-        if (status is null)
+        if (!Enum.IsDefined(typeof(PayrollProcess.PayrollStatusEnum), request.PayrollStatusId))
             return Result.Failure(PayrollProcessError.PayrollProcessStatusNotFound, ErrorType.NotFound);
 
-        process.PayrollStatusId = status.Id;
+        var newStatus = (PayrollProcess.PayrollStatusEnum)request.PayrollStatusId;
+        process.PayrollStatusId = newStatus;
 
-        if (IsFinalPayrollStatus(status.Name))
+        if (IsFinalPayrollStatus(newStatus))
         {
             await AssignPendingManualConceptIncidentsAsync(process.Id);
         }
@@ -177,7 +177,6 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
     {
         var processes = await _context.PayrollProcesses
             .AsNoTracking()
-            .Include(p => p.PayrollStatus)
             .OrderByDescending(p => p.Year)
             .ThenByDescending(p => p.Month)
             .Select(p => new PayrollProcessResponseDto
@@ -190,8 +189,8 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
                 Month = p.Month,
                 StartDate = p.StartDate,
                 PayDate = p.PayDate,
-                PayrollStatusId = p.PayrollStatusId,
-                PayrollStatusName = p.PayrollStatus.Name
+                PayrollStatusId = (int)p.PayrollStatusId,
+                PayrollStatusName = p.PayrollStatusId.ToString()
             })
             .ToListAsync();
 
@@ -202,7 +201,6 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
     {
         var p = await _context.PayrollProcesses
             .AsNoTracking()
-            .Include(x => x.PayrollStatus)
             .FirstOrDefaultAsync(x => x.Id == id);
 
         if (p is null)
@@ -218,8 +216,8 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             Month = p.Month,
             StartDate = p.StartDate,
             PayDate = p.PayDate,
-            PayrollStatusId = p.PayrollStatusId,
-            PayrollStatusName = p.PayrollStatus.Name
+            PayrollStatusId = (int)p.PayrollStatusId,
+            PayrollStatusName = p.PayrollStatusId.ToString()
         };
 
         return Result<PayrollProcessResponseDto>.Success(dto);
@@ -244,21 +242,9 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         if (errors.Count > 0)
             return Result<PayrollProcessResponseDto>.Failure(string.Join("; ", errors.SelectMany(e => e.Value)), errors, ErrorType.Validation);
 
-        int statusId;
-        if (request.PayrollStatusId.HasValue)
-        {
-            var status = await _context.PayrollStatuses.FirstOrDefaultAsync(s => s.Id == request.PayrollStatusId.Value);
-            if (status is null)
-                return Result<PayrollProcessResponseDto>.Failure(PayrollProcessError.PayrollProcessStatusNotFound, ErrorType.NotFound);
-            statusId = status.Id;
-        }
-        else
-        {
-            var openId = await GetPayrollStatusIdAsync("Abierto");
-            if (openId is null)
-                return Result<PayrollProcessResponseDto>.Failure(PayrollProcessError.PayrollProcessStatusNotFound, ErrorType.Failure);
-            statusId = openId.Value;
-        }
+        var statusId = request.PayrollStatusId.HasValue
+            ? (PayrollProcess.PayrollStatusEnum)request.PayrollStatusId.Value
+            : PayrollProcess.PayrollStatusEnum.Open;
 
         var process = new PayrollProcess
         {
@@ -280,9 +266,13 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
 
     public async Task<Result> UpdatePayrollProcessAsync(int id, PayrollProcessUpdateDto request)
     {
-        var process = await _context.PayrollProcesses.FirstOrDefaultAsync(p => p.Id == id);
+        var process = await _context.PayrollProcesses
+            .FirstOrDefaultAsync(p => p.Id == id);
         if (process is null)
             return Result.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
+
+        if (IsFinalPayrollStatus(process.PayrollStatusId))
+            return Result.Failure(PayrollProcessError.PayrollProcessCannotBeModified, ErrorType.Conflict);
 
         if (!Enum.IsDefined(typeof(PayrollProcess.ProcessTypeEnum), request.ProcessTypeId))
             return Result.Failure("Invalid process type", ErrorType.Validation);
@@ -301,12 +291,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         process.PayDate = request.PayDate;
 
         if (request.PayrollStatusId.HasValue)
-        {
-            var status = await _context.PayrollStatuses.FirstOrDefaultAsync(s => s.Id == request.PayrollStatusId.Value);
-            if (status is null)
-                return Result.Failure(PayrollProcessError.PayrollProcessStatusNotFound, ErrorType.NotFound);
-            process.PayrollStatusId = status.Id;
-        }
+            process.PayrollStatusId = (PayrollProcess.PayrollStatusEnum)request.PayrollStatusId.Value;
 
         await _context.SaveChangesAsync();
         return Result.Success();
@@ -314,11 +299,11 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
 
     public async Task<Result> DeletePayrollProcessAsync(int id)
     {
-        var process = await _context.PayrollProcesses.Include(p => p.PayrollStatus).FirstOrDefaultAsync(p => p.Id == id);
+        var process = await _context.PayrollProcesses.FirstOrDefaultAsync(p => p.Id == id);
         if (process is null)
             return Result.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
 
-        if (IsFinalPayrollStatus(process.PayrollStatus.Name))
+        if (IsFinalPayrollStatus(process.PayrollStatusId))
             return Result.Failure("Cannot delete a payroll process in final status", ErrorType.Conflict);
 
         _context.PayrollProcesses.Remove(process);
@@ -332,11 +317,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         if (process is null)
             return Result<PayrollManualDetailResponseDto>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
 
-        var openStatusId = await GetPayrollStatusIdAsync("Abierto");
-        if (openStatusId is null)
-            return Result<PayrollManualDetailResponseDto>.Failure(PayrollProcessError.PayrollProcessStatusNotFound, ErrorType.Failure);
-
-        if (process.PayrollStatusId != openStatusId.Value)
+        if (process.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Open)
             return Result<PayrollManualDetailResponseDto>.Failure(PayrollProcessError.PayrollProcessMustBeOpen, ErrorType.Conflict);
 
         var employee = await _context.Employees
@@ -431,11 +412,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         if (detail.PayrollUpdate.FormulaTypeId != PayrollUpdate.FormulaTypeEnum.Fixed)
             return Result.Failure(PayrollManualDetailError.PayrollUpdateMustBeFixed, ErrorType.Validation);
 
-        var openStatusId = await GetPayrollStatusIdAsync("Abierto");
-        if (openStatusId is null)
-            return Result.Failure(PayrollProcessError.PayrollProcessStatusNotFound, ErrorType.Failure);
-
-        if (detail.PayrollProcess.PayrollStatusId != openStatusId.Value)
+        if (detail.PayrollProcess.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Open)
             return Result.Failure(PayrollProcessError.PayrollProcessMustBeOpen, ErrorType.Conflict);
 
         _context.PayrollProcessDetails.Remove(detail);
@@ -450,13 +427,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         if (process is null)
             return Result<PayrollProcessCalculationResponseDto>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
 
-        var openStatusId = await GetPayrollStatusIdAsync("Abierto");
-        var processedStatusId = await GetPayrollStatusIdAsync("Procesado");
-
-        if (openStatusId is null || processedStatusId is null)
-            return Result<PayrollProcessCalculationResponseDto>.Failure(PayrollProcessError.PayrollProcessStatusNotFound, ErrorType.Failure);
-
-        if (process.PayrollStatusId != openStatusId.Value)
+        if (process.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Open)
             return Result<PayrollProcessCalculationResponseDto>.Failure(PayrollProcessError.PayrollProcessMustBeOpen, ErrorType.Conflict);
 
         var payrollUpdates = await _context.PayrollUpdates
@@ -630,7 +601,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
 
             response.EmployeesProcessed = response.Employees.Count;
 
-            process.PayrollStatusId = processedStatusId.Value;
+            process.PayrollStatusId = PayrollProcess.PayrollStatusEnum.Processed;
 
             await AssignPendingIncidentsAsync(pendingIncidents);
 
@@ -664,17 +635,12 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
     public async Task<Result<PayrollCloseAndPayResponseDto>> CloseAndPayAsync(int payrollProcessId)
     {
         var process = await _context.PayrollProcesses
-            .Include(p => p.PayrollStatus)
             .FirstOrDefaultAsync(p => p.Id == payrollProcessId);
 
         if (process is null)
             return Result<PayrollCloseAndPayResponseDto>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
 
-        var processedStatusId = await GetPayrollStatusIdAsync("Procesado");
-        if (processedStatusId is null)
-            return Result<PayrollCloseAndPayResponseDto>.Failure(PayrollProcessError.PayrollProcessStatusNotFound, ErrorType.Failure);
-
-        if (process.PayrollStatusId != processedStatusId.Value)
+        if (process.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Processed)
             return Result<PayrollCloseAndPayResponseDto>.Failure("La planilla debe estar en estado 'Procesado' para cerrar y pagar.", ErrorType.Conflict);
 
         var details = await _context.PayrollProcessDetails
@@ -797,9 +763,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             return Result<PayrollCloseAndPayResponseDto>.Failure(entryResult.ErrorMessage!, ErrorType.Failure);
 
         // Cambiar estado a Pagado
-        var pagadoStatusId = await GetPayrollStatusIdAsync("Pagado");
-        if (pagadoStatusId is not null)
-            process.PayrollStatusId = pagadoStatusId.Value;
+        process.PayrollStatusId = PayrollProcess.PayrollStatusEnum.Paid;
 
         process.PayDate = DateOnly.FromDateTime(DateTime.Now);
 
@@ -815,6 +779,109 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             TotalIpsRetencion = ipsRetencion,
             TotalNetoPagado = netoPagado,
             StatusMessage = $"Planilla cerrada y pagada exitosamente. Asiento contable #{entryResult.Value.Id} generado en el libro diario."
+        });
+    }
+
+    public async Task<Result<PayrollEmployeeReceiptDto>> GetEmployeeReceiptAsync(int payrollProcessId, int employeeId)
+    {
+        var process = await _context.PayrollProcesses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == payrollProcessId);
+
+        if (process is null)
+            return Result<PayrollEmployeeReceiptDto>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
+
+        var employee = await _context.Employees
+            .AsNoTracking()
+            .Include(e => e.Branch)
+            .FirstOrDefaultAsync(e => e.Id == employeeId);
+
+        if (employee is null)
+            return Result<PayrollEmployeeReceiptDto>.Failure(EmployeeError.EmployeeNotFound, ErrorType.NotFound);
+
+        var legalPerson = await _context.LegalPersons
+            .AsNoTracking()
+            .Include(lp => lp.Entity)
+            .FirstOrDefaultAsync();
+
+        if (legalPerson is null)
+            return Result<PayrollEmployeeReceiptDto>.Failure("No se encontraron datos de la empresa.", ErrorType.NotFound);
+
+        var position = await _context.PositionByScheduleByEmployees
+            .AsNoTracking()
+            .Where(psbe => psbe.EmployeeId == employeeId
+                       && psbe.StartDate <= (process.PayDate ?? new DateOnly(process.Year, process.Month, DateTime.DaysInMonth(process.Year, process.Month)))
+                       && (psbe.EndDate == null || psbe.EndDate >= new DateOnly(process.Year, process.Month, 1)))
+            .OrderByDescending(psbe => psbe.StartDate)
+            .ThenByDescending(psbe => psbe.Id)
+            .Include(psbe => psbe.Position)
+            .FirstOrDefaultAsync();
+
+        var details = await _context.PayrollProcessDetails
+            .AsNoTracking()
+            .Where(d => d.PayrollProcessId == payrollProcessId && d.EmployeeId == employeeId)
+            .Include(d => d.PayrollUpdate)
+            .ToListAsync();
+
+        if (details.Count == 0)
+            return Result<PayrollEmployeeReceiptDto>.Failure("El empleado no tiene detalles calculados en esta planilla.", ErrorType.NotFound);
+
+        var spanishMonths = new Dictionary<int, string>
+        {
+            { 1, "Enero" }, { 2, "Febrero" }, { 3, "Marzo" }, { 4, "Abril" },
+            { 5, "Mayo" }, { 6, "Junio" }, { 7, "Julio" }, { 8, "Agosto" },
+            { 9, "Septiembre" }, { 10, "Octubre" }, { 11, "Noviembre" }, { 12, "Diciembre" }
+        };
+
+        var period = $"{spanishMonths.GetValueOrDefault(process.Month, process.Month.ToString())}/{process.Year}";
+        var payDate = process.PayDate?.ToString("dd/MM/yyyy") ?? "";
+
+        var earnings = details
+            .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings)
+            .Select(d => new ReceiptConceptDto
+            {
+                ConceptName = d.PayrollUpdate.Name,
+                Amount = d.Amount,
+                IsIpsDeductible = d.PayrollUpdate.IpsDeductible
+            })
+            .ToList();
+
+        var deductions = details
+            .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Deductions)
+            .Select(d => new ReceiptConceptDto
+            {
+                ConceptName = d.PayrollUpdate.Name,
+                Amount = d.Amount,
+                IsIpsDeductible = d.PayrollUpdate.IpsDeductible
+            })
+            .ToList();
+
+        var totalEarnings = earnings.Sum(e => e.Amount);
+        var totalDeductions = deductions.Sum(d => d.Amount);
+        var totalIpsDeductible = details
+            .Where(d => d.PayrollUpdate.IpsDeductible)
+            .Sum(d => d.Amount);
+
+        return Result<PayrollEmployeeReceiptDto>.Success(new PayrollEmployeeReceiptDto
+        {
+            CompanyBusinessName = legalPerson.BussinessName,
+            CompanyCuit = legalPerson.Entity.DocumentNumber,
+            CompanyAddress = legalPerson.Entity.Address ?? "",
+            CompanyPhone = legalPerson.Entity.Phone ?? "",
+            BranchName = employee.Branch?.Name ?? "",
+            BranchAddress = employee.Branch?.Address ?? "",
+            EmployeeName = $"{employee.Name} {employee.Lastname}",
+            EmployeeDocument = employee.DocumentNumber,
+            EmployeeLegajo = employee.FileNumber,
+            PositionName = position?.Position.Name ?? "",
+            Period = period,
+            PayDate = payDate,
+            Earnings = earnings,
+            Deductions = deductions,
+            TotalEarnings = totalEarnings,
+            TotalDeductions = totalDeductions,
+            TotalIpsDeductible = totalIpsDeductible,
+            NetSalary = totalEarnings - totalDeductions
         });
     }
 
@@ -848,10 +915,10 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         }
     }
 
-    private static bool IsFinalPayrollStatus(string statusName)
+    private static bool IsFinalPayrollStatus(PayrollProcess.PayrollStatusEnum status)
     {
-        return statusName.Equals("Cerrado", StringComparison.OrdinalIgnoreCase)
-            || statusName.Equals("Pagado", StringComparison.OrdinalIgnoreCase);
+        return status == PayrollProcess.PayrollStatusEnum.Closed
+            || status == PayrollProcess.PayrollStatusEnum.Paid;
     }
 
     private void UpsertDetail(
@@ -891,15 +958,6 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             FormulaTypeId = (int)payrollUpdate.FormulaTypeId,
             Amount = amount
         };
-    }
-
-    private async Task<int?> GetPayrollStatusIdAsync(string statusName)
-    {
-        return await _context.PayrollStatuses
-            .AsNoTracking()
-            .Where(status => status.Name.ToLower() == statusName.ToLower())
-            .Select(status => (int?)status.Id)
-            .FirstOrDefaultAsync();
     }
 
     private static string GetManualPayrollTypeName(PayrollUpdate.PayrollTypeEnum payrollTypeId)

@@ -10,4 +10,6 @@ public class CreateAccountantProcessRequestDto
     public DateOnly StartDate { get; set; }
 
     public DateOnly EndDate { get; set; }
+
+    public bool IsClosed { get; set; }
 }

@@ -7,4 +7,5 @@ public class UpdateAccountantProcessRequestDto
 
     public string Name { get; set; } = null!;
 
+    public bool IsClosed { get; set; }
 }

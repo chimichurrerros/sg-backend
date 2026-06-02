@@ -64,6 +64,14 @@ public class EntryService(AppDbContext context, IMapper mapper, AccountantProces
         if (!await _accountantProcessService.IsProcessActiveAsync(request.AccountantProcessId))
             return Result<EntryWrapperDto>.Failure(AccountingError.ProcessExpiredOrNotExists, ErrorType.Validation);
 
+        if (request.EntryDetails == null || !request.EntryDetails.Any())
+            return Result<EntryWrapperDto>.Failure(AccountingError.EntryHasNoDetails, ErrorType.Validation);
+
+        var totalDebit = request.EntryDetails.Sum(d => d.Debit);
+        var totalCredit = request.EntryDetails.Sum(d => d.Credit);
+        if (totalDebit != totalCredit)
+            return Result<EntryWrapperDto>.Failure(string.Format(AccountingError.EntryNotBalanced, totalDebit, totalCredit), ErrorType.Validation);
+
         var entry = _mapper.Map<Entry>(request);
 
         _context.Entries.Add(entry);
@@ -86,6 +94,14 @@ public class EntryService(AppDbContext context, IMapper mapper, AccountantProces
 
         if (entry.AccountantProcessId != request.AccountantProcessId && !await _accountantProcessService.IsProcessActiveAsync(request.AccountantProcessId))
             return Result<EntryWrapperDto>.Failure(AccountingError.NewProcessExpiredOrNotExists, ErrorType.Validation);
+
+        if (request.EntryDetails == null || !request.EntryDetails.Any())
+            return Result<EntryWrapperDto>.Failure(AccountingError.EntryHasNoDetails, ErrorType.Validation);
+
+        var totalDebit = request.EntryDetails.Sum(d => d.Debit);
+        var totalCredit = request.EntryDetails.Sum(d => d.Credit);
+        if (totalDebit != totalCredit)
+            return Result<EntryWrapperDto>.Failure(string.Format(AccountingError.EntryNotBalanced, totalDebit, totalCredit), ErrorType.Validation);
 
         _mapper.Map(request, entry);
         _context.Entries.Update(entry);
@@ -132,7 +148,7 @@ public class EntryService(AppDbContext context, IMapper mapper, AccountantProces
         // Buscar proceso contable activo para la fecha
         var dateOnly = DateOnly.FromDateTime(date);
         var activeProcess = await _context.AccountantProcesses
-            .FirstOrDefaultAsync(ap => ap.StartDate <= dateOnly && ap.EndDate >= dateOnly);
+            .FirstOrDefaultAsync(ap => !ap.IsClosed && ap.StartDate <= dateOnly && ap.EndDate >= dateOnly);
 
         if (activeProcess == null)
         {
