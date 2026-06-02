@@ -22,4 +22,6 @@ public partial class RequestForQuotation
     public virtual Supplier Supplier { get; set; } = null!;
 
     public virtual ICollection<RequestForQuotationDetail> RequestForQuotationDetails { get; set; } = new List<RequestForQuotationDetail>();
+
+    public virtual ICollection<SupplierQuote> SupplierQuotes { get; set; } = new List<SupplierQuote>();
 }

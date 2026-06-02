@@ -1,4 +1,3 @@
-using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Requests.SupplierQuote;
 using BackEnd.DTOs.Responses.SupplierQuote;
 using BackEnd.Services;
@@ -17,9 +16,9 @@ public class SupplierQuoteController(SupplierQuoteService supplierQuoteService) 
     private readonly SupplierQuoteService _supplierQuoteService = supplierQuoteService;
 
     [HttpGet]
-    public async Task<ActionResult<ListSupplierQuotesWrapperDto>> GetList([FromQuery] PaginationRequestDto pagination)
+    public async Task<ActionResult<ListSupplierQuotesWrapperDto>> GetList([FromQuery] SupplierQuoteQueryDto query)
     {
-        var result = await _supplierQuoteService.GetListAsync(pagination);
+        var result = await _supplierQuoteService.GetListAsync(query);
         if (result.IsSuccess)
             return Ok(result.Value);
         return StatusCode(500);

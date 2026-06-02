@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260601214108_AddRequestForQuotationIdToSupplierQuote")]
+    partial class AddRequestForQuotationIdToSupplierQuote
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -127,11 +130,6 @@ namespace BackEnd.Migrations
 
                     b.Property<DateOnly>("EndDate")
                         .HasColumnType("date");
-
-                    b.Property<bool>("IsClosed")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1131,6 +1129,8 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("PayrollProcesses_pkey");
 
+                    b.HasIndex("PayrollStatusId");
+
                     b.ToTable("PayrollProcesses");
                 });
 
@@ -1165,6 +1165,25 @@ namespace BackEnd.Migrations
                     b.HasIndex("PayrollUpdateId");
 
                     b.ToTable("PayrollProcessDetails");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.PayrollStatus", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id")
+                        .HasName("PayrollStatus_pkey");
+
+                    b.ToTable("PayrollStatus", (string)null);
                 });
 
             modelBuilder.Entity("BackEnd.Models.PayrollUpdate", b =>
@@ -1525,10 +1544,6 @@ namespace BackEnd.Migrations
 
                     b.Property<PurchaseRequestStateEnum>("PurchaseRequestState")
                         .HasColumnType("purchase_request_state_enum");
-
-                    b.PrimitiveCollection<int[]>("SupplierIds")
-                        .IsRequired()
-                        .HasColumnType("integer[]");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
@@ -2113,9 +2128,7 @@ namespace BackEnd.Migrations
 
                     b.HasIndex("PurchaseRequestId");
 
-                    b.HasIndex("RequestForQuotationId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_SupplierQuotes_RequestForQuotationId_Unique");
+                    b.HasIndex("RequestForQuotationId");
 
                     b.HasIndex("SupplierId");
 
@@ -2607,6 +2620,17 @@ namespace BackEnd.Migrations
                     b.Navigation("BankMovement");
 
                     b.Navigation("PaymentOrder");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.PayrollProcess", b =>
+                {
+                    b.HasOne("BackEnd.Models.PayrollStatus", "PayrollStatus")
+                        .WithMany("PayrollProcesses")
+                        .HasForeignKey("PayrollStatusId")
+                        .IsRequired()
+                        .HasConstraintName("PayrollProcesses_PayrollStatusId_fkey");
+
+                    b.Navigation("PayrollStatus");
                 });
 
             modelBuilder.Entity("BackEnd.Models.PayrollProcessDetail", b =>
@@ -3159,6 +3183,11 @@ namespace BackEnd.Migrations
             modelBuilder.Entity("BackEnd.Models.PayrollProcess", b =>
                 {
                     b.Navigation("PayrollProcessDetails");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.PayrollStatus", b =>
+                {
+                    b.Navigation("PayrollProcesses");
                 });
 
             modelBuilder.Entity("BackEnd.Models.PayrollUpdate", b =>
