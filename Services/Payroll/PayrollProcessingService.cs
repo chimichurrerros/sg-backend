@@ -223,6 +223,276 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         return Result<PayrollProcessResponseDto>.Success(dto);
     }
 
+    public async Task<Result<List<EligibleEmployeeResponseDto>>> GetEligibleEmployeesAsync(int processId)
+    {
+        var process = await _context.PayrollProcesses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(payrollProcess => payrollProcess.Id == processId);
+
+        if (process is null)
+            return Result<List<EligibleEmployeeResponseDto>>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
+
+        var existingEmployeeIds = await _context.PayrollProcessDetails
+            .AsNoTracking()
+            .Where(detail => detail.PayrollProcessId == processId)
+            .Select(detail => detail.EmployeeId)
+            .Distinct()
+            .ToListAsync();
+
+        var eligibleEmployees = await _context.Employees
+            .AsNoTracking()
+            .Where(employee => employee.IsActive && !existingEmployeeIds.Contains(employee.Id))
+            .OrderBy(employee => employee.Name)
+            .ThenBy(employee => employee.Lastname)
+            .Select(employee => new EligibleEmployeeResponseDto
+            {
+                Id = employee.Id,
+                FileNumber = employee.FileNumber,
+                FirstName = employee.Name,
+                LastName = employee.Lastname,
+                BranchName = employee.Branch != null ? employee.Branch.Name : null,
+                AreaName = employee.Area.Name,
+                PositionName = _context.PositionByScheduleByEmployees
+                    .Where(psbe => psbe.EmployeeId == employee.Id
+                                && psbe.StartDate <= DateOnly.FromDateTime(DateTime.Now)
+                                && (psbe.EndDate == null || psbe.EndDate >= DateOnly.FromDateTime(DateTime.Now)))
+                    .OrderByDescending(psbe => psbe.StartDate)
+                    .Select(psbe => psbe.Position.Name)
+                    .FirstOrDefault()
+            })
+            .ToListAsync();
+
+        return Result<List<EligibleEmployeeResponseDto>>.Success(eligibleEmployees);
+    }
+
+    public async Task<Result<int>> AddEmployeesAsync(int processId, List<int> employeeIds)
+    {
+        var process = await _context.PayrollProcesses.FirstOrDefaultAsync(payrollProcess => payrollProcess.Id == processId);
+        if (process is null)
+            return Result<int>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
+
+        if (process.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Open)
+            return Result<int>.Failure(PayrollProcessError.PayrollProcessMustBeOpen, ErrorType.Conflict);
+
+        var payrollUpdates = await _context.PayrollUpdates
+            .AsNoTracking()
+            .OrderBy(payrollUpdate => payrollUpdate.Id)
+            .ToListAsync();
+
+        var calculatedEarnings = payrollUpdates
+            .Where(pu => pu.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings
+                      && pu.FormulaTypeId == PayrollUpdate.FormulaTypeEnum.Calculated)
+            .OrderBy(pu => pu.Id)
+            .ToList();
+
+        var manualUpdates = payrollUpdates
+            .Where(pu => pu.FormulaTypeId == PayrollUpdate.FormulaTypeEnum.Fixed)
+            .OrderBy(pu => pu.Id)
+            .ToList();
+
+        var calculatedDeductions = payrollUpdates
+            .Where(pu => pu.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Deductions
+                      && pu.FormulaTypeId == PayrollUpdate.FormulaTypeEnum.Calculated)
+            .OrderBy(pu => pu.Id)
+            .ToList();
+
+        var employees = await _context.Employees
+            .AsNoTracking()
+            .Where(employee => employee.IsActive && employeeIds.Contains(employee.Id))
+            .OrderBy(employee => employee.Id)
+            .ToListAsync();
+
+        if (employees.Count == 0)
+            return Result<int>.Failure("No se encontraron empleados activos con los IDs proporcionados.", ErrorType.NotFound);
+
+        var pendingIncidents = await _context.ManualConceptIncidents
+            .Where(incident =>
+                incident.Status == ManualConceptIncident.ManualConceptStatus.Pending &&
+                employeeIds.Contains(incident.EmployeeId) &&
+                (incident.PayrollProcessId == null || incident.PayrollProcessId == process.Id))
+            .OrderBy(incident => incident.EmployeeId)
+            .ThenBy(incident => incident.PayrollUpdateId)
+            .ThenBy(incident => incident.OccurrenceDate)
+            .ThenBy(incident => incident.Id)
+            .ToListAsync();
+
+        var incidentsByEmployeeAndUpdate = pendingIncidents
+            .GroupBy(incident => (incident.EmployeeId, incident.PayrollUpdateId))
+            .ToDictionary(group => group.Key, group => group.ToList());
+
+        var existingDetails = await _context.PayrollProcessDetails
+            .Where(detail => detail.PayrollProcessId == process.Id && employeeIds.Contains(detail.EmployeeId))
+            .ToListAsync();
+
+        var detailsByKey = existingDetails.ToDictionary(detail => (detail.EmployeeId, detail.PayrollUpdateId));
+
+        var periodEnd = new DateOnly(process.Year, process.Month, DateTime.DaysInMonth(process.Year, process.Month));
+        var referenceDate = process.PayDate ?? periodEnd;
+
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
+        try
+        {
+            var addedCount = 0;
+
+            foreach (var employee in employees)
+            {
+                var salarioBase = await ResolveSalaryBaseAsync(employee, referenceDate);
+                var jornalDiario = decimal.Round(salarioBase / 30m, 2, MidpointRounding.AwayFromZero);
+                var attendanceData = await ResolveAttendanceDataAsync(employee.Id, process.Year, process.Month);
+                var cantidadHijos = await ResolveChildrenCountAsync(employee.Id, referenceDate);
+
+                var variables = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["SalarioBase"] = salarioBase,
+                    ["JornalDiario"] = jornalDiario,
+                    ["DiasTrabajados"] = attendanceData.DiasTrabajados,
+                    ["DiasAusencia"] = attendanceData.DiasAusencia,
+                    ["DiasTardanza"] = attendanceData.DiasTardanza,
+                    ["CantidadHijos"] = cantidadHijos,
+                    ["TotalDeducibleIPS"] = 0m
+                };
+
+                var totalDeducibleIPS = 0m;
+                var totalHaberes = 0m;
+                var totalDescuentos = 0m;
+
+                // PASO A: Haberes Calculados — evalúa fórmulas, acumula IPS deductible
+                foreach (var update in calculatedEarnings)
+                {
+                    var amount = ResolveCalculatedAmount(update, variables);
+                    totalHaberes += amount;
+
+                    if (update.IpsDeductible)
+                        totalDeducibleIPS += amount;
+
+                    UpsertDetail(process.Id, employee.Id, update.Id, amount, detailsByKey);
+                }
+
+                // PASO B: Absorber novedades manuales pendientes (Haberes y Descuentos)
+                foreach (var update in manualUpdates)
+                {
+                    var key = (employee.Id, update.Id);
+                    decimal amount;
+
+                    if (incidentsByEmployeeAndUpdate.TryGetValue(key, out var incidents) && incidents.Count > 0)
+                    {
+                        amount = incidents.Sum(i => i.Amount);
+
+                        foreach (var incident in incidents)
+                            incident.PayrollProcessId = process.Id;
+                    }
+                    else
+                    {
+                        amount = 0m;
+                    }
+
+                    // Si la novedad manual es INGRESO y su concepto base es deducible de IPS,
+                    // debe SUMARSE al acumulador TotalDeducibleIPS
+                    if (update.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings)
+                    {
+                        totalHaberes += amount;
+
+                        if (update.IpsDeductible)
+                            totalDeducibleIPS += amount;
+                    }
+                    else
+                    {
+                        totalDescuentos += amount;
+                    }
+
+                    UpsertDetail(process.Id, employee.Id, update.Id, amount, detailsByKey);
+                }
+
+                // Inyectar TotalDeducibleIPS final antes de evaluar descuentos calculados
+                variables["TotalDeducibleIPS"] = totalDeducibleIPS;
+
+                // PASO C: Descuentos Calculados — incluye IPS que lee TotalDeducibleIPS
+                foreach (var update in calculatedDeductions)
+                {
+                    var amount = ResolveCalculatedAmount(update, variables);
+                    totalDescuentos += amount;
+
+                    UpsertDetail(process.Id, employee.Id, update.Id, amount, detailsByKey);
+                }
+
+                addedCount++;
+            }
+
+            await AssignPendingIncidentsAsync(pendingIncidents);
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return Result<int>.Success(addedCount);
+        }
+        catch (InvalidOperationException exception)
+        {
+            await transaction.RollbackAsync();
+            return Result<int>.Failure(exception.Message, ErrorType.Conflict);
+        }
+        catch (KeyNotFoundException exception)
+        {
+            await transaction.RollbackAsync();
+            return Result<int>.Failure(exception.Message, ErrorType.Validation);
+        }
+        catch (FormatException exception)
+        {
+            await transaction.RollbackAsync();
+            return Result<int>.Failure(exception.Message, ErrorType.Validation);
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    public async Task<Result<List<PayrollDetailSummaryResponseDto>>> GetDetailSummariesAsync(int processId)
+    {
+        var process = await _context.PayrollProcesses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(payrollProcess => payrollProcess.Id == processId);
+
+        if (process is null)
+            return Result<List<PayrollDetailSummaryResponseDto>>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
+
+        var summaries = await _context.PayrollProcessDetails
+            .AsNoTracking()
+            .Where(detail => detail.PayrollProcessId == processId)
+            .GroupBy(detail => new
+            {
+                detail.EmployeeId,
+                detail.Employee.FileNumber,
+                detail.Employee.Name,
+                detail.Employee.Lastname,
+                BranchName = detail.Employee.Branch != null ? detail.Employee.Branch.Name : null,
+                AreaName = detail.Employee.Area.Name,
+                PositionName = _context.PositionByScheduleByEmployees
+                    .Where(psbe => psbe.EmployeeId == detail.EmployeeId
+                                && psbe.StartDate <= DateOnly.FromDateTime(DateTime.Now)
+                                && (psbe.EndDate == null || psbe.EndDate >= DateOnly.FromDateTime(DateTime.Now)))
+                    .OrderByDescending(psbe => psbe.StartDate)
+                    .Select(psbe => psbe.Position.Name)
+                    .FirstOrDefault()
+            })
+            .Select(group => new PayrollDetailSummaryResponseDto
+            {
+                EmployeeId = group.Key.EmployeeId,
+                FileNumber = group.Key.FileNumber,
+                FullName = group.Key.Name + " " + group.Key.Lastname,
+                BranchName = group.Key.BranchName,
+                AreaName = group.Key.AreaName,
+                PositionName = group.Key.PositionName,
+                SueldoBruto = group.Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings).Sum(d => d.Amount),
+                Descuentos = group.Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Deductions).Sum(d => d.Amount),
+                SueldoNeto = group.Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings).Sum(d => d.Amount)
+                           - group.Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Deductions).Sum(d => d.Amount)
+            })
+            .ToListAsync();
+
+        return Result<List<PayrollDetailSummaryResponseDto>>.Success(summaries);
+    }
+
     public async Task<Result<PayrollProcessResponseDto>> CreatePayrollProcessAsync(PayrollProcessCreateDto request)
     {
         var errors = new Dictionary<string, string[]>();

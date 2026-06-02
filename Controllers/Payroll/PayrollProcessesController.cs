@@ -137,6 +137,54 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
         return StatusCode(500);
     }
 
+    [HttpGet("{id}/eligible-employees")]
+    public async Task<ActionResult<List<EligibleEmployeeResponseDto>>> GetEligibleEmployees(int id)
+    {
+        var result = await _payrollProcessingService.GetEligibleEmployeesAsync(id);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        return StatusCode(500);
+    }
+
+    [HttpPost("{id}/add-employees")]
+    public async Task<ActionResult> AddEmployees(int id, AddEmployeesRequestDto request)
+    {
+        var result = await _payrollProcessingService.AddEmployeesAsync(id, request.EmployeeIds);
+
+        if (result.IsSuccess)
+            return Ok(new { addedCount = result.Value });
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        if (result.ErrorType == ErrorType.Validation)
+            return this.HandleValidationProblem(result);
+
+        if (result.ErrorType == ErrorType.Conflict)
+            return Conflict(result.ErrorMessage);
+
+        return StatusCode(500);
+    }
+
+    [HttpGet("{id}/detail-summaries")]
+    public async Task<ActionResult<List<PayrollDetailSummaryResponseDto>>> GetDetailSummaries(int id)
+    {
+        var result = await _payrollProcessingService.GetDetailSummariesAsync(id);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        return StatusCode(500);
+    }
+
     [HttpPost("{id}/calculate")]
     public async Task<ActionResult<PayrollProcessCalculationResponseDto>> Calculate(int id)
     {
