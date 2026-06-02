@@ -19,6 +19,7 @@ public class SupplierQuoteResponseDto
     public int SupplierId { get; set; }
     public string? SupplierName { get; set; }
     public int PurchaseRequestId { get; set; }
+    public int RequestForQuotationId { get; set; }
     public DateTime Date { get; set; }
     public decimal Total { get; set; }
     public SupplierQuoteStateEnum State { get; set; }

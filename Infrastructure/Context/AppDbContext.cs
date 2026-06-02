@@ -1159,6 +1159,14 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.SupplierId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("SupplierQuotes_SupplierId_fkey");
+
+            entity.HasOne(d => d.RequestForQuotation).WithMany(p => p.SupplierQuotes)
+                .HasForeignKey(d => d.RequestForQuotationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("SupplierQuotes_RequestForQuotationId_fkey");
+
+            entity.HasIndex(e => e.RequestForQuotationId).IsUnique()
+                .HasDatabaseName("IX_SupplierQuotes_RequestForQuotationId_Unique");
         });
 
         modelBuilder.Entity<SupplierQuoteDetail>(entity =>
