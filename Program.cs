@@ -68,6 +68,7 @@ builder.Services.AddScoped<AccountantProcessService>();
 builder.Services.AddScoped<AccountPlanService>();
 builder.Services.AddScoped<EntryService>();
 builder.Services.AddScoped<AccountingReportService>();
+builder.Services.AddScoped<RequestForQuotationService>();
 // ------------------------------------------------------------------------------------------------------
 // Authorization configuration
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
