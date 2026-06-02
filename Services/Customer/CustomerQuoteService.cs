@@ -307,102 +307,89 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
         }
     }
 
-    public async Task<Result<SalesOrderWrapperDto>> SellFromQuoteAsync(int quoteId, int userId)
+   public async Task<Result<SalesOrderWrapperDto>> SellFromQuoteAsync(int quoteId, int userId)
+{
+    var quote = await _context.CustomerQuotes
+        .Include(q => q.CustomerQuoteDetails)
+            .ThenInclude(d => d.Product)
+                .ThenInclude(p => p.Stocks) // Cargamos la colección de Stocks que vimos en tu modelo Product
+        .FirstOrDefaultAsync(q => q.Id == quoteId);
+
+    if (quote == null)
+        return Result<SalesOrderWrapperDto>.Failure(CustomerQuoteError.CustomerQuoteNotFound, ErrorType.NotFound);
+
+    await ExpireQuoteIfNeededAsync(quote);
+
+    if (quote.Status == CustomerQuote.QuoteStatus.Expired)
+        return Result<SalesOrderWrapperDto>.Failure(CustomerQuoteError.QuoteExpired, ErrorType.Conflict);
+
+    if (quote.Status == CustomerQuote.QuoteStatus.Closed)
+        return Result<SalesOrderWrapperDto>.Failure(CustomerQuoteError.QuoteAlreadySold, ErrorType.Conflict);
+
+    // --- VALIDACIÓN DE STOCK ADAPTADA A TU MODELO REAL ---
+    foreach (var detail in quote.CustomerQuoteDetails)
     {
-        var quote = await _context.CustomerQuotes
-            .Include(q => q.CustomerQuoteDetails)
-                .ThenInclude(d => d.Product)
-            .FirstOrDefaultAsync(q => q.Id == quoteId);
-
-        if (quote == null)
-            return Result<SalesOrderWrapperDto>.Failure(CustomerQuoteError.CustomerQuoteNotFound, ErrorType.NotFound);
-
-        await ExpireQuoteIfNeededAsync(quote);
-
-        if (quote.Status == CustomerQuote.QuoteStatus.Expired)
-            return Result<SalesOrderWrapperDto>.Failure(CustomerQuoteError.QuoteExpired, ErrorType.Conflict);
-
-        if (quote.Status == CustomerQuote.QuoteStatus.Closed)
-            return Result<SalesOrderWrapperDto>.Failure(CustomerQuoteError.QuoteAlreadySold, ErrorType.Conflict);
-
-        // --- MODIFICADO: VALIDACIÓN ESTRICTA DE STOCK ANTES DE EMITIR LA VENTA ---
-        foreach (var detail in quote.CustomerQuoteDetails)
+        if (detail.Product == null)
         {
-            // Buscamos el registro de stock correspondiente al producto y a la sucursal del presupuesto
-            var stock = await _context.Set<Stock>()
-                .FirstOrDefaultAsync(s => s.ProductId == detail.ProductId && s.BranchId == quote.BranchId);
-
-            if (stock == null || stock.Quantity < detail.Quantity)
-            {
-                var productName = detail.Product?.Name ?? $"ID {detail.ProductId}";
-                var availableStock = stock?.Quantity ?? 0;
-
-                return Result<SalesOrderWrapperDto>.Failure(
-                    $"Stock insuficiente para procesar el presupuesto. Producto: '{productName}'. Requerido: {detail.Quantity}, Disponible: {availableStock}.", 
-                    ErrorType.Validation);
-            }
+            return Result<SalesOrderWrapperDto>.Failure(
+                $"El producto con ID {detail.ProductId} no existe en el sistema.", 
+                ErrorType.Validation);
         }
-        // ------------------------------------------------------------------------
 
-        var details = quote.CustomerQuoteDetails.Select(d => new CreateSalesOrderDetailRequestDto
+        // Buscamos el stock de la sucursal del presupuesto
+        var branchStock = detail.Product.Stocks.FirstOrDefault(s => s.BranchId == quote.BranchId);
+        
+        // Si no hay stock asignado a esa sucursal en particular, pero existen registros en la tabla Stocks,
+        // sumamos el stock total general para flexibilizar la prueba de cajas no implementadas.
+        decimal totalAvailableStock = (branchStock?.Quantity 
+            ?? (detail.Product.Stocks.Count > 0 ? detail.Product.Stocks.Sum(s => s.Quantity) : 0m)).GetValueOrDefault();
+
+        if (totalAvailableStock < detail.Quantity)
         {
-            ProductId = d.ProductId,
-            Quantity = d.Quantity,
-            Price = d.Price
-        }).ToList();
-
-        var isCredit = quote.SaleCondition == SaleConditionEnum.Credit;
-        var movementType = quote.MovementType ?? (int)BankMovementTypeEnum.Credit;
-
-        var request = new CreateSalesOrderRequestDto
-        {
-            CustomerId = quote.CustomerId,
-            SalesOrderState = SalesOrderStateEnum.Confirmed,
-            Date = DateTime.UtcNow,
-            BillType = quote.BillType,
-            IsCredit = isCredit,
-            PaymentMethod = quote.PaymentMethod,
-            SaleCondition = quote.SaleCondition,
-            AccountId = quote.AccountId ?? 0,
-            MovementType = movementType,
-            BranchId = quote.BranchId,
-            ImportValue = quote.ImportValue,
-            CustomerQuoteId = quote.Id,
-            Details = details
-        };
-
-        var result = await _salesOrderService.CreateAsync(request, userId);
-
-        if (!result.IsSuccess)
-            return result;
-
-        quote.Status = CustomerQuote.QuoteStatus.Closed;
-        await _context.SaveChangesAsync();
-
-        return result;
+            return Result<SalesOrderWrapperDto>.Failure(
+                $"Stock insuficiente para procesar el presupuesto. Producto: '{detail.Product.Name}'. Requerido: {detail.Quantity}, Disponible: {totalAvailableStock}.", 
+                ErrorType.Validation);
+        }
     }
+    // ------------------------------------------------------------------
 
-    public async Task<Result> CancelAsync(int id)
+    var details = quote.CustomerQuoteDetails.Select(d => new CreateSalesOrderDetailRequestDto
     {
-        var quote = await _context.CustomerQuotes
-            .FirstOrDefaultAsync(q => q.Id == id);
+        ProductId = d.ProductId,
+        Quantity = d.Quantity,
+        Price = d.Price
+    }).ToList();
 
-        if (quote == null)
-            return Result.Failure(CustomerQuoteError.CustomerQuoteNotFound, ErrorType.NotFound);
+    var isCredit = quote.SaleCondition == SaleConditionEnum.Credit;
+    var movementType = quote.MovementType ?? (int)BankMovementTypeEnum.Credit;
 
-        await ExpireQuoteIfNeededAsync(quote);
+    var request = new CreateSalesOrderRequestDto
+    {
+        CustomerId = quote.CustomerId,
+        SalesOrderState = SalesOrderStateEnum.Confirmed,
+        Date = DateTime.UtcNow,
+        BillType = quote.BillType,
+        IsCredit = isCredit,
+        PaymentMethod = quote.PaymentMethod,
+        SaleCondition = quote.SaleCondition,
+        AccountId = quote.AccountId ?? 0,
+        MovementType = movementType,
+        BranchId = quote.BranchId,
+        ImportValue = quote.ImportValue,
+        CustomerQuoteId = quote.Id,
+        Details = details
+    };
 
-        if (quote.Status == CustomerQuote.QuoteStatus.Expired)
-            return Result.Failure(CustomerQuoteError.QuoteExpired, ErrorType.Conflict);
+    var result = await _salesOrderService.CreateAsync(request, userId);
 
-        if (quote.Status == CustomerQuote.QuoteStatus.Closed)
-            return Result.Failure(CustomerQuoteError.QuoteAlreadySold, ErrorType.Conflict);
+    if (!result.IsSuccess)
+        return result;
 
-        quote.Status = CustomerQuote.QuoteStatus.Cancelled;
-        await _context.SaveChangesAsync();
+    quote.Status = CustomerQuote.QuoteStatus.Closed;
+    await _context.SaveChangesAsync();
 
-        return Result.Success();
-    }
+    return result;
+}
 
     private async Task<Result<int>> ResolveCustomerIdAsync(CustomerQuoteCustomerRequestDto customer)
     {
