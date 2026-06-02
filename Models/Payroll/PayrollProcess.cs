@@ -15,9 +15,8 @@ public partial class PayrollProcess
     public enum PayrollStatusEnum
     {
         Open = 1,
-        Processed = 2,
-        Closed = 3,
-        Paid = 4
+        Closed = 2,
+        Paid = 3
     }
 
     public int Id { get; set; }
