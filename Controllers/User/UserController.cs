@@ -77,4 +77,19 @@ public class UserController(UserService usuarioService) : ControllerBase
             
         return StatusCode(500);
     }
+
+    [HttpPut("{id}/role")]
+    [HasPermission("users.update")]
+    public async Task<ActionResult<UserWrapperDto>> UpdateRole(int id, [FromBody] UpdateUserRoleRequestDto request)
+    {
+        var result = await _usuarioService.UpdateRoleAsync(id, request.RoleId);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        return StatusCode(500);
+    }
 }
