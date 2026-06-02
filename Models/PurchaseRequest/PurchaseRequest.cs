@@ -15,6 +15,8 @@ public partial class PurchaseRequest
 
     public string? Observation { get; set; }
 
+    public int[] SupplierIds { get; set; } = [];
+
     public virtual ICollection<PurchaseRequestDetail> PurchaseRequestDetails { get; set; } = new List<PurchaseRequestDetail>();
 
     public virtual ICollection<PurchaseOrder> PurchaseOrders { get; set; } = new List<PurchaseOrder>();

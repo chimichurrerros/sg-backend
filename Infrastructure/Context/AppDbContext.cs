@@ -928,6 +928,8 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.PurchaseRequestState).HasColumnType("purchase_request_state_enum");
 
+            entity.Property(e => e.SupplierIds).HasColumnType("integer[]");
+
             entity.HasOne(d => d.User).WithMany(p => p.PurchaseRequests)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)

@@ -15,6 +15,8 @@ public class PurchaseRequestResponseDto
     public PurchaseRequestStateEnum PurchaseRequestState { get; set; }
     public string? Observation { get; set; }
 
+    public List<int> SupplierIds { get; set; } = new();
+
     public List<PurchaseRequestDetailResponseDto> Details { get; set; } = new();
 }
 

@@ -91,7 +91,8 @@ public class PurchaseRequestService(
                 UserId = userId,
                 Date = DateTime.UtcNow,
                 PurchaseRequestState = PurchaseRequestStateEnum.Pending,
-                Observation = request.Observation
+                Observation = request.Observation,
+                SupplierIds = [.. request.SupplierIds]
             };
 
             _context.PurchaseRequests.Add(purchaseRequest);
