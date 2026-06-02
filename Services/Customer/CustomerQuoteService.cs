@@ -312,7 +312,6 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
     var quote = await _context.CustomerQuotes
         .Include(q => q.CustomerQuoteDetails)
             .ThenInclude(d => d.Product)
-                .ThenInclude(p => p.Stocks) // Cargamos la colección de Stocks que vimos en tu modelo Product
         .FirstOrDefaultAsync(q => q.Id == quoteId);
 
     if (quote == null)
@@ -326,32 +325,40 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
     if (quote.Status == CustomerQuote.QuoteStatus.Closed)
         return Result<SalesOrderWrapperDto>.Failure(CustomerQuoteError.QuoteAlreadySold, ErrorType.Conflict);
 
-    // --- VALIDACIÓN DE STOCK ADAPTADA A TU MODELO REAL ---
-    foreach (var detail in quote.CustomerQuoteDetails)
+    // --- VALIDACIÓN DE STOCK DIRECTA A LA TABLA DE STOCK CON CAPTURA DE ERRORES ---
+    try
     {
-        if (detail.Product == null)
+        foreach (var detail in quote.CustomerQuoteDetails)
         {
-            return Result<SalesOrderWrapperDto>.Failure(
-                $"El producto con ID {detail.ProductId} no existe en el sistema.", 
-                ErrorType.Validation);
-        }
+            if (detail.Product == null)
+            {
+                return Result<SalesOrderWrapperDto>.Failure(
+                    $"El producto con ID {detail.ProductId} no existe en el sistema.", 
+                    ErrorType.Validation);
+            }
 
-        // Buscamos el stock de la sucursal del presupuesto
-        var branchStock = detail.Product.Stocks.FirstOrDefault(s => s.BranchId == quote.BranchId);
-        
-        // Si no hay stock asignado a esa sucursal en particular, pero existen registros en la tabla Stocks,
-        // sumamos el stock total general para flexibilizar la prueba de cajas no implementadas.
-        decimal totalAvailableStock = (branchStock?.Quantity 
-            ?? (detail.Product.Stocks.Count > 0 ? detail.Product.Stocks.Sum(s => s.Quantity) : 0m)).GetValueOrDefault();
+            // Consultamos la tabla Stock de manera dinámica para evitar problemas de tracking de objetos complejos
+            // ⚠️ NOTA: Si compila pero da 500 aquí, el campo 'Quantity' se llama distinto en tu entidad 'Stock' (ej: Cantidad, CurrentStock)
+            var totalAvailableStock = await _context.Set<Stock>()
+                .Where(s => s.ProductId == detail.ProductId)
+                .SumAsync(s => (decimal?)s.Quantity) ?? 0m; 
 
-        if (totalAvailableStock < detail.Quantity)
-        {
-            return Result<SalesOrderWrapperDto>.Failure(
-                $"Stock insuficiente para procesar el presupuesto. Producto: '{detail.Product.Name}'. Requerido: {detail.Quantity}, Disponible: {totalAvailableStock}.", 
-                ErrorType.Validation);
+            if (totalAvailableStock < detail.Quantity)
+            {
+                return Result<SalesOrderWrapperDto>.Failure(
+                    $"Stock insuficiente para procesar el presupuesto. Producto: '{detail.Product.Name}'. Requerido: {detail.Quantity}, Disponible: {totalAvailableStock}.", 
+                    ErrorType.Validation);
+            }
         }
     }
-    // ------------------------------------------------------------------
+    catch (Exception ex)
+    {
+        // Si hay un error de mapeo o base de datos, lo exponemos de forma segura en lugar de tirar un 500 ciego
+        return Result<SalesOrderWrapperDto>.Failure(
+            $"Error interno validando inventario en la entidad Stock. Detalles: {ex.Message}. Verifica si el campo se llama 'Quantity'.", 
+            ErrorType.Validation);
+    }
+    // ----------------------------------------------------------------------------------
 
     var details = quote.CustomerQuoteDetails.Select(d => new CreateSalesOrderDetailRequestDto
     {
@@ -486,4 +493,22 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
         quote.Status = CustomerQuote.QuoteStatus.Expired;
         await _context.SaveChangesAsync();
     }
+public async Task<Result<bool>> CancelAsync(int id)
+{
+    var quote = await _context.CustomerQuotes.FirstOrDefaultAsync(q => q.Id == id);
+
+    if (quote == null)
+        return Result<bool>.Failure(CustomerQuoteError.CustomerQuoteNotFound, ErrorType.NotFound);
+
+    if (quote.Status == CustomerQuote.QuoteStatus.Closed)
+        return Result<bool>.Failure("No se puede cancelar un presupuesto que ya ha sido vendido.", ErrorType.Conflict);
+
+    // ⚠️ REVISA TU ENUM 'QuoteStatus': 
+    // Asegúrate de si se llama 'Cancelled', 'Canceled' o 'Anulado' en tu código y cámbialo aquí:
+    quote.Status = CustomerQuote.QuoteStatus.Cancelled; 
+
+    await _context.SaveChangesAsync();
+
+    return Result<bool>.Success(true);
+}
 }
