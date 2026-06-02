@@ -4,8 +4,9 @@ public enum AccountantPlanMap
 {
     Activos = 1,
     Pasivos = 2,
-    Ingresos= 3,
+    Ingresos = 3,
     Egresos = 4,
+    PatrimonioNeto = 5,
     Cajas = 6,
     Cuentas = 7,
     Bancos = 8,
