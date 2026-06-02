@@ -11,6 +11,8 @@ public partial class SupplierQuote
 
     public int PurchaseRequestId { get; set; }
 
+    public int RequestForQuotationId { get; set; }
+
     public DateTime Date { get; set; }
 
     public decimal Total { get; set; }
@@ -22,6 +24,8 @@ public partial class SupplierQuote
     public virtual PurchaseRequest PurchaseRequest { get; set; } = null!;
 
     public virtual Supplier Supplier { get; set; } = null!;
+
+    public virtual RequestForQuotation RequestForQuotation { get; set; } = null!;
 
     public virtual ICollection<SupplierQuoteDetail> SupplierQuoteDetails { get; set; } = new List<SupplierQuoteDetail>();
 }

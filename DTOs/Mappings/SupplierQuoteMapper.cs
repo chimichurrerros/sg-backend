@@ -22,6 +22,7 @@ public class SupplierQuoteMapper : AutoMapper.Profile
             .ForMember(dest => dest.SupplierQuoteDetails, opt => opt.MapFrom(src => src.Details))
             .ForMember(dest => dest.PurchaseRequest, opt => opt.Ignore())
             .ForMember(dest => dest.Supplier, opt => opt.Ignore())
+            .ForMember(dest => dest.RequestForQuotation, opt => opt.Ignore())
             .ForMember(dest => dest.State, opt => opt.Ignore())
             .ForMember(dest => dest.PurchaseOrders, opt => opt.Ignore());
 
@@ -32,6 +33,7 @@ public class SupplierQuoteMapper : AutoMapper.Profile
             .ForMember(dest => dest.SupplierQuoteDetails, opt => opt.MapFrom(src => src.Details))
             .ForMember(dest => dest.PurchaseRequest, opt => opt.Ignore())
             .ForMember(dest => dest.Supplier, opt => opt.Ignore())
+            .ForMember(dest => dest.RequestForQuotation, opt => opt.Ignore())
             .ForMember(dest => dest.State, opt => opt.Ignore())
             .ForMember(dest => dest.PurchaseOrders, opt => opt.Ignore());
 
