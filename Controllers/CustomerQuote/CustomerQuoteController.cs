@@ -93,6 +93,9 @@ public class CustomerQuoteController(CustomerQuoteService customerQuoteService) 
         if (result.ErrorType == ErrorType.NotFound)
             return this.HandleNotFoundProblem(result);
 
+        if (result.ErrorType == ErrorType.Validation)
+            return this.HandleValidationProblem(result);
+
         if (result.ErrorType == ErrorType.Conflict)
             return Conflict(new ProblemDetails
             {
