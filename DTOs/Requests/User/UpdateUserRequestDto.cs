@@ -14,4 +14,5 @@ public class UpdateUserRequestDto
 
     public int? RoleId { get; set; }
     public bool? IsActive { get; set; }
+    public int? BranchId { get; set; }
 }
