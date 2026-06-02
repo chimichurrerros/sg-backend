@@ -496,10 +496,11 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             .ToListAsync();
 
         var summaries = details
-            .GroupBy(d => d.Employee)
+            .GroupBy(d => d.EmployeeId)
             .Select(g =>
             {
-                var employee = g.Key;
+                var firstDetail = g.First();
+                var employee = firstDetail.Employee;
                 var sueldoBruto = g
                     .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings)
                     .Sum(d => d.Amount);
