@@ -206,9 +206,9 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
     }
 
     [HttpPost("{id}/close")]
-    public async Task<ActionResult<PayrollCloseResponseDto>> Close(int processId)
+    public async Task<ActionResult<PayrollCloseResponseDto>> Close(int id)
     {
-        var result = await _payrollProcessingService.CloseProcessAsync(processId);
+        var result = await _payrollProcessingService.CloseProcessAsync(id);
 
         if (result.IsSuccess)
             return Ok(result.Value);

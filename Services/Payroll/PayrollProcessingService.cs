@@ -929,7 +929,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
 
             response.EmployeesProcessed = response.Employees.Count;
 
-            process.PayrollStatusId = PayrollProcess.PayrollStatusEnum.Processed;
+            process.PayrollStatusId = PayrollProcess.PayrollStatusEnum.Closed;
 
             await AssignPendingIncidentsAsync(pendingIncidents);
 
@@ -970,8 +970,8 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         if (process is null)
             return Result<PayrollCloseResponseDto>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
 
-        if (process.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Processed)
-            return Result<PayrollCloseResponseDto>.Failure("La planilla debe estar en estado 'Procesado' para cerrarse.", ErrorType.Conflict);
+        if (process.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Open)
+            return Result<PayrollCloseResponseDto>.Failure("La planilla debe estar en estado 'Abierto' para cerrarse.", ErrorType.Conflict);
 
         process.PayrollStatusId = PayrollProcess.PayrollStatusEnum.Closed;
         await _context.SaveChangesAsync();
@@ -1023,9 +1023,8 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         if (process is null)
             return Result<PayrollCloseAndPayResponseDto>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
 
-        if (process.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Processed
-            && process.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Open)
-            return Result<PayrollCloseAndPayResponseDto>.Failure("La planilla debe estar en estado 'Procesado' para cerrar y pagar.", ErrorType.Conflict);
+        if (process.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Closed)
+            return Result<PayrollCloseAndPayResponseDto>.Failure("La planilla debe estar en estado 'Cerrado' para cerrar y pagar.", ErrorType.Conflict);
 
         var details = await _context.PayrollProcessDetails
             .AsNoTracking()
