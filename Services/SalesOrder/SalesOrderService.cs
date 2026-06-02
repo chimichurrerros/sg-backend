@@ -37,7 +37,8 @@ public class SalesOrderService(
         if (request.Products.Count == 0)
             return Result<SalesOrderWrapperDto>.Failure(SalesOrderError.DetailsRequired, ErrorType.Validation);
 
-        var customerIdResult = await ResolveCustomerIdAsync(request.Customer!);
+        // Permitimos que request.Customer sea null para ventas sin datos
+        var customerIdResult = await ResolveCustomerIdAsync(request.Customer);
         if (!customerIdResult.IsSuccess)
             return Result<SalesOrderWrapperDto>.Failure(customerIdResult.ErrorMessage!, customerIdResult.ErrorType);
 
@@ -103,7 +104,7 @@ public class SalesOrderService(
         using var transaction = await _context.Database.BeginTransactionAsync();
 
         try
-        {
+         {
             // 1. Create SalesOrder-------------------------------------------------------------
             var salesOrder = new SalesOrder
             {
@@ -115,7 +116,7 @@ public class SalesOrderService(
                 PaymentMethod = request.PaymentMethod,
                 SaleCondition = request.SaleCondition,
                 BranchId = branchIdResult.Value,
-                Total = 0, // Will compute
+                Total = 0, 
                 ImportValue = request.ImportValue,
                 CustomerQuoteId = request.CustomerQuoteId
             };
@@ -148,7 +149,6 @@ public class SalesOrderService(
                 total += lineTotal + lineTax;
                 taxTotal += lineTax;
 
-                // Add SalesOrderDetail
                 var salesOrderDetail = new SalesOrderDetail
                 {
                     SalesOrderId = salesOrder.Id,
@@ -228,7 +228,6 @@ public class SalesOrderService(
                     account.AvailableBalance += total;
                     _context.Accounts.Update(account);
 
-                    // After cange with Joshua🥵 services 
                     // 5. Create Bank Movement----------------------------------------------------------------
                     var bankMovement = new BankMovement
                     {
@@ -268,7 +267,6 @@ public class SalesOrderService(
     public async Task<Result<ListSalesOrdersWrapperDto>> GetListAsync(PaginationRequestDto pagination)
     {
         var query = _context.SalesOrders.AsNoTracking();
-
         var totalElements = await query.CountAsync();
 
         var salesOrders = await query
@@ -299,10 +297,7 @@ public class SalesOrderService(
 
     private static Result<SalesOrderWrapperDto> ToSalesOrderFailure<T>(Result<T> serviceResult, string fallbackMessage)
     {
-        var message = string.IsNullOrWhiteSpace(serviceResult.ErrorMessage)
-            ? fallbackMessage
-            : serviceResult.ErrorMessage;
-
+        var message = string.IsNullOrWhiteSpace(serviceResult.ErrorMessage) ? fallbackMessage : serviceResult.ErrorMessage;
         if (serviceResult.Errors != null)
             return Result<SalesOrderWrapperDto>.Failure(message!, serviceResult.Errors, serviceResult.ErrorType);
 
@@ -311,10 +306,7 @@ public class SalesOrderService(
 
     private static Result<SalesOrderWrapperDto> ToSalesOrderFailure(Result serviceResult, string fallbackMessage)
     {
-        var message = string.IsNullOrWhiteSpace(serviceResult.ErrorMessage)
-            ? fallbackMessage
-            : serviceResult.ErrorMessage;
-
+        var message = string.IsNullOrWhiteSpace(serviceResult.ErrorMessage) ? fallbackMessage : serviceResult.ErrorMessage;
         if (serviceResult.Errors != null)
             return Result<SalesOrderWrapperDto>.Failure(message!, serviceResult.Errors, serviceResult.ErrorType);
 
@@ -326,50 +318,57 @@ public class SalesOrderService(
         return $"SO-{salesOrderId:D6}";
     }
 
+    // --- CORREGIDO: SE VOLVIÓ ESTRICTO ---
     private async Task<Result<int>> ResolveBranchIdAsync(int requestedBranchId)
     {
-        if (requestedBranchId > 0)
-        {
-            var branchExists = await _context.Branches.AsNoTracking().AnyAsync(branch => branch.Id == requestedBranchId);
-            if (branchExists)
-                return Result<int>.Success(requestedBranchId);
-        }
+        if (requestedBranchId <= 0)
+            return Result<int>.Failure("El ID de la sucursal es obligatorio para procesar la venta.", ErrorType.Validation);
 
-        var firstBranchId = await _context.Branches
-            .AsNoTracking()
-            .OrderBy(branch => branch.Id)
-            .Select(branch => branch.Id)
-            .FirstOrDefaultAsync();
+        var branchExists = await _context.Branches.AsNoTracking().AnyAsync(branch => branch.Id == requestedBranchId);
+        if (!branchExists)
+            return Result<int>.Failure($"La sucursal con ID {requestedBranchId} no existe.", ErrorType.NotFound);
 
-        if (firstBranchId <= 0)
-            return Result<int>.Failure(BranchError.BranchNotFound, ErrorType.NotFound);
-
-        return Result<int>.Success(firstBranchId);
+        return Result<int>.Success(requestedBranchId);
     }
 
+    // --- CORREGIDO: SE VOLVIÓ ESTRICTO ---
     private async Task<Result<int>> ResolveAccountIdAsync(int requestedAccountId)
     {
-        if (requestedAccountId > 0)
-        {
-            var accountExists = await _context.Accounts.AsNoTracking().AnyAsync(account => account.Id == requestedAccountId);
-            if (accountExists)
-                return Result<int>.Success(requestedAccountId);
-        }
+        if (requestedAccountId <= 0)
+            return Result<int>.Failure("El ID de la cuenta/caja es obligatorio para el movimiento financiero.", ErrorType.Validation);
 
-        var firstAccountId = await _context.Accounts
-            .AsNoTracking()
-            .OrderBy(account => account.Id)
-            .Select(account => account.Id)
-            .FirstOrDefaultAsync();
+        var accountExists = await _context.Accounts.AsNoTracking().AnyAsync(account => account.Id == requestedAccountId);
+        if (!accountExists)
+            return Result<int>.Failure($"La cuenta con ID {requestedAccountId} no existe o está inactiva.", ErrorType.NotFound);
 
-        return Result<int>.Success(firstAccountId);
+        return Result<int>.Success(requestedAccountId);
     }
 
-    private async Task<Result<int>> ResolveCustomerIdAsync(PosSaleCustomerRequestDto customer)
+    // --- CORREGIDO: PERMITE VENTAS SIN DATOS (CLIENTE OCASIONAL) ---
+    private async Task<Result<int>> ResolveCustomerIdAsync(PosSaleCustomerRequestDto? customer)
     {
+        // Si el objeto no viene, o viene vacío, asignamos automáticamente el "Cliente Ocasional"
+        if (customer == null || (string.IsNullOrWhiteSpace(customer.Ruc) && string.IsNullOrWhiteSpace(customer.Name)))
+        {
+            var defaultCustomer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.Ruc == "X" || c.Name == "Cliente Ocasional");
+
+            if (defaultCustomer != null)
+                return Result<int>.Success(defaultCustomer.Id);
+
+            // Si no existe en la BD, lo creamos al vuelo para que nunca falle la venta
+            var newCustomer = new Customer { Name = "Cliente Ocasional", Ruc = "X" };
+            _context.Customers.Add(newCustomer);
+            await _context.SaveChangesAsync();
+
+            return Result<int>.Success(newCustomer.Id);
+        }
+
         var ruc = customer.Ruc?.Trim();
-        // if (string.IsNullOrWhiteSpace(ruc))
-        //     return Result<int>.Failure("customer.ruc es obligatorio.", ErrorType.Validation);
+        if (string.IsNullOrWhiteSpace(ruc))
+        {
+            ruc = "X"; // Si mandan nombre pero no RUC, asume consumidor final sin datos
+        }
 
         var existingCustomer = await _context.Customers
             .AsNoTracking()
@@ -378,14 +377,12 @@ public class SalesOrderService(
         if (existingCustomer != null)
             return Result<int>.Success(existingCustomer.Id);
 
-        var name = customer.Name?.Trim();
-        if (string.IsNullOrWhiteSpace(name))
-            return Result<int>.Failure(CustomerError.NameRequiredForNewCustomer, ErrorType.Validation);
+        var name = customer.Name?.Trim() ?? "Cliente Ocasional";
 
         var createdCustomerResult = await _customerService.CreateAsync(new CreateCustomerRequestDto
         {
             Name = name,
-            Ruc = ruc!,
+            Ruc = ruc,
             BirthDate = customer.BirthDate,
             Email = customer.Email
         });
