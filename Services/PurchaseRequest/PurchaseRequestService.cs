@@ -25,8 +25,8 @@ public class PurchaseRequestService(
         if (request.SupplierIds == null || request.SupplierIds.Count == 0)
             return Result<PurchaseRequestWrapperDto>.Failure(RequestForQuotationError.SuppliersRequired, ErrorType.Validation);
 
-        if (request.SupplierIds.Count < 3)
-            return Result<PurchaseRequestWrapperDto>.Failure(RequestForQuotationError.InsufficientSuppliers, ErrorType.Validation);
+        // if (request.SupplierIds.Count < 3)
+        //     return Result<PurchaseRequestWrapperDto>.Failure(RequestForQuotationError.InsufficientSuppliers, ErrorType.Validation);
 
         using var transaction = await _context.Database.BeginTransactionAsync();
 
