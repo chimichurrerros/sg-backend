@@ -23,9 +23,11 @@ public partial class Supplier
 
     public virtual ICollection<PaymentOrder> PaymentOrders { get; set; } = new List<PaymentOrder>();
 
-    public virtual ICollection<PurchaseOrder> PurchaseOrders { get; set; } = new List<PurchaseOrder>();
+    public virtual ICollection<PurchaseOrderForSupplier> PurchaseOrdersForSupplier { get; set; } = new List<PurchaseOrderForSupplier>();
 
     public virtual ICollection<SupplierCategory> SupplierCategories { get; set; } = new List<SupplierCategory>();
 
     public virtual ICollection<SupplierQuote> SupplierQuotes { get; set; } = new List<SupplierQuote>();
+
+    public virtual ICollection<RequestForQuotation> RequestForQuotations { get; set; } = new List<RequestForQuotation>();
 }

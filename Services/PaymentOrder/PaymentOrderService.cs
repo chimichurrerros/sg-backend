@@ -19,26 +19,26 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
     public async Task<Result<PaymentOrderWrapperDto>> CreateAsync(CreatePaymentOrderDto request)
     {
         // Validaciones básicas de que los IDs y montos sean lógicos
-        if (request.PurchaseOrderId <= 0)
+        if (request.PurchaseOrderForSupplierId <= 0)
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.PurchaseOrderNotFound, ErrorType.Validation);
 
         if (request.Amount <= 0)
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.InvalidAmount, ErrorType.Validation);
 
         if (request.BankAccountId <= 0)
-            return Result<PaymentOrderWrapperDto>.Failure("Invalid bank account", ErrorType.Validation);
+            return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.BankAccountRequired, ErrorType.Validation);
 
         // Busca la orden de compra asociada
-        var purchaseOrder = await _context.PurchaseOrders
+        var purchaseOrder = await _context.PurchaseOrdersForSupplier
             .AsNoTracking()
-            .FirstOrDefaultAsync(po => po.Id == request.PurchaseOrderId);
+            .FirstOrDefaultAsync(po => po.Id == request.PurchaseOrderForSupplierId);
 
         // Si no existe la orden de compra, devuelve error 404
         if (purchaseOrder == null)
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.PurchaseOrderNotFound, ErrorType.NotFound);
 
         // La orden de compra obligatoriamente tiene que estar Confirmada para pagarse
-        if (purchaseOrder.State != PurchaseOrderStateEnum.Confirmed)
+        if (purchaseOrder.State != PurchaseOrderForSupplierStateEnum.Confirmed)
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.PurchaseOrderMustBeConfirmed, ErrorType.Validation);
 
         // Valida que la cuenta bancaria exista y tenga saldo disponible suficiente para el pago
@@ -68,7 +68,7 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
             {
                 BillType = BillTypeEnum.CONTADO,
                 BillState = BillStateEnum.Paid,
-                PurchaseOrderId = purchaseOrder.Id,
+                PurchaseOrderForSupplierId = purchaseOrder.Id,
                 Number = $"PO-PAY-{paymentOrder.Id:D6}",
                 Stamp = request.Notes,
                 Date = DateOnly.FromDateTime(paymentOrder.Date),
@@ -256,7 +256,7 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
             .Include(po => po.PaymentOrderBills)
                 .ThenInclude(pob => pob.Bill)
             .AnyAsync(po =>
-                po.PaymentOrderBills.Any(pob => pob.Bill.PurchaseOrderId == purchaseOrderId)
+                po.PaymentOrderBills.Any(pob => pob.Bill.PurchaseOrderForSupplierId == purchaseOrderId)
                 && (po.State == PaymentOrderStateEnum.Processed || po.State == PaymentOrderStateEnum.Paid));
 
         return Result<bool>.Success(isConfirmed);
@@ -286,14 +286,14 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
     {
         // Intenta obtener el ID de orden de compra desde las facturas asociadas
         var purchaseOrderId = paymentOrder.PaymentOrderBills
-            .Select(link => link.Bill.PurchaseOrderId)
+            .Select(link => link.Bill.PurchaseOrderForSupplierId)
             .FirstOrDefault(id => id.HasValue) ?? 0;
 
         return new PaymentOrderResponseDto
         {
             Id = paymentOrder.Id,
             SupplierId = paymentOrder.SupplierId,
-            PurchaseOrderId = purchaseOrderId,
+            PurchaseOrderForSupplierId = purchaseOrderId,
             Date = paymentOrder.Date,
             Total = paymentOrder.Total,
             StateId = paymentOrder.State.ToString(),
@@ -303,7 +303,7 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
             {
                 Id = link.Id,
                 BillId = link.BillId,
-                PurchaseOrderId = link.Bill.PurchaseOrderId ?? 0,
+                PurchaseOrderForSupplierId = link.Bill.PurchaseOrderForSupplierId ?? 0,
                 Amount = link.Amount,
                 BillNumber = link.Bill.Number
             }).ToList(),

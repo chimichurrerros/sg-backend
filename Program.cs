@@ -35,6 +35,7 @@ builder.Services.AddScoped<CustomerService>();
 builder.Services.AddScoped<CustomerQuoteService>();
 builder.Services.AddScoped<SupplierQuoteService>();
 builder.Services.AddScoped<PurchaseOrderService>();
+builder.Services.AddScoped<PurchaseOrderForSupplierService>();
 builder.Services.AddScoped<EmployeeService>();
 builder.Services.AddScoped<ProductBrandsService>();
 builder.Services.AddScoped<ProductCategoriesService>();
@@ -56,6 +57,7 @@ builder.Services.AddScoped<PurchaseReturnService>();
 builder.Services.AddScoped<BankService>();
 builder.Services.AddScoped<PaymentOrderService>();
 builder.Services.AddScoped<CreditNoteService>();
+builder.Services.AddScoped<SalesReturnService>();
 builder.Services.AddScoped<DepartmentService>();
 builder.Services.AddScoped<PositionService>();
 builder.Services.AddScoped<ScheduleService>();
@@ -63,6 +65,11 @@ builder.Services.AddSingleton<FormulaEvaluatorService>();
 builder.Services.AddScoped<PayrollUpdateService>();
 builder.Services.AddScoped<PayrollProcessingService>();
 builder.Services.AddScoped<IEmployeeAssignmentService, EmployeeAssignmentService>();
+builder.Services.AddScoped<AccountantProcessService>();
+builder.Services.AddScoped<AccountPlanService>();
+builder.Services.AddScoped<EntryService>();
+builder.Services.AddScoped<AccountingReportService>();
+builder.Services.AddScoped<RequestForQuotationService>();
 // ------------------------------------------------------------------------------------------------------
 // Authorization configuration
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
@@ -82,7 +89,9 @@ builder.Services.AddCors(options =>
             if (explicitOrigins.Contains(origin))
                 return true;
             var uri = new Uri(origin);
-            return uri.Host.Equals("mbeju.xyz", StringComparison.OrdinalIgnoreCase)
+            return uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.Equals("mbeju.xyz", StringComparison.OrdinalIgnoreCase)
                 || uri.Host.EndsWith(".mbeju.xyz", StringComparison.OrdinalIgnoreCase)
                 || uri.Host.EndsWith(".netlify.app", StringComparison.OrdinalIgnoreCase);
         })
@@ -109,6 +118,7 @@ builder.Services.AddDbContextPool<AppDbContext>(options =>
         npgsqlOptions.MapEnum<SalesOrderStateEnum>("sales_order_state_enum");
         npgsqlOptions.MapEnum<PurchaseRequestStateEnum>("purchase_request_state_enum");
         npgsqlOptions.MapEnum<AccountTypeEnum>("account_type_enum");
+        npgsqlOptions.MapEnum<ModuleEnum>("module_enum");
     }));
 
 //*******************************************END-END-END*************************************************

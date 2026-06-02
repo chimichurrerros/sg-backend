@@ -98,13 +98,13 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
         {
             query = query.Where(pr =>
                 (pr.Bill != null && pr.Bill.Customer != null && pr.Bill.Customer.Name.ToLower().Contains(queryDto.CustomerName.ToLower())) ||
-                (pr.PurchaseOrder != null && pr.PurchaseOrder.Supplier != null && pr.PurchaseOrder.Supplier.BusinessName.ToLower().Contains(queryDto.CustomerName.ToLower()))
+                (pr.PurchaseOrderForSupplier != null && pr.PurchaseOrderForSupplier.Supplier != null && pr.PurchaseOrderForSupplier.Supplier.BusinessName.ToLower().Contains(queryDto.CustomerName.ToLower()))
             );
         }
 
         if (!string.IsNullOrWhiteSpace(queryDto.SupplierName))
         {
-            query = query.Where(pr => pr.PurchaseOrder != null && pr.PurchaseOrder.Supplier != null && pr.PurchaseOrder.Supplier.BusinessName.ToLower().Contains(queryDto.SupplierName.ToLower()));
+            query = query.Where(pr => pr.PurchaseOrderForSupplier != null && pr.PurchaseOrderForSupplier.Supplier != null && pr.PurchaseOrderForSupplier.Supplier.BusinessName.ToLower().Contains(queryDto.SupplierName.ToLower()));
         }
 
         var totalElements = await query.CountAsync();
@@ -141,7 +141,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
         if (request.Details == null || request.Details.Count == 0)
             return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.DetailsRequired, ErrorType.Validation);
 
-        if (request.PurchaseOrderId <= 0)
+        if (request.PurchaseOrderForSupplierId <= 0)
             return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.PurchaseOrderNotFound, ErrorType.Validation);
 
         if (request.BranchId <= 0)
@@ -156,9 +156,9 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
 
             try
             {
-                var purchaseOrder = await _context.PurchaseOrders
+                var purchaseOrder = await _context.PurchaseOrdersForSupplier
                     .Include(po => po.PurchaseOrderDetails)
-                    .FirstOrDefaultAsync(po => po.Id == request.PurchaseOrderId);
+                    .FirstOrDefaultAsync(po => po.Id == request.PurchaseOrderForSupplierId);
 
                 if (purchaseOrder == null)
                 {
@@ -176,7 +176,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
 
                 if (request.BillId.HasValue)
                 {
-                    var billExists = await _context.Bills.AnyAsync(bill => bill.Id == request.BillId.Value && bill.PurchaseOrderId == request.PurchaseOrderId);
+                    var billExists = await _context.Bills.AnyAsync(bill => bill.Id == request.BillId.Value && bill.PurchaseOrderForSupplierId == request.PurchaseOrderForSupplierId);
                     if (!billExists)
                         return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.BillNotFound, ErrorType.NotFound);
                 }
@@ -186,7 +186,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
 
                 var purchaseReturn = new PurchaseReturn
                 {
-                    PurchaseOrderId = request.PurchaseOrderId,
+                    PurchaseOrderForSupplierId = request.PurchaseOrderForSupplierId,
                     BillId = request.BillId,
                     BranchId = request.BranchId,
                     ReasonId = reasonResult.Value!.Id,
@@ -256,7 +256,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
                 {
                     var pod = await _context.PurchaseOrderDetails
                         .AsNoTracking()
-                        .FirstOrDefaultAsync(d => d.ProductId == detail.ProductId && d.PurchaseOrderId == request.PurchaseOrderId);
+                        .FirstOrDefaultAsync(d => d.ProductId == detail.ProductId && d.PurchaseOrderForSupplierId == request.PurchaseOrderForSupplierId);
 
                     if (pod == null)
                     {
@@ -339,7 +339,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
             .Include(purchaseReturn => purchaseReturn.Branch)
             .Include(purchaseReturn => purchaseReturn.Bill)
                 .ThenInclude(bill => bill!.Customer)
-            .Include(purchaseReturn => purchaseReturn.PurchaseOrder)
+            .Include(purchaseReturn => purchaseReturn.PurchaseOrderForSupplier)
                 .ThenInclude(po => po.Supplier)
             .Include(purchaseReturn => purchaseReturn.Reason)
             .Include(purchaseReturn => purchaseReturn.PurchaseReturnDetails)
@@ -375,7 +375,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
         return new PurchaseReturnResponseDto
         {
             Id = purchaseReturn.Id,
-            PurchaseOrderId = purchaseReturn.PurchaseOrderId,
+            PurchaseOrderForSupplierId = purchaseReturn.PurchaseOrderForSupplierId,
             BillId = purchaseReturn.BillId,
             BranchId = purchaseReturn.BranchId,
             BranchName = purchaseReturn.Branch?.Name ?? string.Empty,
@@ -387,7 +387,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
             Total = purchaseReturn.Total,
             TaxTotal = purchaseReturn.TaxTotal,
             State = purchaseReturn.State,
-            SupplierName = purchaseReturn.PurchaseOrder?.Supplier?.BusinessName ?? string.Empty,
+            SupplierName = purchaseReturn.PurchaseOrderForSupplier?.Supplier?.BusinessName ?? string.Empty,
             CustomerName = purchaseReturn.Bill?.Customer?.Name ?? string.Empty,
             Details = purchaseReturn.PurchaseReturnDetails.Select(MapDetail).ToList()
         };
@@ -398,8 +398,8 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
         if (request == null || request.Bill == null || request.Return == null)
             return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.DetailsRequired, ErrorType.Validation);
 
-        if (request.Return.PurchaseOrderId != request.Bill.PurchaseOrderId)
-            return Result<PurchaseReturnWrapperDto>.Failure("PurchaseOrderId mismatch between bill and return", ErrorType.Validation);
+        if (request.Return.PurchaseOrderForSupplierId != request.Bill.PurchaseOrderForSupplierId)
+            return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.PurchaseOrderIdMismatch, ErrorType.Validation);
 
         // Single transaction for both Bill and PurchaseReturn
         await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
@@ -411,7 +411,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
             {
                 BillType = BillTypeEnum.CONTADO,
                 BillState = BillStateEnum.Pending,
-                PurchaseOrderId = request.Bill.PurchaseOrderId,
+                PurchaseOrderForSupplierId = request.Bill.PurchaseOrderForSupplierId,
                 Number = string.IsNullOrWhiteSpace(request.Bill.Number) ? $"B-{DateTime.UtcNow:yyyyMMddHHmmss}" : request.Bill.Number.Trim(),
                 Stamp = request.Bill.Notes,
                 Date = DateOnly.FromDateTime(request.Bill.Date == default ? DateTime.UtcNow : request.Bill.Date),
@@ -434,7 +434,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
                 return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.DetailsRequired, ErrorType.Validation);
             }
 
-            if (retRequest.PurchaseOrderId <= 0)
+            if (retRequest.PurchaseOrderForSupplierId <= 0)
             {
                 await transaction.RollbackAsync();
                 return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.PurchaseOrderNotFound, ErrorType.Validation);
@@ -446,9 +446,9 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
                 return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.BranchNotFound, ErrorType.Validation);
             }
 
-            var purchaseOrder = await _context.PurchaseOrders
+            var purchaseOrder = await _context.PurchaseOrdersForSupplier
                 .Include(po => po.PurchaseOrderDetails)
-                .FirstOrDefaultAsync(po => po.Id == retRequest.PurchaseOrderId);
+                .FirstOrDefaultAsync(po => po.Id == retRequest.PurchaseOrderForSupplierId);
 
             if (purchaseOrder == null)
             {
@@ -475,7 +475,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
 
             var purchaseReturn = new PurchaseReturn
             {
-                PurchaseOrderId = retRequest.PurchaseOrderId,
+                PurchaseOrderForSupplierId = retRequest.PurchaseOrderForSupplierId,
                 BillId = retRequest.BillId,
                 BranchId = retRequest.BranchId,
                 ReasonId = reasonResult2.Value!.Id,
@@ -545,7 +545,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
             {
                 var pod = await _context.PurchaseOrderDetails
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(d => d.ProductId == detail.ProductId && d.PurchaseOrderId == retRequest.PurchaseOrderId);
+                    .FirstOrDefaultAsync(d => d.ProductId == detail.ProductId && d.PurchaseOrderForSupplierId == retRequest.PurchaseOrderForSupplierId);
 
                 if (pod == null)
                 {

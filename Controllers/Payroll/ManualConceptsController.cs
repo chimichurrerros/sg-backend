@@ -32,6 +32,43 @@ public class ManualConceptsController(PayrollProcessingService payrollProcessing
         return StatusCode(500);
     }
 
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<ManualConceptIncidentResponseDto>> Update(int id, ManualConceptIncidentCreateDto request)
+    {
+        var result = await _payrollProcessingService.UpdateManualConceptIncidentAsync(id, request);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        if (result.ErrorType == ErrorType.Validation)
+            return this.HandleValidationProblem(result);
+
+        if (result.ErrorType == ErrorType.Conflict)
+            return this.HandleConflictProblem(result);
+
+        return StatusCode(500);
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<ActionResult> Delete(int id)
+    {
+        var result = await _payrollProcessingService.DeleteManualConceptIncidentAsync(id);
+
+        if (result.IsSuccess)
+            return NoContent();
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        if (result.ErrorType == ErrorType.Conflict)
+            return this.HandleConflictProblem(result);
+
+        return StatusCode(500);
+    }
+
     [HttpGet("pending")]
     public async Task<ActionResult<List<ManualConceptIncidentResponseDto>>> GetPending()
     {

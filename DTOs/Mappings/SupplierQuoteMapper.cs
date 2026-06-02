@@ -22,8 +22,9 @@ public class SupplierQuoteMapper : AutoMapper.Profile
             .ForMember(dest => dest.SupplierQuoteDetails, opt => opt.MapFrom(src => src.Details))
             .ForMember(dest => dest.PurchaseRequest, opt => opt.Ignore())
             .ForMember(dest => dest.Supplier, opt => opt.Ignore())
+            .ForMember(dest => dest.RequestForQuotation, opt => opt.Ignore())
             .ForMember(dest => dest.State, opt => opt.Ignore())
-            .ForMember(dest => dest.PurchaseOrders, opt => opt.Ignore());
+            .ForMember(dest => dest.PurchaseOrdersForSupplier, opt => opt.Ignore());
 
         CreateMap<UpdateSupplierQuoteRequestDto, SupplierQuote>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -32,8 +33,9 @@ public class SupplierQuoteMapper : AutoMapper.Profile
             .ForMember(dest => dest.SupplierQuoteDetails, opt => opt.MapFrom(src => src.Details))
             .ForMember(dest => dest.PurchaseRequest, opt => opt.Ignore())
             .ForMember(dest => dest.Supplier, opt => opt.Ignore())
+            .ForMember(dest => dest.RequestForQuotation, opt => opt.Ignore())
             .ForMember(dest => dest.State, opt => opt.Ignore())
-            .ForMember(dest => dest.PurchaseOrders, opt => opt.Ignore());
+            .ForMember(dest => dest.PurchaseOrdersForSupplier, opt => opt.Ignore());
 
         CreateMap<SupplierQuoteDetail, SupplierQuoteDetailResponseDto>()
             .ForMember(dest => dest.ProductName,
@@ -47,7 +49,7 @@ public class SupplierQuoteMapper : AutoMapper.Profile
             .ForMember(dest => dest.Details,
                 opt => opt.MapFrom(src => src.SupplierQuoteDetails))
             .ForMember(dest => dest.AssociatedPurchaseOrderId,
-                opt => opt.MapFrom(src => (src.PurchaseOrders != null && src.PurchaseOrders.Any()) ? (int?)src.PurchaseOrders.OrderByDescending(p => p.Id).First().Id : null));
+                opt => opt.MapFrom(src => (src.PurchaseOrdersForSupplier != null && src.PurchaseOrdersForSupplier.Any()) ? (int?)src.PurchaseOrdersForSupplier.OrderByDescending(p => p.Id).First().Id : null));
 
         CreateMap<SupplierQuote, SupplierQuoteWrapperDto>()
             .ForMember(dest => dest.SupplierQuote, opt => opt.MapFrom(src => src));

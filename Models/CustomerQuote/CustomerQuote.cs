@@ -48,6 +48,8 @@ public partial class CustomerQuote
     public enum QuoteStatus
     {
         Open = 0,
-        Expired = 1
+        Expired = 1,
+        Closed = 2,
+        Cancelled = 3
     }
 }

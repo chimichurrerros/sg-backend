@@ -7,7 +7,7 @@ public partial class PurchaseReturn
 {
     public int Id { get; set; }
 
-    public int PurchaseOrderId { get; set; }
+    public int PurchaseOrderForSupplierId { get; set; }
 
     public int? BillId { get; set; }
 
@@ -35,5 +35,5 @@ public partial class PurchaseReturn
 
     public virtual ICollection<PurchaseReturnDetail> PurchaseReturnDetails { get; set; } = new List<PurchaseReturnDetail>();
 
-    public virtual PurchaseOrder PurchaseOrder { get; set; } = null!;
+    public virtual PurchaseOrderForSupplier PurchaseOrderForSupplier { get; set; } = null!;
 }

@@ -10,7 +10,9 @@ public class SalesOrderResponseDto
     public int CustomerId { get; set; }
     public string CustomerName { get; set; } = null!;
     public string CustomerRuc { get; set; } = null!;
-    
+    public DateOnly? CustomerBirthDate { get; set; }
+    public string? CustomerEmail { get; set; }
+
     public int UserId { get; set; }
     public int BranchId {get; set;}
     public string UserName { get; set; } = null!;

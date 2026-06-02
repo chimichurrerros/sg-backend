@@ -1,3 +1,5 @@
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using BackEnd.Constants.Errors;
 using BackEnd.DTOs.Requests.CreditNote;
 using BackEnd.DTOs.Responses.CreditNote;
@@ -8,21 +10,61 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BackEnd.Services;
 
-public class CreditNoteService(AppDbContext context)
+public class CreditNoteService(AppDbContext context, IMapper mapper)
 {
     private readonly AppDbContext _context = context;
+    private readonly IMapper _mapper = mapper;
+
+    public async Task<Result<ListCreditNotesWrapperDto>> GetListAsync(CreditNoteQueryDto queryDto)
+    {
+        var query = _context.CreditNotes.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(queryDto.CustomerName))
+            query = query.Where(cn => cn.Bill.Customer != null && cn.Bill.Customer.Name.ToLower().Contains(queryDto.CustomerName.ToLower()));
+
+        if (!string.IsNullOrWhiteSpace(queryDto.CustomerRuc))
+            query = query.Where(cn => cn.Bill.Customer != null && cn.Bill.Customer.Ruc.ToLower().Contains(queryDto.CustomerRuc.ToLower()));
+
+        if (!string.IsNullOrWhiteSpace(queryDto.BillNumber))
+            query = query.Where(cn => cn.Bill.Number.ToLower().Contains(queryDto.BillNumber.ToLower()));
+
+        if (!string.IsNullOrWhiteSpace(queryDto.Reason))
+            query = query.Where(cn => cn.Reason.ToLower().Contains(queryDto.Reason.ToLower()));
+
+        if (queryDto.Date.HasValue)
+            query = query.Where(cn => cn.Date.Date == queryDto.Date.Value.Date);
+
+        if (queryDto.MinDate.HasValue)
+            query = query.Where(cn => cn.Date >= queryDto.MinDate.Value);
+
+        if (queryDto.MaxDate.HasValue)
+            query = query.Where(cn => cn.Date <= queryDto.MaxDate.Value);
+
+        var totalElements = await query.CountAsync();
+
+        var list = await query
+            .OrderByDescending(cn => cn.Id)
+            .Skip((queryDto.Page - 1) * queryDto.PageSize)
+            .Take(queryDto.PageSize)
+            .ProjectTo<CreditNoteResponseDto>(_mapper.ConfigurationProvider)
+            .ToListAsync();
+
+        var pagination = new Pagination(queryDto.Page, queryDto.PageSize, totalElements);
+
+        return Result<ListCreditNotesWrapperDto>.Success(new ListCreditNotesWrapperDto { CreditNotes = list, Pagination = pagination });
+    }
 
     public async Task<Result<CreditNoteWrapperDto>> CreateAsync(CreateCreditNoteDto request)
     {
         if (request.BillId <= 0)
-            return Result<CreditNoteWrapperDto>.Failure("BillId is required", ErrorType.Validation);
+            return Result<CreditNoteWrapperDto>.Failure(CreditNoteError.BillIdRequired, ErrorType.Validation);
 
-        var bill = await _context.Bills.Include(b => b.BillDetails).FirstOrDefaultAsync(b => b.Id == request.BillId);
+        var bill = await _context.Bills.Include(b => b.BillDetails).Include(b => b.Customer).FirstOrDefaultAsync(b => b.Id == request.BillId);
         if (bill == null)
-            return Result<CreditNoteWrapperDto>.Failure("Bill not found", ErrorType.NotFound);
+            return Result<CreditNoteWrapperDto>.Failure(CreditNoteError.BillNotFound, ErrorType.NotFound);
 
         if (request.Details == null || request.Details.Count == 0)
-            return Result<CreditNoteWrapperDto>.Failure("Details required", ErrorType.Validation);
+            return Result<CreditNoteWrapperDto>.Failure(CreditNoteError.DetailsRequired, ErrorType.Validation);
 
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try
@@ -57,6 +99,10 @@ public class CreditNoteService(AppDbContext context)
             {
                 Id = creditNote.Id,
                 BillId = creditNote.BillId,
+                BillNumber = bill.Number,
+                CustomerId = bill.Customer?.Id ?? 0,
+                CustomerName = bill.Customer?.Name ?? string.Empty,
+                CustomerRuc = bill.Customer?.Ruc ?? string.Empty,
                 Date = creditNote.Date,
                 Total = creditNote.Total,
                 Reason = creditNote.Reason,
@@ -84,15 +130,21 @@ public class CreditNoteService(AppDbContext context)
         var cn = await _context.CreditNotes
             .Include(c => c.CreditNoteDetails)
                 .ThenInclude(d => d.Product)
+            .Include(c => c.Bill)
+                .ThenInclude(b => b.Customer)
             .FirstOrDefaultAsync(c => c.Id == id);
 
         if (cn == null)
-            return Result<CreditNoteWrapperDto>.Failure("Credit note not found", ErrorType.NotFound);
+            return Result<CreditNoteWrapperDto>.Failure(CreditNoteError.CreditNoteNotFound, ErrorType.NotFound);
 
         var response = new CreditNoteResponseDto
         {
             Id = cn.Id,
             BillId = cn.BillId,
+            BillNumber = cn.Bill?.Number ?? string.Empty,
+            CustomerId = cn.Bill?.Customer?.Id ?? 0,
+            CustomerName = cn.Bill?.Customer?.Name ?? string.Empty,
+            CustomerRuc = cn.Bill?.Customer?.Ruc ?? string.Empty,
             Date = cn.Date,
             Total = cn.Total,
             Reason = cn.Reason,

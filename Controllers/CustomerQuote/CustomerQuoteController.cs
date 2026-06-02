@@ -1,6 +1,7 @@
 using BackEnd.DTOs.Requests.CustomerQuote;
 using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Responses.CustomerQuote;
+using BackEnd.DTOs.Responses.SalesOrder;
 using BackEnd.Extensions;
 using BackEnd.Services;
 using BackEnd.Utils;
@@ -66,6 +67,53 @@ public class CustomerQuoteController(CustomerQuoteService customerQuoteService) 
 
         if (result.ErrorType == ErrorType.Validation)
             return this.HandleValidationProblem(result);
+
+        if (result.ErrorType == ErrorType.Conflict)
+            return Conflict(new ProblemDetails
+            {
+                Title = "Conflict",
+                Status = StatusCodes.Status409Conflict,
+                Detail = result.ErrorMessage
+            });
+
+        return StatusCode(500);
+    }
+
+    [HttpPost("{id}/sell")]
+    public async Task<ActionResult<SalesOrderWrapperDto>> SellFromQuote(int id)
+    {
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = int.Parse(userIdString!);
+
+        var result = await _customerQuoteService.SellFromQuoteAsync(id, userId);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        if (result.ErrorType == ErrorType.Conflict)
+            return Conflict(new ProblemDetails
+            {
+                Title = "Conflict",
+                Status = StatusCodes.Status409Conflict,
+                Detail = result.ErrorMessage
+            });
+
+        return StatusCode(500);
+    }
+
+    [HttpPost("{id}/cancel")]
+    public async Task<ActionResult> Cancel(int id)
+    {
+        var result = await _customerQuoteService.CancelAsync(id);
+
+        if (result.IsSuccess)
+            return NoContent();
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
 
         if (result.ErrorType == ErrorType.Conflict)
             return Conflict(new ProblemDetails

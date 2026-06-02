@@ -1,3 +1,4 @@
+using BackEnd.Constants.Errors;
 using BackEnd.DTOs.Responses.Organization;
 using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
@@ -27,7 +28,7 @@ public class OrganizationService(AppDbContext context)
             .FirstOrDefaultAsync(x => x.BranchId == branchId && x.DepartmentId == departmentId);
 
         if (branchDepartment == null || branchDepartment.Boss == null)
-            return Result<DepartmentBossResponseDto>.Failure("No se encontró jefe para ese departamento en esa sucursal.", ErrorType.NotFound);
+            return Result<DepartmentBossResponseDto>.Failure(OrganizationError.NoManagerFound, ErrorType.NotFound);
 
         var boss = branchDepartment.Boss;
         var latestHistory = boss.PositionByScheduleByEmployees
@@ -63,7 +64,7 @@ public class OrganizationService(AppDbContext context)
 
         var root = employees.FirstOrDefault(e => e.Id == employeeId);
         if (root == null)
-            return Result<OrgChartResponseDto>.Failure("Empleado no encontrado.", ErrorType.NotFound);
+            return Result<OrgChartResponseDto>.Failure(EmployeeError.EmployeeNotFound, ErrorType.NotFound);
 
         var chart = BuildNode(root, employees, depth);
         return Result<OrgChartResponseDto>.Success(chart);

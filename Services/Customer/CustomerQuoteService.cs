@@ -5,6 +5,7 @@ using BackEnd.DTOs.Requests.CustomerQuote;
 using BackEnd.DTOs.Requests.SalesOrder;
 using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Responses.CustomerQuote;
+using BackEnd.DTOs.Responses.SalesOrder;
 using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using BackEnd.Utils;
@@ -12,10 +13,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BackEnd.Services;
 
-public class CustomerQuoteService(AppDbContext context, CustomerService customerService, IMapper mapper)
+public class CustomerQuoteService(AppDbContext context, CustomerService customerService, SalesOrderService salesOrderService, IMapper mapper)
 {
     private readonly AppDbContext _context = context;
     private readonly CustomerService _customerService = customerService;
+    private readonly SalesOrderService _salesOrderService = salesOrderService;
     private readonly IMapper _mapper = mapper;
     private const int QuoteValidityDays = 10;
 
@@ -63,7 +65,8 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
 
         if (queryDto.ExpirationDate.HasValue)
         {
-            var targetCreationDate = queryDto.ExpirationDate.Value.AddDays(-QuoteValidityDays);
+            var calendarDays = DateTimeUtils.WorkingDaysToCalendarDays(QuoteValidityDays);
+            var targetCreationDate = queryDto.ExpirationDate.Value.AddDays(-calendarDays);
             quotesQuery = quotesQuery.Where(q => q.Date.Date == targetCreationDate.Date);
         }
 
@@ -122,7 +125,7 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
 
         var branchId = request.Sale.BranchId ?? request.Sale.CashierNumber ?? 0;
         if (branchId <= 0)
-            return Result<CustomerQuoteWrapperDto>.Failure("La sucursal es obligatoria.", ErrorType.Validation);
+            return Result<CustomerQuoteWrapperDto>.Failure(CustomerQuoteError.BranchRequired, ErrorType.Validation);
 
         await ExpireQuotesIfNeededAsync(customerIdResult.Value);
 
@@ -184,6 +187,10 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
 
             _context.CustomerQuotes.Add(quote);
             await _context.SaveChangesAsync();
+
+            quote.Number = $"COT-{quote.Id:D6}";
+            await _context.SaveChangesAsync();
+
             await transaction.CommitAsync();
 
             var createdQuote = await _context.CustomerQuotes
@@ -238,7 +245,7 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
 
         var branchId = request.Sale.BranchId ?? request.Sale.CashierNumber ?? quote.BranchId;
         if (branchId <= 0)
-            return Result<CustomerQuoteWrapperDto>.Failure("La sucursal es obligatoria.", ErrorType.Validation);
+            return Result<CustomerQuoteWrapperDto>.Failure(CustomerQuoteError.BranchRequired, ErrorType.Validation);
 
         var details = new List<CustomerQuoteDetail>();
         foreach (var product in request.Products)
@@ -300,6 +307,84 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
         }
     }
 
+    public async Task<Result<SalesOrderWrapperDto>> SellFromQuoteAsync(int quoteId, int userId)
+    {
+        var quote = await _context.CustomerQuotes
+            .Include(q => q.CustomerQuoteDetails)
+            .ThenInclude(d => d.Product)
+            .FirstOrDefaultAsync(q => q.Id == quoteId);
+
+        if (quote == null)
+            return Result<SalesOrderWrapperDto>.Failure(CustomerQuoteError.CustomerQuoteNotFound, ErrorType.NotFound);
+
+        await ExpireQuoteIfNeededAsync(quote);
+
+        if (quote.Status == CustomerQuote.QuoteStatus.Expired)
+            return Result<SalesOrderWrapperDto>.Failure(CustomerQuoteError.QuoteExpired, ErrorType.Conflict);
+
+        if (quote.Status == CustomerQuote.QuoteStatus.Closed)
+            return Result<SalesOrderWrapperDto>.Failure(CustomerQuoteError.QuoteAlreadySold, ErrorType.Conflict);
+
+        var details = quote.CustomerQuoteDetails.Select(d => new CreateSalesOrderDetailRequestDto
+        {
+            ProductId = d.ProductId,
+            Quantity = d.Quantity,
+            Price = d.Price
+        }).ToList();
+
+        var isCredit = quote.SaleCondition == SaleConditionEnum.Credit;
+        var movementType = quote.MovementType ?? (int)BankMovementTypeEnum.Credit;
+
+        var request = new CreateSalesOrderRequestDto
+        {
+            CustomerId = quote.CustomerId,
+            SalesOrderState = SalesOrderStateEnum.Confirmed,
+            Date = DateTime.UtcNow,
+            BillType = quote.BillType,
+            IsCredit = isCredit,
+            PaymentMethod = quote.PaymentMethod,
+            SaleCondition = quote.SaleCondition,
+            AccountId = quote.AccountId ?? 0,
+            MovementType = movementType,
+            BranchId = quote.BranchId,
+            ImportValue = quote.ImportValue,
+            CustomerQuoteId = quote.Id,
+            Details = details
+        };
+
+        var result = await _salesOrderService.CreateAsync(request, userId);
+
+        if (!result.IsSuccess)
+            return result;
+
+        quote.Status = CustomerQuote.QuoteStatus.Closed;
+        await _context.SaveChangesAsync();
+
+        return result;
+    }
+
+    public async Task<Result> CancelAsync(int id)
+    {
+        var quote = await _context.CustomerQuotes
+            .FirstOrDefaultAsync(q => q.Id == id);
+
+        if (quote == null)
+            return Result.Failure(CustomerQuoteError.CustomerQuoteNotFound, ErrorType.NotFound);
+
+        await ExpireQuoteIfNeededAsync(quote);
+
+        if (quote.Status == CustomerQuote.QuoteStatus.Expired)
+            return Result.Failure(CustomerQuoteError.QuoteExpired, ErrorType.Conflict);
+
+        if (quote.Status == CustomerQuote.QuoteStatus.Closed)
+            return Result.Failure(CustomerQuoteError.QuoteAlreadySold, ErrorType.Conflict);
+
+        quote.Status = CustomerQuote.QuoteStatus.Cancelled;
+        await _context.SaveChangesAsync();
+
+        return Result.Success();
+    }
+
     private async Task<Result<int>> ResolveCustomerIdAsync(CustomerQuoteCustomerRequestDto customer)
     {
         var ruc = customer.Ruc?.Trim();
@@ -313,12 +398,14 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
 
         var name = customer.Name?.Trim();
         if (string.IsNullOrWhiteSpace(name))
-            return Result<int>.Failure("customer.name es obligatorio cuando el cliente no existe.", ErrorType.Validation);
+            return Result<int>.Failure(CustomerError.NameRequiredForNewCustomer, ErrorType.Validation);
 
         var createdCustomerResult = await _customerService.CreateAsync(new CreateCustomerRequestDto
         {
             Name = name,
-            Ruc = ruc ?? string.Empty
+            Ruc = ruc ?? string.Empty,
+            BirthDate = customer.BirthDate,
+            Email = customer.Email
         });
 
         if (!createdCustomerResult.IsSuccess)
@@ -335,13 +422,13 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
     private async Task<Result<int>> ResolveProductIdAsync(CustomerQuoteProductRequestDto product)
     {
         if (product.Quantity <= 0)
-            return Result<int>.Failure("Cada producto debe tener quantity > 0.", ErrorType.Validation);
+            return Result<int>.Failure(CustomerQuoteError.ProductQuantityRequired, ErrorType.Validation);
 
         if (product.ProductId.HasValue)
             return Result<int>.Success(product.ProductId.Value);
 
         if (string.IsNullOrWhiteSpace(product.Barcode))
-            return Result<int>.Failure("Cada producto debe tener productId o barcode.", ErrorType.Validation);
+            return Result<int>.Failure(CustomerQuoteError.ProductIdOrBarcodeRequired, ErrorType.Validation);
 
         var barcode = product.Barcode.Trim();
         var productEntity = await _context.Products
@@ -349,7 +436,7 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
             .FirstOrDefaultAsync(p => p.Barcode == barcode);
 
         if (productEntity == null)
-            return Result<int>.Failure($"No se encontro producto con barcode {barcode}.", ErrorType.Validation);
+            return Result<int>.Failure(string.Format(CustomerQuoteError.ProductNotFoundWithBarcode, barcode), ErrorType.Validation);
 
         return Result<int>.Success(productEntity.Id);
     }
@@ -363,9 +450,15 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
         if (customerId.HasValue)
             openQuotesQuery = openQuotesQuery.Where(q => q.CustomerId == customerId.Value);
 
+        var calendarDays = DateTimeUtils.WorkingDaysToCalendarDays(QuoteValidityDays);
+
         var quotesToExpire = await openQuotesQuery
-            .Where(q => q.Date.AddDays(QuoteValidityDays) < utcNow)
+            .Where(q => q.Date.AddDays(calendarDays) < utcNow)
             .ToListAsync();
+
+        quotesToExpire = quotesToExpire
+            .Where(q => DateTimeUtils.AddWorkingDays(q.Date, QuoteValidityDays) < utcNow)
+            .ToList();
 
         if (quotesToExpire.Count == 0)
             return;
@@ -381,7 +474,7 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
         if (quote.Status == CustomerQuote.QuoteStatus.Expired)
             return;
 
-        if (quote.Date.AddDays(QuoteValidityDays) >= DateTime.UtcNow)
+        if (DateTimeUtils.AddWorkingDays(quote.Date, QuoteValidityDays) >= DateTime.UtcNow)
             return;
 
         quote.Status = CustomerQuote.QuoteStatus.Expired;

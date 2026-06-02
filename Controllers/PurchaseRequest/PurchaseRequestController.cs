@@ -7,7 +7,6 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using BackEnd.DTOs.Requests.Pagination;
 
 namespace BackEnd.Controllers.PurchaseRequest;
 
@@ -43,9 +42,9 @@ public class PurchaseRequestController(PurchaseRequestService purchaseRequestSer
     }
 
     [HttpGet]
-    public async Task<ActionResult<ListPurchaseRequestsWrapperDto>> GetList([FromQuery] PaginationRequestDto pagination)
+    public async Task<ActionResult<ListPurchaseRequestsWrapperDto>> GetList([FromQuery] PurchaseRequestQueryDto query)
     {
-        var result = await _purchaseRequestService.GetListAsync(pagination);
+        var result = await _purchaseRequestService.GetListAsync(query);
         if (result.IsSuccess) return Ok(result.Value);
 
         return this.HandleServerError(PurchaseRequestError.ProcessFailed, result);

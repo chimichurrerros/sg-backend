@@ -20,6 +20,7 @@ public class EmployeeResponseDto
     public int AreaId { get; set; }
     public string AreaName { get; set; } = null!;
     public int? BranchId { get; set; }
+    public string? BranchName { get; set; }
     public int? InmediatlyBossId { get; set; }
     public DateOnly HireDate { get; set; }
     public BackEnd.Models.Employee.MaritalStatusEnum MaritalStatus { get; set; }

@@ -5,7 +5,7 @@ namespace BackEnd.DTOs.Requests.PurchaseReturn;
 
 public class CreatePurchaseReturnDto
 {
-    public int PurchaseOrderId { get; set; }
+    public int PurchaseOrderForSupplierId { get; set; }
     public int? BillId { get; set; }
     public int BranchId { get; set; }
     public int? ReasonId { get; set; }

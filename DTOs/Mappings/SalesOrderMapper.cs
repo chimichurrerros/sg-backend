@@ -14,7 +14,9 @@ public class SalesOrderMapper : Profile
             .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => $"{src.User.Name} {src.User.LastName}"))
             .ForMember(dest => dest.Details, opt => opt.MapFrom(src => src.SalesOrderDetails))
             .ForMember(dest => dest.Bills, opt => opt.MapFrom(src => src.Bills))
-            .ForMember(dest => dest.CustomerRuc, opt => opt.MapFrom(src => src.Customer!.Ruc));
+            .ForMember(dest => dest.CustomerRuc, opt => opt.MapFrom(src => src.Customer!.Ruc))
+            .ForMember(dest => dest.CustomerBirthDate, opt => opt.MapFrom(src => src.Customer!.BirthDate))
+            .ForMember(dest => dest.CustomerEmail, opt => opt.MapFrom(src => src.Customer!.Email));
 
         CreateMap<SalesOrderDetail, SalesOrderDetailResponseDto>()
             .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product.Name))
