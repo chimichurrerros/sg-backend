@@ -87,8 +87,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ManualConceptIncident> ManualConceptIncidents { get; set; }
 
-    public virtual DbSet<PayrollStatus> PayrollStatuses { get; set; }
-
     public virtual DbSet<PayrollUpdate> PayrollUpdates { get; set; }
 
     public virtual DbSet<PhysicalPerson> PhysicalPersons { get; set; }
@@ -668,10 +666,7 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Name).HasMaxLength(100);
 
-            entity.HasOne(d => d.PayrollStatus).WithMany(p => p.PayrollProcesses)
-                .HasForeignKey(d => d.PayrollStatusId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("PayrollProcesses_PayrollStatusId_fkey");
+            entity.Property(e => e.PayrollStatusId).HasConversion<int>();
         });
 
         modelBuilder.Entity<PayrollProcessDetail>(entity =>
@@ -718,15 +713,6 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.PayrollProcessId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("ManualConceptIncidents_PayrollProcessId_fkey");
-        });
-
-        modelBuilder.Entity<PayrollStatus>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PayrollStatus_pkey");
-
-            entity.ToTable("PayrollStatus");
-
-            entity.Property(e => e.Name).HasMaxLength(50);
         });
 
         modelBuilder.Entity<PayrollUpdate>(entity =>
