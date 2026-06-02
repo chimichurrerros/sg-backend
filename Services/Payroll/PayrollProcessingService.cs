@@ -496,10 +496,11 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             .ToListAsync();
 
         var summaries = details
-            .GroupBy(d => d.Employee)
+            .GroupBy(d => d.EmployeeId)
             .Select(g =>
             {
-                var employee = g.Key;
+                var firstDetail = g.First();
+                var employee = firstDetail.Employee;
                 var sueldoBruto = g
                     .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings)
                     .Sum(d => d.Amount);
@@ -1195,9 +1196,6 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             .Include(lp => lp.Entity)
             .FirstOrDefaultAsync();
 
-        if (legalPerson is null)
-            return Result<PayrollEmployeeReceiptDto>.Failure("No se encontraron datos de la empresa.", ErrorType.NotFound);
-
         var position = await _context.PositionByScheduleByEmployees
             .AsNoTracking()
             .Where(psbe => psbe.EmployeeId == employeeId
@@ -1255,10 +1253,10 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
 
         return Result<PayrollEmployeeReceiptDto>.Success(new PayrollEmployeeReceiptDto
         {
-            CompanyBusinessName = legalPerson.BussinessName,
-            CompanyCuit = legalPerson.Entity.DocumentNumber,
-            CompanyAddress = legalPerson.Entity.Address ?? "",
-            CompanyPhone = legalPerson.Entity.Phone ?? "",
+            CompanyBusinessName = legalPerson?.BussinessName ?? "",
+            CompanyCuit = legalPerson?.Entity?.DocumentNumber ?? "",
+            CompanyAddress = legalPerson?.Entity?.Address ?? "",
+            CompanyPhone = legalPerson?.Entity?.Phone ?? "",
             BranchName = employee.Branch?.Name ?? "",
             BranchAddress = employee.Branch?.Address ?? "",
             EmployeeName = $"{employee.Name} {employee.Lastname}",

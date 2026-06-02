@@ -6,8 +6,8 @@ public partial class EmployeeRelation
 {
     public enum RelationTypeEnum
     {
-        Spouse = 1,
-        Child = 2
+        Child = 1,
+        Spouse = 2
     }
 
     public int Id { get; set; }
