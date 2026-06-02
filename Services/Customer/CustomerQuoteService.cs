@@ -28,7 +28,7 @@ namespace BackEnd.Services;
 
 
 
-public class CustomerQuoteService(AppDbContext context, CustomerService customerService, SalesOrderService salesOrderService, IMapper mapper)
+public class CustomerQuoteService(AppDbContext context, CustomerService customerService, SalesOrderService salesOrderService, StockService stockService, IMapper mapper)
 
 {
 
@@ -37,6 +37,8 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
     private readonly CustomerService _customerService = customerService;
 
     private readonly SalesOrderService _salesOrderService = salesOrderService;
+
+    private readonly StockService _stockService = stockService;
 
     private readonly IMapper _mapper = mapper;
 
@@ -50,34 +52,19 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
 
         await ExpireQuotesIfNeededAsync();
 
-
-
         var quotes = await _context.CustomerQuotes
-
             .AsNoTracking()
-
             .Include(q => q.Customer)
-
             .Include(q => q.User)
-
             .Include(q => q.Branch)
-
             .Include(q => q.SalesOrders)
-
             .Include(q => q.CustomerQuoteDetails)
 
                 .ThenInclude(d => d.Product)
-
             .OrderByDescending(q => q.Id)
-
             .ToListAsync();
 
-
-
         var quoteDtos = _mapper.Map<List<CustomerQuoteResponseDto>>(quotes);
-
-
-
         return Result<ListCustomerQuotesWrapperDto>.Success(new ListCustomerQuotesWrapperDto
 
         {
@@ -88,15 +75,11 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
 
     }
 
-
-
     public async Task<Result<ListCustomerQuotesWrapperDto>> GetListAsync(CustomerQuoteQueryDto queryDto)
 
     {
 
         await ExpireQuotesIfNeededAsync();
-
-
 
         IQueryable<CustomerQuote> quotesQuery = _context.CustomerQuotes
 
@@ -651,6 +634,14 @@ public class CustomerQuoteService(AppDbContext context, CustomerService customer
             return Result<SalesOrderWrapperDto>.Failure(CustomerQuoteError.QuoteAlreadySold, ErrorType.Conflict);
 
 
+
+        foreach (var detail in quote.CustomerQuoteDetails)
+        {
+            var stockValidation = await _stockService.ValidateSufficientStockAsync(
+                detail.ProductId, quote.BranchId, detail.Quantity);
+            if (!stockValidation.IsSuccess)
+                return Result<SalesOrderWrapperDto>.Failure(stockValidation.ErrorMessage!, stockValidation.ErrorType);
+        }
 
         var details = quote.CustomerQuoteDetails.Select(d => new CreateSalesOrderDetailRequestDto
 
