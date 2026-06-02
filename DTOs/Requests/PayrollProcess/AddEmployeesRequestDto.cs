@@ -1,6 +1,9 @@
+using System.Text.Json.Serialization;
+
 namespace BackEnd.DTOs.Requests.PayrollProcess;
 
 public class AddEmployeesRequestDto
 {
-    public List<int> EmployeeIds { get; set; } = [];
+    [JsonPropertyName("employeeIds")]
+    public int[] EmployeeIds { get; set; } = [];
 }

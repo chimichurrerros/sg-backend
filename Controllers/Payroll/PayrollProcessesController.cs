@@ -152,7 +152,7 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
     }
 
     [HttpPost("{id}/add-employees")]
-    public async Task<ActionResult> AddEmployees(int id, AddEmployeesRequestDto request)
+    public async Task<ActionResult> AddEmployees(int id, [FromBody] AddEmployeesRequestDto request)
     {
         var result = await _payrollProcessingService.AddEmployeesAsync(id, request.EmployeeIds);
 

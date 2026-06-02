@@ -265,7 +265,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         return Result<List<EligibleEmployeeResponseDto>>.Success(eligibleEmployees);
     }
 
-    public async Task<Result<int>> AddEmployeesAsync(int processId, List<int> employeeIds)
+    public async Task<Result<int>> AddEmployeesAsync(int processId, int[] employeeIds)
     {
         var process = await _context.PayrollProcesses.FirstOrDefaultAsync(payrollProcess => payrollProcess.Id == processId);
         if (process is null)
@@ -342,6 +342,15 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
                 var attendanceData = await ResolveAttendanceDataAsync(employee.Id, process.Year, process.Month);
                 var cantidadHijos = await ResolveChildrenCountAsync(employee.Id, referenceDate);
 
+                var aniosAntiguedad = process.Year - employee.HireDate.Year;
+                if (employee.HireDate.Month > process.Month ||
+                    (employee.HireDate.Month == process.Month && employee.HireDate.Day > DateTime.DaysInMonth(process.Year, process.Month)))
+                    aniosAntiguedad--;
+
+                var sueldoMinimo = 2899048m;
+                var valorHoraOrdinaria = decimal.Round(jornalDiario / 8m, 2, MidpointRounding.AwayFromZero);
+                var horasTardanza = attendanceData.DiasTardanza * 1m;
+
                 var variables = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
                 {
                     ["SalarioBase"] = salarioBase,
@@ -350,7 +359,13 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
                     ["DiasAusencia"] = attendanceData.DiasAusencia,
                     ["DiasTardanza"] = attendanceData.DiasTardanza,
                     ["CantidadHijos"] = cantidadHijos,
-                    ["TotalDeducibleIPS"] = 0m
+                    ["TotalDeducibleIPS"] = 0m,
+                    ["AniosAntiguedad"] = aniosAntiguedad,
+                    ["SueldoMinimo"] = sueldoMinimo,
+                    ["ValorHoraOrdinaria"] = valorHoraOrdinaria,
+                    ["HorasTardanza"] = horasTardanza,
+                    ["CantidadHoras50"] = 0m,
+                    ["CantidadHoras100"] = 0m
                 };
 
                 var totalDeducibleIPS = 0m;
@@ -775,6 +790,15 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
                 var attendanceData = await ResolveAttendanceDataAsync(employee.Id, process.Year, process.Month);
                 var cantidadHijos = await ResolveChildrenCountAsync(employee.Id, referenceDate);
 
+                var aniosAntiguedad = process.Year - employee.HireDate.Year;
+                if (employee.HireDate.Month > process.Month ||
+                    (employee.HireDate.Month == process.Month && employee.HireDate.Day > DateTime.DaysInMonth(process.Year, process.Month)))
+                    aniosAntiguedad--;
+
+                var sueldoMinimo = 2899048m;
+                var valorHoraOrdinaria = decimal.Round(jornalDiario / 8m, 2, MidpointRounding.AwayFromZero);
+                var horasTardanza = attendanceData.DiasTardanza * 1m;
+
                 var variables = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
                 {
                     ["SalarioBase"] = salarioBase,
@@ -783,7 +807,13 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
                     ["DiasAusencia"] = attendanceData.DiasAusencia,
                     ["DiasTardanza"] = attendanceData.DiasTardanza,
                     ["CantidadHijos"] = cantidadHijos,
-                    ["TotalDeducibleIPS"] = 0m
+                    ["TotalDeducibleIPS"] = 0m,
+                    ["AniosAntiguedad"] = aniosAntiguedad,
+                    ["SueldoMinimo"] = sueldoMinimo,
+                    ["ValorHoraOrdinaria"] = valorHoraOrdinaria,
+                    ["HorasTardanza"] = horasTardanza,
+                    ["CantidadHoras50"] = 0m,
+                    ["CantidadHoras100"] = 0m
                 };
 
                 var totalDeducibleIPS = 0m;
@@ -910,7 +940,8 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         if (process is null)
             return Result<PayrollCloseAndPayResponseDto>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
 
-        if (process.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Processed)
+        if (process.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Processed
+            && process.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Open)
             return Result<PayrollCloseAndPayResponseDto>.Failure("La planilla debe estar en estado 'Procesado' para cerrar y pagar.", ErrorType.Conflict);
 
         var details = await _context.PayrollProcessDetails
