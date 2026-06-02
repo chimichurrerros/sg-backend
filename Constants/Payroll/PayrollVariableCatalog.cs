@@ -50,6 +50,11 @@ public static class PayrollVariableCatalog
         },
         new PayrollVariableResponseDto
         {
+<<<<<<< HEAD
+            Code = "SueldoMinimo",
+            Name = "SueldoMinimo",
+            Description = "Salario mínimo legal vigente en Paraguay."
+=======
             Code = "AniosAntiguedad",
             Name = "AniosAntiguedad",
             Description = "Años de servicio del empleado en la empresa desde su fecha de ingreso."
@@ -83,6 +88,7 @@ public static class PayrollVariableCatalog
             Code = "CantidadHoras100",
             Name = "CantidadHoras100",
             Description = "Horas extras trabajadas en feriados o domingos (recargo del 100%)."
+>>>>>>> f2106ea2e1fd48c0df24fb0c460216e542820eaf
         }
     };
 

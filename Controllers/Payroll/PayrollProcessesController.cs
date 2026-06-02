@@ -205,6 +205,85 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
         return StatusCode(500);
     }
 
+    [HttpGet("{processId}/eligible-employees")]
+    public async Task<ActionResult<List<EligibleEmployeeResponseDto>>> GetEligibleEmployees(int processId)
+    {
+        var result = await _payrollProcessingService.GetEligibleEmployeesAsync(processId);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        return StatusCode(500);
+    }
+
+    [HttpPost("{processId}/add-employees")]
+    public async Task<ActionResult> AddEmployees(int processId, AddEmployeesRequestDto request)
+    {
+        var result = await _payrollProcessingService.AddEmployeesToProcessAsync(processId, request.EmployeeIds);
+
+        if (result.IsSuccess)
+            return Ok(new { addedCount = result.Value });
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        if (result.ErrorType == ErrorType.Conflict)
+            return Conflict(result.ErrorMessage);
+
+        return StatusCode(500);
+    }
+
+    [HttpGet("{processId}/detail-summaries")]
+    public async Task<ActionResult<List<PayrollDetailSummaryResponseDto>>> GetDetailSummaries(int processId)
+    {
+        var result = await _payrollProcessingService.GetDetailSummariesAsync(processId);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        return StatusCode(500);
+    }
+
+    [HttpPost("{processId}/close")]
+    public async Task<ActionResult<PayrollCloseResponseDto>> Close(int processId)
+    {
+        var result = await _payrollProcessingService.CloseProcessAsync(processId);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        if (result.ErrorType == ErrorType.Conflict)
+            return Conflict(result.ErrorMessage);
+
+        return StatusCode(500);
+    }
+
+    [HttpDelete("{processId}/employees/{employeeId}")]
+    public async Task<ActionResult> RemoveEmployee(int processId, int employeeId)
+    {
+        var result = await _payrollProcessingService.RemoveEmployeeFromProcessAsync(processId, employeeId);
+
+        if (result.IsSuccess)
+            return NoContent();
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        if (result.ErrorType == ErrorType.Conflict)
+            return Conflict(result.ErrorMessage);
+
+        return StatusCode(500);
+    }
+
     [HttpPost("{id}/close-and-pay")]
     public async Task<ActionResult<PayrollCloseAndPayResponseDto>> CloseAndPay(int id)
     {
