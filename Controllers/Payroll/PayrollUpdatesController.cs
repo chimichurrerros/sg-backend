@@ -5,6 +5,7 @@ using BackEnd.Services;
 using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Payroll;
