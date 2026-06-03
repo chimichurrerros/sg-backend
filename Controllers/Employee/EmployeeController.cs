@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Employee;
 
 [Route("api/employees")]
@@ -17,6 +18,7 @@ public class EmployeeController(EmployeeService employeeService) : ControllerBas
     private readonly EmployeeService _employeeService = employeeService;
 
     [HttpGet]
+    [HasPermission("employees.view")]
     public async Task<ActionResult<ListEmployeesWrapperDto>> GetList([FromQuery] PaginationRequestDto pagination)
     {
         var result = await _employeeService.GetListAsync(pagination);
@@ -25,6 +27,7 @@ public class EmployeeController(EmployeeService employeeService) : ControllerBas
     }
 
     [HttpGet("{id}")]
+    [HasPermission("employees.view")]
     public async Task<ActionResult<EmployeeWrapperDto>> GetById(int id)
     {
         var result = await _employeeService.GetByIdAsync(id);
@@ -34,6 +37,7 @@ public class EmployeeController(EmployeeService employeeService) : ControllerBas
     }
 
     [HttpPost]
+    [HasPermission("employees.create")]
     public async Task<ActionResult<EmployeeWrapperDto>> Create(CreateEmployeeRequestDto request)
     {
         var result = await _employeeService.CreateAsync(request);
@@ -43,6 +47,7 @@ public class EmployeeController(EmployeeService employeeService) : ControllerBas
     }
 
     [HttpPut("{id}")]
+    [HasPermission("employees.update")]
     public async Task<ActionResult<EmployeeWrapperDto>> Update(int id, UpdateEmployeeRequestDto request)
     {
         var result = await _employeeService.UpdateAsync(id, request);
@@ -53,6 +58,7 @@ public class EmployeeController(EmployeeService employeeService) : ControllerBas
     }
 
     [HttpDelete("{id}")]
+    [HasPermission("employees.delete")]
     public async Task<ActionResult> Delete(int id)
     {
         var result = await _employeeService.DeleteAsync(id);
@@ -63,6 +69,7 @@ public class EmployeeController(EmployeeService employeeService) : ControllerBas
     }
 
     [HttpGet("{id}/position-history")]
+    [HasPermission("employees.view")]
     public async Task<ActionResult<ListEmployeePositionHistoriesWrapperDto>> GetPositionHistory(int id)
     {
         var result = await _employeeService.GetPositionHistoriesAsync(id);
@@ -72,6 +79,7 @@ public class EmployeeController(EmployeeService employeeService) : ControllerBas
     }
 
     [HttpPost("{id}/position-history")]
+    [HasPermission("employees.create")]
     public async Task<ActionResult<EmployeePositionHistoryWrapperDto>> AddPositionHistory(int id, CreateEmployeePositionHistoryRequestDto request)
     {
         var result = await _employeeService.AddPositionHistoryAsync(id, request);
@@ -82,6 +90,7 @@ public class EmployeeController(EmployeeService employeeService) : ControllerBas
     }
 
     [HttpPut("{id}/position-history/{historyId}")]
+    [HasPermission("employees.update")]
     public async Task<ActionResult<EmployeePositionHistoryWrapperDto>> UpdatePositionHistory(int id, int historyId, UpdateEmployeePositionHistoryRequestDto request)
     {
         var result = await _employeeService.UpdatePositionHistoryAsync(id, historyId, request);
@@ -93,6 +102,7 @@ public class EmployeeController(EmployeeService employeeService) : ControllerBas
     }
 
     [HttpDelete("{id}/position-history/{historyId}")]
+    [HasPermission("employees.delete")]
     public async Task<ActionResult> DeletePositionHistory(int id, int historyId)
     {
         var result = await _employeeService.DeletePositionHistoryAsync(id, historyId);
@@ -103,6 +113,7 @@ public class EmployeeController(EmployeeService employeeService) : ControllerBas
     }
 
     [HttpGet("{id}/relations")]
+    [HasPermission("employees.view")]
     public async Task<ActionResult<ListEmployeeRelationsWrapperDto>> GetRelations(int id)
     {
         var result = await _employeeService.GetRelationsAsync(id);
@@ -112,6 +123,7 @@ public class EmployeeController(EmployeeService employeeService) : ControllerBas
     }
 
     [HttpPost("{id}/relations")]
+    [HasPermission("employees.create")]
     public async Task<ActionResult<EmployeeRelationWrapperDto>> AddRelation(int id, CreateEmployeeRelationRequestDto request)
     {
         var result = await _employeeService.AddRelationAsync(id, request);
@@ -122,6 +134,7 @@ public class EmployeeController(EmployeeService employeeService) : ControllerBas
     }
 
     [HttpPut("{id}/relations/{relationId}")]
+    [HasPermission("employees.update")]
     public async Task<ActionResult<EmployeeRelationWrapperDto>> UpdateRelation(int id, int relationId, UpdateEmployeeRelationRequestDto request)
     {
         var result = await _employeeService.UpdateRelationAsync(id, relationId, request);
@@ -133,6 +146,7 @@ public class EmployeeController(EmployeeService employeeService) : ControllerBas
     }
 
     [HttpDelete("{id}/relations/{relationId}")]
+    [HasPermission("employees.delete")]
     public async Task<ActionResult> DeleteRelation(int id, int relationId)
     {
         var result = await _employeeService.DeleteRelationAsync(id, relationId);

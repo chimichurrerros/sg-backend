@@ -15,4 +15,5 @@ public static class SupplierError
     public const string InvalidProductCategories = "Una o más categorías de producto no existen";
     public const string EntityTypeNotConfigured = "No existe configuración para el tipo de entidad seleccionado";
     public const string SupplierNotFound = "No se encontró el proveedor solicitado";
+    public const string ProductsRequired = "Debe especificar al menos un producto.";
 }

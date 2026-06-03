@@ -347,6 +347,66 @@ public class SupplierService(AppDbContext context, IMapper mapper)
         }
     }
 
+    public async Task<Result<EligibleSuppliersWrapperDto>> GetEligibleSuppliersAsync(List<int> productIds)
+    {
+        if (productIds == null || productIds.Count == 0)
+            return Result<EligibleSuppliersWrapperDto>.Failure(SupplierError.ProductsRequired, ErrorType.Validation);
+
+        var products = await _context.Products
+            .AsNoTracking()
+            .Where(p => productIds.Contains(p.Id) && p.ProductCategoryId != null)
+            .Select(p => new { p.Id, p.ProductCategoryId, CategoryName = p.ProductCategory.Name })
+            .ToListAsync();
+
+        var distinctCategoryIds = products
+            .Select(p => p.ProductCategoryId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (distinctCategoryIds.Count == 0)
+            return Result<EligibleSuppliersWrapperDto>.Success(new EligibleSuppliersWrapperDto());
+
+        var suppliers = await _context.Suppliers
+            .AsNoTracking()
+            .Include(s => s.SupplierCategories)
+                .ThenInclude(sc => sc.ProductCategory)
+            .Where(s => s.IsActive && s.SupplierCategories.Any(sc => distinctCategoryIds.Contains(sc.ProductCategoryId)))
+            .ToListAsync();
+
+        var dtos = suppliers.Select(s =>
+        {
+            var matchingCategoryIds = s.SupplierCategories
+                .Where(sc => distinctCategoryIds.Contains(sc.ProductCategoryId))
+                .Select(sc => sc.ProductCategoryId)
+                .ToHashSet();
+
+            var matchingProductIds = products
+                .Where(p => p.ProductCategoryId.HasValue && matchingCategoryIds.Contains(p.ProductCategoryId.Value))
+                .Select(p => p.Id)
+                .ToList();
+
+            var categoryNames = s.SupplierCategories
+                .Where(sc => matchingCategoryIds.Contains(sc.ProductCategoryId))
+                .Select(sc => sc.ProductCategory.Name)
+                .Distinct()
+                .ToList();
+
+            return new EligibleSupplierDto
+            {
+                SupplierId = s.Id,
+                BusinessName = s.BusinessName,
+                FantasyName = s.FantasyName,
+                ProductIds = matchingProductIds,
+                CategoryNames = categoryNames
+            };
+        }).ToList();
+
+        return Result<EligibleSuppliersWrapperDto>.Success(new EligibleSuppliersWrapperDto
+        {
+            EligibleSuppliers = dtos
+        });
+    }
+
     /// <summary>
     /// Adds product categories for a supplier (without removing existing ones).
     /// </summary>

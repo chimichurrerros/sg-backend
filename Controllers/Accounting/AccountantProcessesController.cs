@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Accounting;
 
 [Route("api/accountant-processes")]
@@ -17,6 +18,7 @@ public class AccountantProcessesController(AccountantProcessService accountantPr
     private readonly AccountantProcessService _accountantProcessService = accountantProcessService;
 
     [HttpGet]
+    [HasPermission("accountantProcesses.view")]
     public async Task<ActionResult<ListAccountantProcessesWrapperDto>> GetList([FromQuery] PaginationRequestDto query)
     {
         var result = await _accountantProcessService.GetListAsync(query);
@@ -28,6 +30,7 @@ public class AccountantProcessesController(AccountantProcessService accountantPr
     }
 
     [HttpGet("all")]
+    [HasPermission("accountantProcesses.view")]
     public async Task<ActionResult<ListAccountantProcessesWrapperDto>> GetAll()
     {
         var result = await _accountantProcessService.GetAllAsync();
@@ -38,7 +41,23 @@ public class AccountantProcessesController(AccountantProcessService accountantPr
         return StatusCode(500);
     }
 
+    [HttpGet("last")]
+    [HasPermission("accountantProcesses.view")]
+    public async Task<ActionResult<AccountantProcessWrapperDto>> GetLast()
+    {
+        var result = await _accountantProcessService.GetLastAsync();
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        return StatusCode(500);
+    }
+
     [HttpGet("{id}")]
+    [HasPermission("accountantProcesses.view")]
     public async Task<ActionResult<AccountantProcessWrapperDto>> GetById(int id)
     {
         var result = await _accountantProcessService.GetByIdAsync(id);
@@ -53,6 +72,7 @@ public class AccountantProcessesController(AccountantProcessService accountantPr
     }
 
     [HttpPost]
+    [HasPermission("accountantProcesses.create")]
     public async Task<ActionResult<AccountantProcessWrapperDto>> Create(CreateAccountantProcessRequestDto request)
     {
         var result = await _accountantProcessService.CreateAsync(request);
@@ -67,6 +87,7 @@ public class AccountantProcessesController(AccountantProcessService accountantPr
     }
 
     [HttpPut("{id}")]
+    [HasPermission("accountantProcesses.update")]
     public async Task<ActionResult<AccountantProcessWrapperDto>> Update(int id, UpdateAccountantProcessRequestDto request)
     {
         var result = await _accountantProcessService.UpdateAsync(id, request);

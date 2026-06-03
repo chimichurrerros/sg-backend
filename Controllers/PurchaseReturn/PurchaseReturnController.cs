@@ -8,6 +8,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.PurchaseReturn;
 
 [Route("api/purchase-returns")]
@@ -18,6 +19,7 @@ public class PurchaseReturnController(PurchaseReturnService purchaseReturnServic
     private readonly PurchaseReturnService _purchaseReturnService = purchaseReturnService;
 
     [HttpGet("reasons")]
+    [HasPermission("purchaseReturns.view")]
     public async Task<ActionResult<ListPurchaseReturnReasonsWrapperDto>> GetReasons()
     {
         var result = await _purchaseReturnService.GetReasonsAsync();
@@ -29,6 +31,7 @@ public class PurchaseReturnController(PurchaseReturnService purchaseReturnServic
     }
 
     [HttpPost("reasons")]
+    [HasPermission("purchaseReturns.create")]
     public async Task<ActionResult<PurchaseReturnReasonWrapperDto>> CreateReason(CreatePurchaseReturnReasonDto request)
     {
         var result = await _purchaseReturnService.CreateReasonAsync(request);
@@ -43,6 +46,7 @@ public class PurchaseReturnController(PurchaseReturnService purchaseReturnServic
     }
 
     [HttpGet]
+    [HasPermission("purchaseReturns.view")]
     public async Task<ActionResult<ListPurchaseReturnsWrapperDto>> GetList([FromQuery] PurchaseReturnQueryDto query)
     {
         var result = await _purchaseReturnService.GetListAsync(query);
@@ -54,6 +58,7 @@ public class PurchaseReturnController(PurchaseReturnService purchaseReturnServic
     }
 
     [HttpGet("{id}")]
+    [HasPermission("purchaseReturns.view")]
     public async Task<ActionResult<PurchaseReturnWrapperDto>> GetById(int id)
     {
         var result = await _purchaseReturnService.GetByIdAsync(id);
@@ -68,6 +73,7 @@ public class PurchaseReturnController(PurchaseReturnService purchaseReturnServic
     }
 
     [HttpPost]
+    [HasPermission("purchaseReturns.create")]
     public async Task<ActionResult<PurchaseReturnWrapperDto>> Create(CreatePurchaseReturnDto request)
     {
         var result = await _purchaseReturnService.CreateAsync(request);
@@ -85,6 +91,7 @@ public class PurchaseReturnController(PurchaseReturnService purchaseReturnServic
     }
 
     [HttpPost("with-bill")]
+    [HasPermission("purchaseReturns.create")]
     public async Task<ActionResult<PurchaseReturnWrapperDto>> CreateWithBill(CreateBillAndReturnDto request)
     {
         var result = await _purchaseReturnService.CreateWithBillAsync(request);

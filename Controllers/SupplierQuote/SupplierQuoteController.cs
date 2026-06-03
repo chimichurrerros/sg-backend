@@ -1,4 +1,3 @@
-using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Requests.SupplierQuote;
 using BackEnd.DTOs.Responses.SupplierQuote;
 using BackEnd.Services;
@@ -7,6 +6,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.SupplierQuote;
 
 [Route("api/supplierquotes")]
@@ -17,15 +17,17 @@ public class SupplierQuoteController(SupplierQuoteService supplierQuoteService) 
     private readonly SupplierQuoteService _supplierQuoteService = supplierQuoteService;
 
     [HttpGet]
-    public async Task<ActionResult<ListSupplierQuotesWrapperDto>> GetList([FromQuery] PaginationRequestDto pagination)
+    [HasPermission("supplierQuotes.view")]
+    public async Task<ActionResult<ListSupplierQuotesWrapperDto>> GetList([FromQuery] SupplierQuoteQueryDto query)
     {
-        var result = await _supplierQuoteService.GetListAsync(pagination);
+        var result = await _supplierQuoteService.GetListAsync(query);
         if (result.IsSuccess)
             return Ok(result.Value);
         return StatusCode(500);
     }
 
     [HttpGet("all")]
+    [HasPermission("supplierQuotes.view")]
     public async Task<ActionResult<ListSupplierQuotesWrapperDto>> GetAll()
     {
         var result = await _supplierQuoteService.GetAllAsync();
@@ -35,6 +37,7 @@ public class SupplierQuoteController(SupplierQuoteService supplierQuoteService) 
     }
 
     [HttpGet("{id}")]
+    [HasPermission("supplierQuotes.view")]
     public async Task<ActionResult<SupplierQuoteWrapperDto>> GetById(int id)
     {
         var result = await _supplierQuoteService.GetByIdAsync(id);
@@ -48,6 +51,7 @@ public class SupplierQuoteController(SupplierQuoteService supplierQuoteService) 
     }
 
     [HttpPost]
+    [HasPermission("supplierQuotes.create")]
     public async Task<ActionResult<SupplierQuoteWrapperDto>> Create(CreateSupplierQuoteRequestDto request)
     {
         var result = await _supplierQuoteService.CreateAsync(request);
@@ -61,6 +65,7 @@ public class SupplierQuoteController(SupplierQuoteService supplierQuoteService) 
     }
 
     [HttpPut("{id}")]
+    [HasPermission("supplierQuotes.update")]
     public async Task<ActionResult<SupplierQuoteWrapperDto>> Update(int id, UpdateSupplierQuoteRequestDto request)
     {
         var result = await _supplierQuoteService.UpdateAsync(id, request);

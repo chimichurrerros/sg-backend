@@ -7,7 +7,7 @@ public partial class PurchaseOrderDetail
 {
     public int Id { get; set; }
 
-    public int PurchaseOrderId { get; set; }
+    public int PurchaseOrderForSupplierId { get; set; }
 
     public int? SupplierQuoteDetailId { get; set; }
 
@@ -27,5 +27,5 @@ public partial class PurchaseOrderDetail
 
     public virtual SupplierQuoteDetail? SupplierQuoteDetail { get; set; }
 
-    public virtual PurchaseOrder PurchaseOrder { get; set; } = null!;
+    public virtual PurchaseOrderForSupplier PurchaseOrderForSupplier { get; set; } = null!;
 }

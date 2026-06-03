@@ -18,20 +18,6 @@ public class CreatePurchaseOrderRequestDto
     [Required]
     public int PurchaseRequestId { get; set; }
 
-    public int? SupplierId { get; set; }
-
-    public List<PurchaseOrderDetailRequestDto> Details { get; set; } = [];
-}
-
-public class UpdatePurchaseOrderRequestDto
-{
-    [Required]
-    public int PurchaseRequestId { get; set; }
-
-    public int? SupplierId { get; set; }
-
     [MinLength(1)]
     public List<PurchaseOrderDetailRequestDto> Details { get; set; } = [];
-
-    public int? State { get; set; }
 }

@@ -22,6 +22,9 @@ public class CreateSupplierQuoteRequestDto
     [Required]
     public int PurchaseRequestId { get; set; }
 
+    [Required]
+    public int RequestForQuotationId { get; set; }
+
     [MinLength(1)]
     public List<SupplierQuoteDetailRequestDto> Details { get; set; } = [];
 }
@@ -31,6 +34,8 @@ public class UpdateSupplierQuoteRequestDto
     public int? SupplierId { get; set; }
 
     public int? PurchaseRequestId { get; set; }
+
+    public int? RequestForQuotationId { get; set; }
 
     public List<SupplierQuoteDetailRequestDto>? Details { get; set; }
 

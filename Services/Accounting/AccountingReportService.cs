@@ -384,41 +384,22 @@ public class AccountingReportService(AppDbContext context)
 
         var balanceSheet = new BalanceSheetDto();
 
+        string assetPrefix = ((int)AccountantPlanMap.Activos).ToString();
+        string liabilityPrefix = ((int)AccountantPlanMap.Pasivos).ToString();
+        string equityPrefix = ((int)AccountantPlanMap.PatrimonioNeto).ToString();
+
         // Procesamos las cuentas correspondientes al Balance General (Activos, Pasivos y Patrimonio)
         foreach (var account in allAccounts.OrderBy(a => a.Code))
         {
             string code = account.Code;
-            string assetPrefix = ((int)AccountantPlanMap.Activos).ToString();
-            string liabilityPrefix = ((int)AccountantPlanMap.Pasivos).ToString();
 
-            // Identificamos las cuentas pertenecientes a Activos (código inicia con 1) y Pasivos/Patrimonio (inician con 2)
+            // Identificamos las cuentas pertenecientes a Activos (1), Pasivos (2) y Patrimonio Neto (3)
             bool isAsset = code.StartsWith(assetPrefix);
-            bool isLiabilityOrEquity = code.StartsWith(liabilityPrefix);
+            bool isLiability = code.StartsWith(liabilityPrefix);
+            bool isEquity = code.StartsWith(equityPrefix);
 
             // Si la cuenta no pertenece a ninguna de estas clasificaciones, no forma parte del Balance General
-            if (!isAsset && !isLiabilityOrEquity) continue;
-
-            bool isEquity = false;
-            bool isLiability = false;
-
-            // Si es Pasivo/Patrimonio, determinamos si corresponde a Patrimonio (según nombre o rangos específicos de códigos)
-            if (isLiabilityOrEquity)
-            {
-                string lowerName = (account.Name ?? "").ToLower();
-                if (lowerName.Contains("patrimonio") || 
-                    lowerName.Contains("capital") || 
-                    lowerName.Contains("reserva") || 
-                    lowerName.Contains("resultado") || 
-                    code.StartsWith("2.3") || 
-                    code.StartsWith("2.5"))
-                {
-                    isEquity = true;
-                }
-                else
-                {
-                    isLiability = true;
-                }
-            }
+            if (!isAsset && !isLiability && !isEquity) continue;
 
             // Obtenemos las cuentas hojas asociadas y consolidamos sumas
             var leaves = GetLeafDescendants(account.Id, allAccounts);
@@ -468,6 +449,50 @@ public class AccountingReportService(AppDbContext context)
                 balanceSheet.Equity.Add(item);
             }
         }
+
+        // Calculamos el Resultado del Ejercicio (Ingresos - Egresos) de forma dinámica
+        decimal totalRevenues = 0;
+        decimal totalExpenses = 0;
+        string revenuePrefix = ((int)AccountantPlanMap.Ingresos).ToString();
+        string expensePrefix = ((int)AccountantPlanMap.Egresos).ToString();
+
+        foreach (var account in allAccounts.Where(a => a.IsAcceptor))
+        {
+            string code = account.Code;
+            bool isRevenue = code.StartsWith(revenuePrefix);
+            bool isExpense = code.StartsWith(expensePrefix);
+
+            if (!isRevenue && !isExpense) continue;
+
+            if (detailsByAccount.TryGetValue(account.Id, out var sum))
+            {
+                if (isRevenue)
+                {
+                    totalRevenues += sum.Credit - sum.Debit;
+                }
+                else if (isExpense)
+                {
+                    totalExpenses += sum.Debit - sum.Credit;
+                }
+            }
+        }
+
+        decimal netIncome = totalRevenues - totalExpenses;
+
+        // Inyectamos el Resultado del Ejercicio como cuenta virtual en el Patrimonio Neto (código 5.99)
+        string netIncomeAccountName = netIncome >= 0 
+            ? "Resultado del Ejercicio (Utilidad)" 
+            : "Resultado del Ejercicio (Pérdida)";
+
+        var netIncomeItem = new BalanceSheetItemDto
+        {
+            AccountId = 999999, // ID virtual
+            AccountCode = $"{equityPrefix}.99",
+            AccountName = netIncomeAccountName,
+            Balance = netIncome,
+            IsAcceptor = true
+        };
+        balanceSheet.Equity.Add(netIncomeItem);
 
         // Calculamos los totales finales consolidando los saldos de las cuentas imputables (hojas) de cada grupo
         balanceSheet.TotalAssets = balanceSheet.Assets.Where(a => a.IsAcceptor).Sum(a => a.Balance);

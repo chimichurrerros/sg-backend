@@ -53,4 +53,5 @@ public partial class Product
 
     public virtual ICollection<SupplierQuoteDetail> SupplierQuoteDetails { get; set; } = new List<SupplierQuoteDetail>();
 
+    public virtual ICollection<RequestForQuotationDetail> RequestForQuotationDetails { get; set; } = new List<RequestForQuotationDetail>();
 }

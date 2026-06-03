@@ -85,9 +85,7 @@ public async Task<Result<CheckWrapperDto>> UpdateStatusAsync(int id, UpdateCheck
     // 3. Guardamos los cambios
     await _context.SaveChangesAsync();
 
-    // --- ¡LA SOLUCIÓN DEFINITIVA! ---
-    // En lugar de pelearnos con AutoMapper aquí, llamamos a GetByIdAsync.
-    // Ese método ya usa ProjectTo y sabemos que arma el Wrapper sin errores.
+  
     return await GetByIdAsync(check.Id);
 }
 }

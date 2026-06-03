@@ -2,7 +2,7 @@ namespace BackEnd.DTOs.Requests.PaymentOrder;
 
 public class CreatePaymentOrderDto
 {
-    public int PurchaseOrderId { get; set; }
+    public int PurchaseOrderForSupplierId { get; set; }
     public decimal Amount { get; set; }
     public int BankAccountId { get; set; }
     public string? ReferenceNumber { get; set; }

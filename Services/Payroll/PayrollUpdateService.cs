@@ -63,6 +63,33 @@ public class PayrollUpdateService(AppDbContext context, FormulaEvaluatorService 
         return Result<PayrollUpdateResponseDto>.Success(createdPayrollUpdate!);
     }
 
+    public async Task<Result<PayrollUpdateResponseDto>> UpdateAsync(int id, PayrollUpdateCreateDto request)
+    {
+        var validation = await ValidateCreateRequestAsync(request);
+        if (!validation.IsSuccess)
+            return Result<PayrollUpdateResponseDto>.Failure(validation.ErrorMessage!, validation.Errors!, ErrorType.Validation);
+
+        var payrollUpdate = await _context.PayrollUpdates.FirstOrDefaultAsync(p => p.Id == id);
+        if (payrollUpdate is null)
+            return Result<PayrollUpdateResponseDto>.Failure(PayrollUpdateError.PayrollUpdateNotFound, ErrorType.NotFound);
+
+        var formulaType = (PayrollUpdate.FormulaTypeEnum)request.FormulaTypeId;
+        var payrollType = (PayrollUpdate.PayrollTypeEnum)request.PayrollTypeId;
+
+        payrollUpdate.Name = request.Name.Trim();
+        payrollUpdate.PayrollTypeId = payrollType;
+        payrollUpdate.FormulaTypeId = formulaType;
+        payrollUpdate.Formula = formulaType == PayrollUpdate.FormulaTypeEnum.Fixed
+            ? null
+            : request.Formula!.Trim();
+        payrollUpdate.IpsDeductible = payrollType == PayrollUpdate.PayrollTypeEnum.Deductions ? false : request.IpsDeductible;
+
+        await _context.SaveChangesAsync();
+
+        var updated = await GetByIdAsync(payrollUpdate.Id);
+        return Result<PayrollUpdateResponseDto>.Success(updated!);
+    }
+
     private async Task<Result> ValidateCreateRequestAsync(PayrollUpdateCreateDto request)
     {
         var errors = new Dictionary<string, string[]>();

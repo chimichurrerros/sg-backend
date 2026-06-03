@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Check;
 
 [Route("api/checks")]
@@ -19,6 +20,7 @@ public class ChecksController(CheckService checkService) : ControllerBase
     private readonly CheckService _checkService = checkService;
 
     [HttpGet]
+    [HasPermission("checks.view")]
     public async Task<ActionResult<ListChecksWrapperDto>> GetListChecks([FromQuery] PaginationRequestDto pagination)
     {
         var result = await _checkService.GetListAsync(pagination);
@@ -30,6 +32,7 @@ public class ChecksController(CheckService checkService) : ControllerBase
     }
 
     [HttpGet("all")]
+    [HasPermission("checks.view")]
     public async Task<ActionResult<ListChecksWrapperDto>> GetAllChecks()
     {
         var result = await _checkService.GetAllAsync();
@@ -41,6 +44,7 @@ public class ChecksController(CheckService checkService) : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [HasPermission("checks.view")]
     public async Task<ActionResult<CheckWrapperDto>> GetById(int id)
     {
         var result = await _checkService.GetByIdAsync(id);
@@ -57,6 +61,7 @@ public class ChecksController(CheckService checkService) : ControllerBase
     
 
 [HttpPatch("{id}/status")]
+[HasPermission("checks.update")]
 public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateCheckStatusRequestDto request)
 {
     var response = await _checkService.UpdateStatusAsync(id, request);

@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.PurchaseOrder;
 
 [Route("api/purchaseorders")]
@@ -17,15 +18,17 @@ public class PurchaseOrderController(PurchaseOrderService purchaseOrderService) 
     private readonly PurchaseOrderService _purchaseOrderService = purchaseOrderService;
 
     [HttpGet]
-    public async Task<ActionResult<ListPurchaseOrdersWrapperDto>> GetList([FromQuery] PaginationRequestDto pagination)
+    [HasPermission("purchaseOrders.view")]
+    public async Task<ActionResult<ListPurchaseOrdersWrapperDto>> GetList([FromQuery] PurchaseOrderQueryDto query)
     {
-        var result = await _purchaseOrderService.GetListAsync(pagination);
+        var result = await _purchaseOrderService.GetListAsync(query);
         if (result.IsSuccess)
             return Ok(result.Value);
         return StatusCode(500);
     }
 
     [HttpGet("all")]
+    [HasPermission("purchaseOrders.view")]
     public async Task<ActionResult<ListPurchaseOrdersWrapperDto>> GetAll()
     {
         var result = await _purchaseOrderService.GetAllAsync();
@@ -35,6 +38,7 @@ public class PurchaseOrderController(PurchaseOrderService purchaseOrderService) 
     }
 
     [HttpGet("draft/{purchaseRequestId}")]
+    [HasPermission("purchaseOrders.view")]
     public async Task<ActionResult<PurchaseOrderDraftWrapperDto>> GetDraft(int purchaseRequestId)
     {
         var result = await _purchaseOrderService.GetDraftByPurchaseRequestIdAsync(purchaseRequestId);
@@ -51,6 +55,7 @@ public class PurchaseOrderController(PurchaseOrderService purchaseOrderService) 
     }
 
     [HttpGet("{id}")]
+    [HasPermission("purchaseOrders.view")]
     public async Task<ActionResult<PurchaseOrderWrapperDto>> GetById(int id)
     {
         var result = await _purchaseOrderService.GetByIdAsync(id);
@@ -63,20 +68,8 @@ public class PurchaseOrderController(PurchaseOrderService purchaseOrderService) 
         return StatusCode(500);
     }
 
-    [HttpGet("{id}/suppliers")]
-    public async Task<ActionResult<BackEnd.DTOs.Responses.Supplier.ListSuppliersWrapperDto>> GetSuppliers(int id)
-    {
-        var result = await _purchaseOrderService.GetSuppliersByPurchaseOrderIdAsync(id);
-        if (result.IsSuccess)
-            return Ok(result.Value);
-
-        if (result.ErrorType == ErrorType.NotFound)
-            return this.HandleNotFoundProblem(result);
-
-        return StatusCode(500);
-    }
-
     [HttpPost]
+    [HasPermission("purchaseOrders.create")]
     public async Task<ActionResult<PurchaseOrderWrapperDto>> Create(CreatePurchaseOrderRequestDto request)
     {
         var result = await _purchaseOrderService.CreateAsync(request);
@@ -92,18 +85,16 @@ public class PurchaseOrderController(PurchaseOrderService purchaseOrderService) 
         return StatusCode(500);
     }
 
-    [HttpPut("{id}")]
-    public async Task<ActionResult<PurchaseOrderWrapperDto>> Update(int id, UpdatePurchaseOrderRequestDto request)
+    [HttpPut("{id}/cancel")]
+    [HasPermission("purchaseOrders.update")]
+    public async Task<ActionResult> Cancel(int id)
     {
-        var result = await _purchaseOrderService.UpdateAsync(id, request);
+        var result = await _purchaseOrderService.CancelMainOrderAsync(id);
         if (result.IsSuccess)
-            return Ok(result.Value);
+            return NoContent();
 
         if (result.ErrorType == ErrorType.NotFound)
             return this.HandleNotFoundProblem(result);
-
-        if (result.ErrorType == ErrorType.Validation)
-            return this.HandleValidationProblem(result);
 
         return StatusCode(500);
     }

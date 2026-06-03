@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Bank.BankMovement;
 
 [Route("api/bank-movements")]
@@ -17,6 +18,7 @@ public class BankMovementsController(BankMovementService bankMovementService) : 
     private readonly BankMovementService _bankMovementService = bankMovementService;
 
     [HttpGet]
+    [HasPermission("bankMovements.view")]
     public async Task<ActionResult<ListBankMovementsWrapperDto>> GetListBankMovements([FromQuery] PaginationRequestDto pagination)
     {
         var result = await _bankMovementService.GetListAsync(pagination);
@@ -28,6 +30,7 @@ public class BankMovementsController(BankMovementService bankMovementService) : 
     }
 
     [HttpGet("all")]
+    [HasPermission("bankMovements.view")]
     public async Task<ActionResult<ListBankMovementsWrapperDto>> GetAllBankMovements()
     {
         var result = await _bankMovementService.GetAllAsync();
@@ -39,6 +42,7 @@ public class BankMovementsController(BankMovementService bankMovementService) : 
     }
 
     [HttpGet("{id}")]
+    [HasPermission("bankMovements.view")]
     public async Task<ActionResult<BankMovementWrapperDto>> GetById(int id)
     {
         var result = await _bankMovementService.GetByIdAsync(id);
@@ -53,6 +57,7 @@ public class BankMovementsController(BankMovementService bankMovementService) : 
     }
 
     [HttpPost]
+    [HasPermission("bankMovements.create")]
     public async Task<ActionResult<BankMovementWrapperDto>> Create(BankMovementRequestDto request)
     {
         var result = await _bankMovementService.CreateAsync(request);

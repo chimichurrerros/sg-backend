@@ -8,13 +8,20 @@ public partial class PayrollProcess
     public enum ProcessTypeEnum
     {
         Monthly = 1,
-        Bonus = 2,
-        Settlement = 3
+        Biweekly = 2,
+        Weekly = 3
+    }
+
+    public enum PayrollStatusEnum
+    {
+        Open = 1,
+        Closed = 2,
+        Paid = 3
     }
 
     public int Id { get; set; }
 
-    public int PayrollStatusId { get; set; }
+    public PayrollStatusEnum PayrollStatusId { get; set; }
 
     public ProcessTypeEnum ProcessTypeId { get; set; }
 
@@ -28,7 +35,9 @@ public partial class PayrollProcess
 
     public DateOnly? PayDate { get; set; }
 
-    public virtual ICollection<PayrollProcessDetail> PayrollProcessDetails { get; set; } = new List<PayrollProcessDetail>();
+    public DateTime? ClosedAt { get; set; }
 
-    public virtual PayrollStatus PayrollStatus { get; set; } = null!;
+    public DateTime? PaidAt { get; set; }
+
+    public virtual ICollection<PayrollProcessDetail> PayrollProcessDetails { get; set; } = new List<PayrollProcessDetail>();
 }

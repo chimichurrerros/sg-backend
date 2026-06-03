@@ -12,6 +12,7 @@ public class AccountantProcessResponseDto
 
     public DateOnly EndDate { get; set; }
 
+    public bool IsClosed { get; set; }
 }
 
 public class AccountantProcessWrapperDto

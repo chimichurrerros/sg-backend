@@ -7,9 +7,11 @@ public partial class PurchaseReturn
 {
     public int Id { get; set; }
 
-    public int PurchaseOrderId { get; set; }
+    public int PurchaseOrderForSupplierId { get; set; }
 
     public int? BillId { get; set; }
+
+    public int? CreditNoteId { get; set; }
 
     public int BranchId { get; set; }
 
@@ -29,11 +31,13 @@ public partial class PurchaseReturn
 
     public virtual Bill? Bill { get; set; }
 
+    public virtual CreditNote? CreditNote { get; set; }
+
     public virtual Branch Branch { get; set; } = null!;
 
     public virtual PurchaseReturnReason Reason { get; set; } = null!;
 
     public virtual ICollection<PurchaseReturnDetail> PurchaseReturnDetails { get; set; } = new List<PurchaseReturnDetail>();
 
-    public virtual PurchaseOrder PurchaseOrder { get; set; } = null!;
+    public virtual PurchaseOrderForSupplier PurchaseOrderForSupplier { get; set; } = null!;
 }

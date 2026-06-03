@@ -10,5 +10,10 @@ public static class SupplierQuoteError
     public const string InvalidDetailPrice = "El precio no puede ser negativo";
     public const string SupplierNotFound = "No se encontro el proveedor indicado";
     public const string PurchaseRequestNotFound = "No se encontro el pedido de compra indicado";
-    public const string InvalidProducts = "Uno o mas productos no existen o no pertenecen al pedido de compra";
+    public const string RequestForQuotationIdRequired = "La solicitud de cotizacion es obligatoria";
+    public const string RequestForQuotationNotFound = "No se encontro la solicitud de cotizacion indicada";
+    public const string RequestForQuotationMismatch = "La solicitud de cotizacion no corresponde al proveedor o pedido de compra indicados";
+    public const string InvalidProducts = "Uno o mas productos no existen o no pertenecen a la solicitud de cotizacion del proveedor";
+    public const string QuantityExceedsRequested = "La cantidad disponible no puede superar la cantidad solicitada en la solicitud de cotizacion";
+    public const string DuplicateQuote = "Ya existe una cotizacion para esta solicitud de cotizacion";
 }
