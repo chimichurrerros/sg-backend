@@ -66,6 +66,7 @@ public class SupplierService(AppDbContext context, IMapper mapper)
         var supplier = await _context.Suppliers
             .AsNoTracking()
             .Include(s => s.SupplierCategories)
+                .ThenInclude(sc => sc.ProductCategory)
             .FirstOrDefaultAsync(s => s.Id == id);
 
         // Return error if supplier not found
@@ -125,6 +126,7 @@ public class SupplierService(AppDbContext context, IMapper mapper)
             // Fetch the created supplier with all related data for response
             var createdSupplier = await _context.Suppliers
                 .Include(s => s.SupplierCategories)
+                    .ThenInclude(sc => sc.ProductCategory)
                 .FirstOrDefaultAsync(s => s.Id == supplier.Id);
 
             // Map to DTO and return success
@@ -188,8 +190,14 @@ public class SupplierService(AppDbContext context, IMapper mapper)
             // Commit transaction
             await transaction.CommitAsync();
 
+            var updatedSupplier = await _context.Suppliers
+                .AsNoTracking()
+                .Include(s => s.SupplierCategories)
+                    .ThenInclude(sc => sc.ProductCategory)
+                .FirstOrDefaultAsync(s => s.Id == supplier.Id);
+
             // Map to DTO and return success
-            return Result<SupplierWrapperDto>.Success(_mapper.Map<SupplierWrapperDto>(supplier));
+            return Result<SupplierWrapperDto>.Success(_mapper.Map<SupplierWrapperDto>(updatedSupplier));
         }
         catch (Exception)
         {
