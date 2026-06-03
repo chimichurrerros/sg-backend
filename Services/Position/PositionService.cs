@@ -20,12 +20,14 @@ public class PositionService(AppDbContext context, IMapper mapper)
     {
         var positionsQuery = _context.Positions
             .AsNoTracking()
-            .Where(p => (string.IsNullOrWhiteSpace(query.Search) || p.Name.ToLower().Contains(query.Search.ToLower())))
-            .Where(p => !departmentId.HasValue
-                ? p.DepartmentId == null
-                : departmentId.Value == 0
-                    ? p.DepartmentId == null
-                    : p.DepartmentId == departmentId.Value);
+            .Where(p => (string.IsNullOrWhiteSpace(query.Search) || p.Name.ToLower().Contains(query.Search.ToLower())));
+
+        if (departmentId.HasValue)
+        {
+            positionsQuery = departmentId.Value == 0
+                ? positionsQuery.Where(p => p.DepartmentId == null)
+                : positionsQuery.Where(p => p.DepartmentId == departmentId.Value);
+        }
 
         positionsQuery = ApplySort(positionsQuery, query.SortBy, query.SortOrder);
 
