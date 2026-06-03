@@ -8,8 +8,8 @@ public partial class PayrollProcess
     public enum ProcessTypeEnum
     {
         Monthly = 1,
-        Bonus = 2,
-        Settlement = 3
+        Biweekly = 2,
+        Weekly = 3
     }
 
     public enum PayrollStatusEnum
