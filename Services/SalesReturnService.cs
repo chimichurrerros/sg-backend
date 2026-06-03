@@ -76,6 +76,8 @@ public class SalesReturnService(AppDbContext context, StockService stockService,
             _context.CreditNotes.Add(creditNote);
             await _context.SaveChangesAsync();
 
+            creditNote.Number = $"CN-{creditNote.Id:D6}";
+
             foreach (var detail in request.Details)
             {
                 _context.CreditNoteDetails.Add(new CreditNoteDetail

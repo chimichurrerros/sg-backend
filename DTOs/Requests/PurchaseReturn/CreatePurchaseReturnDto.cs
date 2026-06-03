@@ -11,6 +11,7 @@ public class CreatePurchaseReturnDto
     public int? ReasonId { get; set; }
     public string? ReasonName { get; set; }
     public string? Number { get; set; }
+    public string? CreditNoteNumber { get; set; }
     public DateTime Date { get; set; }
     public string? Observation { get; set; }
 

@@ -327,6 +327,7 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone");
             entity.Property(e => e.Total).HasPrecision(15, 2);
+            entity.Property(e => e.Number).HasMaxLength(50);
 
             entity.HasOne(d => d.Bill).WithMany(p => p.CreditNotes)
                 .HasForeignKey(d => d.BillId)
@@ -921,6 +922,10 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ReasonId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PurchaseReturns_ReasonId_fkey");
+
+            entity.HasOne(d => d.CreditNote).WithMany()
+                .HasForeignKey(d => d.CreditNoteId)
+                .HasConstraintName("PurchaseReturns_CreditNoteId_fkey");
         });
 
         modelBuilder.Entity<PurchaseReturnDetail>(entity =>

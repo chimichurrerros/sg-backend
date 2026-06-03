@@ -11,6 +11,8 @@ public partial class PurchaseReturn
 
     public int? BillId { get; set; }
 
+    public int? CreditNoteId { get; set; }
+
     public int BranchId { get; set; }
 
     public int ReasonId { get; set; }
@@ -28,6 +30,8 @@ public partial class PurchaseReturn
     public PurchaseReturnStateEnum State { get; set; } = PurchaseReturnStateEnum.Created;
 
     public virtual Bill? Bill { get; set; }
+
+    public virtual CreditNote? CreditNote { get; set; }
 
     public virtual Branch Branch { get; set; } = null!;
 
