@@ -10,6 +10,8 @@ public class PayrollProcessResponseDto
     public int Month { get; set; }
     public DateOnly StartDate { get; set; }
     public DateOnly? PayDate { get; set; }
+    public DateTime? ClosedAt { get; set; }
+    public DateTime? PaidAt { get; set; }
     public int PayrollStatusId { get; set; }
     public string PayrollStatusName { get; set; } = null!;
 }

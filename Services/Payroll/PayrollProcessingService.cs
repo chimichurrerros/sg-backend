@@ -191,6 +191,8 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
                 Month = p.Month,
                 StartDate = p.StartDate,
                 PayDate = p.PayDate,
+                ClosedAt = p.ClosedAt,
+                PaidAt = p.PaidAt,
                 PayrollStatusId = (int)p.PayrollStatusId,
                 PayrollStatusName = p.PayrollStatusId.ToString()
             })
@@ -218,6 +220,8 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             Month = p.Month,
             StartDate = p.StartDate,
             PayDate = p.PayDate,
+            ClosedAt = p.ClosedAt,
+            PaidAt = p.PaidAt,
             PayrollStatusId = (int)p.PayrollStatusId,
             PayrollStatusName = p.PayrollStatusId.ToString()
         };
@@ -974,6 +978,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             return Result<PayrollCloseResponseDto>.Failure("La planilla debe estar en estado 'Abierto' para cerrarse.", ErrorType.Conflict);
 
         process.PayrollStatusId = PayrollProcess.PayrollStatusEnum.Closed;
+        process.ClosedAt = DateTime.Now;
         await _context.SaveChangesAsync();
 
         return Result<PayrollCloseResponseDto>.Success(new PayrollCloseResponseDto
@@ -1157,6 +1162,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         process.PayrollStatusId = PayrollProcess.PayrollStatusEnum.Paid;
 
         process.PayDate = DateOnly.FromDateTime(DateTime.Now);
+        process.PaidAt = DateTime.Now;
 
         await _context.SaveChangesAsync();
 

@@ -35,5 +35,9 @@ public partial class PayrollProcess
 
     public DateOnly? PayDate { get; set; }
 
+    public DateTime? ClosedAt { get; set; }
+
+    public DateTime? PaidAt { get; set; }
+
     public virtual ICollection<PayrollProcessDetail> PayrollProcessDetails { get; set; } = new List<PayrollProcessDetail>();
 }
