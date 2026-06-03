@@ -17,9 +17,9 @@ public class PositionController(PositionService positionService) : ControllerBas
     private readonly PositionService _positionService = positionService;
 
     [HttpGet]
-    public async Task<ActionResult<ListPositionsWrapperDto>> GetAll([FromQuery] OrganizationQueryDto query)
+    public async Task<ActionResult<ListPositionsWrapperDto>> GetAll([FromQuery] OrganizationQueryDto query, [FromQuery] int? departmentId = null)
     {
-        var result = await _positionService.GetAllAsync(query);
+        var result = await _positionService.GetAllAsync(query, departmentId);
 
         if (result.IsSuccess)
             return Ok(result.Value);

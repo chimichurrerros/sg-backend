@@ -11,5 +11,9 @@ public partial class Position
 
     public decimal DefaultBasicSalary { get; set; }
 
+    public int? DepartmentId { get; set; }
+
+    public virtual Department? Department { get; set; }
+
     public virtual ICollection<PositionByScheduleByEmployee> PositionByScheduleByEmployees { get; set; } = new List<PositionByScheduleByEmployee>();
 }
