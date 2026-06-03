@@ -30,15 +30,13 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
             }, ErrorType.Validation);
         }
 
-        var defaultRole = 1;
-
         var user = new User
         {
             Name = request.Name,
             LastName = request.LastName,
             Email = request.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-            RoleId = defaultRole,
+            RoleId = request.RoleId,
             BranchId = request.BranchId
         };
 
@@ -97,14 +95,6 @@ public class AuthService(AppDbContext context, IConfiguration config, IMapper ma
             new(ClaimTypes.Role, user.Role!.Name),
             new("BranchId", user.BranchId == null ? string.Empty : user.BranchId.ToString()!)
         };
-
-        if (user.Role!.Permissions is { } permissions) // I need this to suppress a warning
-        {
-            foreach (var permission in permissions)
-            {
-                claims.Add(new Claim("Permission", permission.Name));
-            }
-        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config.GetSection("Jwt:Key").Value!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);
