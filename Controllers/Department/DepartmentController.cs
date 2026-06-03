@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Department;
 
 [Route("api/departments")]
@@ -17,6 +18,7 @@ public class DepartmentController(DepartmentService departmentService) : Control
     private readonly DepartmentService _departmentService = departmentService;
 
     [HttpGet]
+    [HasPermission("departments.view")]
     public async Task<ActionResult<ListDepartmentsWrapperDto>> GetAll([FromQuery] OrganizationQueryDto query)
     {
         var result = await _departmentService.GetAllAsync(query);
@@ -28,6 +30,7 @@ public class DepartmentController(DepartmentService departmentService) : Control
     }
 
     [HttpPost]
+    [HasPermission("departments.create")]
     public async Task<ActionResult<DepartmentWrapperDto>> Create(DepartmentRequestDto request)
     {
         var result = await _departmentService.CreateAsync(request);
@@ -45,6 +48,7 @@ public class DepartmentController(DepartmentService departmentService) : Control
     }
 
     [HttpPut("{id}")]
+    [HasPermission("departments.update")]
     public async Task<ActionResult<DepartmentWrapperDto>> Update(int id, DepartmentRequestDto request)
     {
         var result = await _departmentService.UpdateAsync(id, request);
@@ -62,6 +66,7 @@ public class DepartmentController(DepartmentService departmentService) : Control
     }
 
     [HttpDelete("{id}")]
+    [HasPermission("departments.delete")]
     public async Task<ActionResult> Delete(int id)
     {
         var result = await _departmentService.DeleteAsync(id);

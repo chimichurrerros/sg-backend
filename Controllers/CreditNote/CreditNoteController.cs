@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using BackEnd.Extensions;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.CreditNote;
 
 [Route("api/credit-notes")]
@@ -16,6 +17,7 @@ public class CreditNoteController(CreditNoteService creditNoteService) : Control
     private readonly CreditNoteService _creditNoteService = creditNoteService;
 
     [HttpGet]
+    [HasPermission("creditNotes.view")]
     public async Task<ActionResult<ListCreditNotesWrapperDto>> GetList([FromQuery] CreditNoteQueryDto queryDto)
     {
         var result = await _creditNoteService.GetListAsync(queryDto);
@@ -23,6 +25,7 @@ public class CreditNoteController(CreditNoteService creditNoteService) : Control
     }
 
     [HttpPost]
+    [HasPermission("creditNotes.create")]
     public async Task<ActionResult<CreditNoteWrapperDto>> Create(CreateCreditNoteDto request)
     {
         var result = await _creditNoteService.CreateAsync(request);
@@ -40,6 +43,7 @@ public class CreditNoteController(CreditNoteService creditNoteService) : Control
     }
 
     [HttpGet("{id}")]
+    [HasPermission("creditNotes.view")]
     public async Task<ActionResult<CreditNoteWrapperDto>> GetById(int id)
     {
         var result = await _creditNoteService.GetByIdAsync(id);

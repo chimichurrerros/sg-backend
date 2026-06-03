@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Schedule;
 
 [Route("api/schedules")]
@@ -17,6 +18,7 @@ public class ScheduleController(ScheduleService scheduleService) : ControllerBas
     private readonly ScheduleService _scheduleService = scheduleService;
 
     [HttpGet]
+    [HasPermission("schedules.view")]
     public async Task<ActionResult<ListSchedulesWrapperDto>> GetAll([FromQuery] OrganizationQueryDto query)
     {
         var result = await _scheduleService.GetAllAsync(query);
@@ -28,6 +30,7 @@ public class ScheduleController(ScheduleService scheduleService) : ControllerBas
     }
 
     [HttpPost]
+    [HasPermission("schedules.create")]
     public async Task<ActionResult<ScheduleWrapperDto>> Create(ScheduleRequestDto request)
     {
         var result = await _scheduleService.CreateAsync(request);
@@ -45,6 +48,7 @@ public class ScheduleController(ScheduleService scheduleService) : ControllerBas
     }
 
     [HttpPut("{id}")]
+    [HasPermission("schedules.update")]
     public async Task<ActionResult<ScheduleWrapperDto>> Update(int id, ScheduleRequestDto request)
     {
         var result = await _scheduleService.UpdateAsync(id, request);
@@ -62,6 +66,7 @@ public class ScheduleController(ScheduleService scheduleService) : ControllerBas
     }
 
     [HttpDelete("{id}")]
+    [HasPermission("schedules.delete")]
     public async Task<ActionResult> Delete(int id)
     {
         var result = await _scheduleService.DeleteAsync(id);

@@ -4,6 +4,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers;
 
 [Route("api/organization")]
@@ -14,6 +15,7 @@ public class OrganizationController(OrganizationService organizationService) : C
     private readonly OrganizationService _organizationService = organizationService;
 
     [HttpGet("department-boss")]
+    [HasPermission("organizations.view")]
     public async Task<ActionResult<DepartmentBossResponseDto>> GetDepartmentBoss([FromQuery] int branchId, [FromQuery] int departmentId)
     {
         var result = await _organizationService.GetDepartmentBossAsync(branchId, departmentId);
@@ -28,6 +30,7 @@ public class OrganizationController(OrganizationService organizationService) : C
     }
 
     [HttpGet("org-chart/{employeeId}")]
+    [HasPermission("organizations.view")]
     public async Task<ActionResult<OrgChartResponseDto>> GetOrgChart(int employeeId, [FromQuery] int depth = 3)
     {
         var result = await _organizationService.GetOrgChartAsync(employeeId, depth);

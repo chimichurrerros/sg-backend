@@ -6,6 +6,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Payroll;
 
 [Route("api/payroll-processes")]
@@ -16,6 +17,7 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
     private readonly PayrollProcessingService _payrollProcessingService = payrollProcessingService;
 
     [HttpPatch("{processId}/status")]
+    [HasPermission("payrollProcesses.update")]
     public async Task<ActionResult> UpdateStatus(int processId, UpdatePayrollProcessStatusRequestDto request)
     {
         var result = await _payrollProcessingService.UpdatePayrollProcessStatusAsync(processId, request);
@@ -36,6 +38,7 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
     }
 
     [HttpGet]
+    [HasPermission("payrollProcesses.view")]
     public async Task<ActionResult<List<PayrollProcessResponseDto>>> GetList()
     {
         var result = await _payrollProcessingService.GetListAsync();
@@ -44,6 +47,7 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
     }
 
     [HttpGet("{id}")]
+    [HasPermission("payrollProcesses.view")]
     public async Task<ActionResult<PayrollProcessResponseDto>> GetById(int id)
     {
         var result = await _payrollProcessingService.GetByIdAsync(id);
@@ -53,6 +57,7 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
     }
 
     [HttpPost]
+    [HasPermission("payrollProcesses.create")]
     public async Task<ActionResult<PayrollProcessResponseDto>> Create(PayrollProcessCreateDto request)
     {
         var result = await _payrollProcessingService.CreatePayrollProcessAsync(request);
@@ -63,6 +68,7 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
     }
 
     [HttpPut("{id}")]
+    [HasPermission("payrollProcesses.update")]
     public async Task<ActionResult> Update(int id, PayrollProcessUpdateDto request)
     {
         var result = await _payrollProcessingService.UpdatePayrollProcessAsync(id, request);
@@ -74,6 +80,7 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
     }
 
     [HttpDelete("{id}")]
+    [HasPermission("payrollProcesses.delete")]
     public async Task<ActionResult> Delete(int id)
     {
         var result = await _payrollProcessingService.DeletePayrollProcessAsync(id);
@@ -84,6 +91,7 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
     }
 
     [HttpPost("{processId}/manual-details")]
+    [HasPermission("payrollProcesses.create")]
     public async Task<ActionResult<PayrollManualDetailResponseDto>> UpsertManualDetail(int processId, PayrollManualInputDto request)
     {
         var result = await _payrollProcessingService.UpsertManualDetailAsync(processId, request);
@@ -104,6 +112,7 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
     }
 
     [HttpGet("{processId}/manual-details")]
+    [HasPermission("payrollProcesses.view")]
     public async Task<ActionResult<List<PayrollManualDetailResponseDto>>> GetManualDetails(int processId)
     {
         var result = await _payrollProcessingService.GetManualDetailsAsync(processId);
@@ -118,6 +127,7 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
     }
 
     [HttpDelete("manual-details/{id}")]
+    [HasPermission("payrollProcesses.delete")]
     public async Task<ActionResult> DeleteManualDetail(int id)
     {
         var result = await _payrollProcessingService.DeleteManualDetailAsync(id);
@@ -138,6 +148,7 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
     }
 
     [HttpGet("{id}/eligible-employees")]
+    [HasPermission("payrollProcesses.view")]
     public async Task<ActionResult<List<EligibleEmployeeResponseDto>>> GetEligibleEmployees(int id)
     {
         var result = await _payrollProcessingService.GetEligibleEmployeesAsync(id);
@@ -152,6 +163,7 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
     }
 
     [HttpPost("{id}/add-employees")]
+    [HasPermission("payrollProcesses.create")]
     public async Task<ActionResult> AddEmployees(int id, [FromBody] AddEmployeesRequestDto request)
     {
         var result = await _payrollProcessingService.AddEmployeesAsync(id, request.EmployeeIds);
@@ -172,6 +184,7 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
     }
 
     [HttpGet("{id}/detail-summaries")]
+    [HasPermission("payrollProcesses.view")]
     public async Task<ActionResult<List<PayrollDetailSummaryResponseDto>>> GetDetailSummaries(int id)
     {
         var result = await _payrollProcessingService.GetDetailSummariesAsync(id);
@@ -186,6 +199,7 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
     }
 
     [HttpPost("{id}/calculate")]
+    [HasPermission("payrollProcesses.create")]
     public async Task<ActionResult<PayrollProcessCalculationResponseDto>> Calculate(int id)
     {
         var result = await _payrollProcessingService.CalculateAsync(id);
@@ -206,6 +220,7 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
     }
 
     [HttpPost("{id}/close")]
+    [HasPermission("payrollProcesses.create")]
     public async Task<ActionResult<PayrollCloseResponseDto>> Close(int id)
     {
         var result = await _payrollProcessingService.CloseProcessAsync(id);
@@ -223,6 +238,7 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
     }
 
     [HttpDelete("{processId}/employees/{employeeId}")]
+    [HasPermission("payrollProcesses.delete")]
     public async Task<ActionResult> RemoveEmployee(int processId, int employeeId)
     {
         var result = await _payrollProcessingService.RemoveEmployeeFromProcessAsync(processId, employeeId);
@@ -240,6 +256,7 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
     }
 
     [HttpPost("{id}/close-and-pay")]
+    [HasPermission("payrollProcesses.create")]
     public async Task<ActionResult<PayrollCloseAndPayResponseDto>> CloseAndPay(int id)
     {
         var result = await _payrollProcessingService.CloseAndPayAsync(id);
@@ -260,6 +277,7 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
     }
 
     [HttpGet("{processId}/receipt/{employeeId}")]
+    [HasPermission("payrollProcesses.view")]
     public async Task<ActionResult<PayrollEmployeeReceiptDto>> GetEmployeeReceipt(int processId, int employeeId)
     {
         var result = await _payrollProcessingService.GetEmployeeReceiptAsync(processId, employeeId);

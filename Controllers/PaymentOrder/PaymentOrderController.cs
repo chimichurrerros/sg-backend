@@ -8,6 +8,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.PaymentOrder;
 
 [Route("api/payment-orders")]
@@ -19,6 +20,7 @@ public class PaymentOrderController(PaymentOrderService paymentOrderService, Bac
     private readonly BackEnd.Services.PurchaseReturnService _purchaseReturnService = purchaseReturnService;
 
     [HttpPost]
+    [HasPermission("paymentOrders.create")]
     public async Task<ActionResult<PaymentOrderWrapperDto>> Create(CreatePaymentOrderDto request)
     {
         var result = await _paymentOrderService.CreateAsync(request);
@@ -36,6 +38,7 @@ public class PaymentOrderController(PaymentOrderService paymentOrderService, Bac
     }
 
     [HttpGet("{id}")]
+    [HasPermission("paymentOrders.view")]
     public async Task<ActionResult<PaymentOrderWrapperDto>> GetById(int id)
     {
         var result = await _paymentOrderService.GetByIdAsync(id);
@@ -50,6 +53,7 @@ public class PaymentOrderController(PaymentOrderService paymentOrderService, Bac
     }
 
     [HttpGet]
+    [HasPermission("paymentOrders.view")]
     public async Task<ActionResult<ListPaymentOrdersWrapperDto>> GetList([FromQuery] PaginationRequestDto pagination)
     {
         var result = await _paymentOrderService.GetListAsync(pagination);
@@ -61,6 +65,7 @@ public class PaymentOrderController(PaymentOrderService paymentOrderService, Bac
     }
 
     [HttpPost("{id}/process")]
+    [HasPermission("paymentOrders.create")]
     public async Task<ActionResult<PaymentOrderWrapperDto>> Process(int id, ProcessPaymentOrderDto request)
     {
         request.PaymentOrderId = id;
@@ -80,6 +85,7 @@ public class PaymentOrderController(PaymentOrderService paymentOrderService, Bac
     }
 
     [HttpPost("receive")]
+    [HasPermission("paymentOrders.create")]
     public async Task<ActionResult<PurchaseReturnWrapperDto>> ReceiveBillAndReturn([FromBody] BackEnd.DTOs.Requests.PurchaseReturn.CreateBillAndReturnDto request)
     {
         var result = await _purchaseReturnService.CreateWithBillAsync(request);

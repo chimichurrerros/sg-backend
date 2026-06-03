@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Bank;
 
 [Route("api/banks")]
@@ -17,6 +18,7 @@ public class BankController(BankService bankService) : ControllerBase
     private readonly BankService _bankService = bankService;
 
     [HttpGet]
+    [HasPermission("banks.view")]
     public async Task<ActionResult<ListBanksWrapperDto>> GetListBankes([FromQuery] BankQueryDto query)
     {
         var result = await _bankService.GetListAsync(query);
@@ -28,6 +30,7 @@ public class BankController(BankService bankService) : ControllerBase
     }
 
     [HttpGet("all")]
+    [HasPermission("banks.view")]
     public async Task<ActionResult<ListBanksWrapperDto>> GetAllBankes()
     {
         var result = await _bankService.GetAllAsync();
@@ -39,6 +42,7 @@ public class BankController(BankService bankService) : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [HasPermission("banks.view")]
     public async Task<ActionResult<BankWrapperDto>> GetBankById(int id)
     {
         var result = await _bankService.GetByIdAsync(id);
@@ -53,6 +57,7 @@ public class BankController(BankService bankService) : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission("banks.create")]
     public async Task<ActionResult<BankWrapperDto>> Create(BankRequestDto request)
     {
         var result = await _bankService.CreateAsync(request);
@@ -67,6 +72,7 @@ public class BankController(BankService bankService) : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [HasPermission("banks.update")]
     public async Task<ActionResult<BankWrapperDto>> Update(int id, UpdateBankRequestDto request)
     {
         var result = await _bankService.UpdateAsync(id, request);
@@ -81,6 +87,7 @@ public class BankController(BankService bankService) : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [HasPermission("banks.delete")]
     public async Task<ActionResult> ToggleStatus(int id)
     {
         var result = await _bankService.ToggleStatusAsync(id);

@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Supplier;
 
 /// <summary>
@@ -33,6 +34,7 @@ public class SupplierController(SupplierService supplierService) : ControllerBas
     /// <param name="pagination">Pagination parameters from query string (Page, PageSize)</param>
     /// <returns>Paginated list of suppliers with metadata</returns>
     [HttpGet]
+    [HasPermission("suppliers.view")]
     public async Task<ActionResult<ListSuppliersWrapperDto>> GetListSuppliers([FromQuery] PaginationRequestDto pagination)
     {
         // Delegate to service to retrieve paginated suppliers
@@ -53,6 +55,7 @@ public class SupplierController(SupplierService supplierService) : ControllerBas
     /// Authentication: Required (Bearer token or cookie)
     /// </summary>
     [HttpGet("eligible")]
+    [HasPermission("suppliers.view")]
     public async Task<ActionResult<EligibleSuppliersWrapperDto>> GetEligibleSuppliers([FromQuery] List<int> productIds)
     {
         var result = await _supplierService.GetEligibleSuppliersAsync(productIds);
@@ -74,6 +77,7 @@ public class SupplierController(SupplierService supplierService) : ControllerBas
     /// <param name="id">The supplier ID</param>
     /// <returns>Supplier data with categories</returns>
     [HttpGet("{id}")]
+    [HasPermission("suppliers.view")]
     public async Task<ActionResult<SupplierWrapperDto>> GetSupplierById(int id)
     {
         // Delegate to service to retrieve supplier by ID
@@ -101,6 +105,7 @@ public class SupplierController(SupplierService supplierService) : ControllerBas
     /// <param name="request">Create supplier request containing supplier data</param>
     /// <returns>Created supplier with 201 status and Location header</returns>
     [HttpPost]
+    [HasPermission("suppliers.create")]
     public async Task<ActionResult<SupplierWrapperDto>> Create(CreateSupplierRequestDto request)
     {
         // Delegate all business logic to service (supplier creation, categories, etc.)
@@ -128,6 +133,7 @@ public class SupplierController(SupplierService supplierService) : ControllerBas
     /// <param name="request">Update supplier request with all required fields</param>
     /// <returns>Updated supplier data</returns>
     [HttpPut("{id}")]
+    [HasPermission("suppliers.update")]
     public async Task<ActionResult<SupplierWrapperDto>> Update(int id, UpdateSupplierRequestDto request)
     {
         // Delegate all business logic to service (supplier update, categories, etc.)

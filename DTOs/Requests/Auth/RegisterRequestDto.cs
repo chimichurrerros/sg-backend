@@ -18,4 +18,7 @@ public class RegisterRequestDto
 
     [Required(ErrorMessage = BranchError.BranchRequired)]
     public int BranchId { get; set; }
+
+    [Required(ErrorMessage = "El identificador del rol es obligatorio.")]
+    public int RoleId { get; set; }
 }

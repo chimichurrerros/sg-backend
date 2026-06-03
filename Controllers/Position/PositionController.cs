@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Position;
 
 [Route("api/positions")]
@@ -17,6 +18,7 @@ public class PositionController(PositionService positionService) : ControllerBas
     private readonly PositionService _positionService = positionService;
 
     [HttpGet]
+    [HasPermission("positions.view")]
     public async Task<ActionResult<ListPositionsWrapperDto>> GetAll([FromQuery] OrganizationQueryDto query)
     {
         var result = await _positionService.GetAllAsync(query);
@@ -28,6 +30,7 @@ public class PositionController(PositionService positionService) : ControllerBas
     }
 
     [HttpPost]
+    [HasPermission("positions.create")]
     public async Task<ActionResult<PositionWrapperDto>> Create(PositionRequestDto request)
     {
         var result = await _positionService.CreateAsync(request);
@@ -45,6 +48,7 @@ public class PositionController(PositionService positionService) : ControllerBas
     }
 
     [HttpPut("{id}")]
+    [HasPermission("positions.update")]
     public async Task<ActionResult<PositionWrapperDto>> Update(int id, PositionRequestDto request)
     {
         var result = await _positionService.UpdateAsync(id, request);
@@ -62,6 +66,7 @@ public class PositionController(PositionService positionService) : ControllerBas
     }
 
     [HttpDelete("{id}")]
+    [HasPermission("positions.delete")]
     public async Task<ActionResult> Delete(int id)
     {
         var result = await _positionService.DeleteAsync(id);

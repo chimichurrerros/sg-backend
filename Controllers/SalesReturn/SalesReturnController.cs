@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using BackEnd.Extensions;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.SalesReturn;
 
 [Route("api/sales-returns")]
@@ -16,6 +17,7 @@ public class SalesReturnController(SalesReturnService salesReturnService) : Cont
     private readonly SalesReturnService _salesReturnService = salesReturnService;
 
     [HttpPost]
+    [HasPermission("salesReturns.create")]
     public async Task<ActionResult<SalesReturnWrapperDto>> Create(CreateSalesReturnDto request)
     {
         var result = await _salesReturnService.CreateAsync(request);
@@ -33,6 +35,7 @@ public class SalesReturnController(SalesReturnService salesReturnService) : Cont
     }
 
     [HttpGet("all")]
+    [HasPermission("salesReturns.view")]
     public async Task<ActionResult<ListSalesReturnsWrapperDto>> GetAll()
     {
         var result = await _salesReturnService.GetAllAsync();
@@ -40,6 +43,7 @@ public class SalesReturnController(SalesReturnService salesReturnService) : Cont
     }
 
     [HttpGet]
+    [HasPermission("salesReturns.view")]
     public async Task<ActionResult<ListSalesReturnsWrapperDto>> GetList([FromQuery] SalesReturnQueryDto queryDto)
     {
         var result = await _salesReturnService.GetListAsync(queryDto);
@@ -47,6 +51,7 @@ public class SalesReturnController(SalesReturnService salesReturnService) : Cont
     }
 
     [HttpGet("{id}")]
+    [HasPermission("salesReturns.view")]
     public async Task<ActionResult<SalesReturnWrapperDto>> GetById(int id)
     {
         var result = await _salesReturnService.GetByIdAsync(id);

@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Stock;
 
 [Route("api/stock")]
@@ -17,6 +18,7 @@ public class StockController(StockService stockService) : ControllerBase
     private readonly StockService _stockService = stockService;
 
     [HttpGet]
+    [HasPermission("stock.view")]
     public async Task<ActionResult<ListStocksWrapperDto>> GetListStocks([FromQuery] PaginationRequestDto pagination)
     {
         var result = await _stockService.GetListAsync(pagination);
@@ -28,6 +30,7 @@ public class StockController(StockService stockService) : ControllerBase
     }
 
     [HttpGet("all")]
+    [HasPermission("stock.view")]
     public async Task<ActionResult<ListStocksWrapperDto>> GetAllStocks()
     {
         var result = await _stockService.GetAllAsync();
@@ -39,6 +42,7 @@ public class StockController(StockService stockService) : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [HasPermission("stock.view")]
     public async Task<ActionResult<StockWrapperDto>> GetStockById(int id)
     {
         var result = await _stockService.GetByIdAsync(id);
@@ -53,6 +57,7 @@ public class StockController(StockService stockService) : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission("stock.create")]
     public async Task<ActionResult<StockWrapperDto>> Create(StockRequestDto request)
     {
         var result = await _stockService.CreateAsync(request);
@@ -67,6 +72,7 @@ public class StockController(StockService stockService) : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [HasPermission("stock.update")]
     public async Task<ActionResult<StockWrapperDto>> Update(int id, StockRequestDto request)
     {
         var result = await _stockService.UpdateAsync(id, request);
@@ -81,6 +87,7 @@ public class StockController(StockService stockService) : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [HasPermission("stock.delete")]
     public async Task<ActionResult> Delete(int id)
     {
         var result = await _stockService.DeleteAsync(id);

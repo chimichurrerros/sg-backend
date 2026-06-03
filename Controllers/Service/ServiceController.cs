@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Product;
 
 [Route("api/services")]
@@ -17,6 +18,7 @@ public class ServiceController(ServicesService ServiceService) : ControllerBase
     private readonly ServicesService _serviceService = ServiceService;
 
     [HttpGet]
+    [HasPermission("services.view")]
     public async Task<ActionResult<ListServiceWrapperDto>> GetListProducts([FromQuery] ServiceQueryDto query)
     {
         var result = await _serviceService.GetListAsync(query);
@@ -28,6 +30,7 @@ public class ServiceController(ServicesService ServiceService) : ControllerBase
     }
 
     [HttpGet("all")]
+    [HasPermission("services.view")]
     public async Task<ActionResult<ListServiceWrapperDto>> GetAllProducts()
     {
         var result = await _serviceService.GetAllAsync();
@@ -39,6 +42,7 @@ public class ServiceController(ServicesService ServiceService) : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [HasPermission("services.view")]
     public async Task<ActionResult<ServiceWrapperDto>> GetProductById(int id)
     {
         var result = await _serviceService.GetByIdAsync(id);
@@ -53,6 +57,7 @@ public class ServiceController(ServicesService ServiceService) : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission("services.create")]
     public async Task<ActionResult<ServiceWrapperDto>> Create(ServiceRequestDto request)
     {
         var result = await _serviceService.CreateAsync(request);
@@ -67,6 +72,7 @@ public class ServiceController(ServicesService ServiceService) : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [HasPermission("services.update")]
     public async Task<ActionResult<ServiceWrapperDto>> Update(int id, ServiceRequestDto request)
     {
         var result = await _serviceService.UpdateAsync(id, request);
@@ -81,6 +87,7 @@ public class ServiceController(ServicesService ServiceService) : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [HasPermission("services.delete")]
     public async Task<ActionResult> Delete(int id)
     {
         var result = await _serviceService.DeleteAsync(id);

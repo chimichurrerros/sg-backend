@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Product;
 
 [Route("api/products")]
@@ -17,6 +18,7 @@ public class ProductsController(ProductsService productsService) : ControllerBas
     private readonly ProductsService _productsService = productsService;
 
     [HttpGet]
+    [HasPermission("products.view")]
     public async Task<ActionResult<ListProductsWrapperDto>> GetListProducts([FromQuery] ProductQueryDto query)
     {
         var result = await _productsService.GetListAsync(query);
@@ -28,6 +30,7 @@ public class ProductsController(ProductsService productsService) : ControllerBas
     }
 
     [HttpGet("all")]
+    [HasPermission("products.view")]
     public async Task<ActionResult<ListProductsWrapperDto>> GetAllProducts()
     {
         var result = await _productsService.GetAllAsync();
@@ -39,6 +42,7 @@ public class ProductsController(ProductsService productsService) : ControllerBas
     }
 
     [HttpGet("{id}")]
+    [HasPermission("products.view")]
     public async Task<ActionResult<ProductWrapperDto>> GetProductById(int id)
     {
         var result = await _productsService.GetByIdAsync(id);
@@ -53,6 +57,7 @@ public class ProductsController(ProductsService productsService) : ControllerBas
     }
 
     [HttpPost]
+    [HasPermission("products.create")]
     public async Task<ActionResult<ProductWrapperDto>> Create(ProductRequestDto request)
     {
         var result = await _productsService.CreateAsync(request);
@@ -67,6 +72,7 @@ public class ProductsController(ProductsService productsService) : ControllerBas
     }
 
     [HttpPut("{id}")]
+    [HasPermission("products.update")]
     public async Task<ActionResult<ProductWrapperDto>> Update(int id, ProductRequestDto request)
     {
         var result = await _productsService.UpdateAsync(id, request);
@@ -81,6 +87,7 @@ public class ProductsController(ProductsService productsService) : ControllerBas
     }
 
     [HttpDelete("{id}")]
+    [HasPermission("products.delete")]
     public async Task<ActionResult> Delete(int id)
     {
         var result = await _productsService.DeleteAsync(id);
@@ -95,6 +102,7 @@ public class ProductsController(ProductsService productsService) : ControllerBas
     }
 
     [HttpGet("{id}/suppliers")]
+    [HasPermission("products.view")]
     public async Task<ActionResult<ProductWrapperDto>> GetSuppliers(int id)
     {
         var result = await _productsService.GetAllSuppliers(id);
@@ -109,6 +117,7 @@ public class ProductsController(ProductsService productsService) : ControllerBas
     }
 
     [HttpGet("by-branch/{branchId}")]
+    [HasPermission("products.view")]
     public async Task<ActionResult<ListProductsStockWrapperDto>> GetProductsByBranch(int branchId)
     {
         var result = await _productsService.GetByBranchIdAsync(branchId);
