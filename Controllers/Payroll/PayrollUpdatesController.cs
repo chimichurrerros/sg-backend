@@ -5,7 +5,9 @@ using BackEnd.Services;
 using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Payroll;
 
 [Route("api/payroll-updates")]
@@ -16,6 +18,7 @@ public class PayrollUpdatesController(PayrollUpdateService payrollUpdateService)
     private readonly PayrollUpdateService _payrollUpdateService = payrollUpdateService;
 
     [HttpGet]
+    [HasPermission("payrollUpdates.view")]
     public async Task<ActionResult<List<PayrollUpdateResponseDto>>> GetList()
     {
         var result = await _payrollUpdateService.GetListAsync();
@@ -24,6 +27,7 @@ public class PayrollUpdatesController(PayrollUpdateService payrollUpdateService)
     }
 
     [HttpPost]
+    [HasPermission("payrollUpdates.create")]
     public async Task<ActionResult<PayrollUpdateResponseDto>> Create(PayrollUpdateCreateDto request)
     {
         var result = await _payrollUpdateService.CreateAsync(request);
@@ -33,6 +37,7 @@ public class PayrollUpdatesController(PayrollUpdateService payrollUpdateService)
     }
 
     [HttpPut("{id:int}")]
+    [HasPermission("payrollUpdates.update")]
     public async Task<ActionResult<PayrollUpdateResponseDto>> Update(int id, PayrollUpdateCreateDto request)
     {
         var result = await _payrollUpdateService.UpdateAsync(id, request);

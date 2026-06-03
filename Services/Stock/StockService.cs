@@ -113,6 +113,26 @@ public class StockService(AppDbContext context, IMapper mapper)
         return Result.Success();
     }
 
+    public async Task<Result> ValidateSufficientStockAsync(int productId, int branchId, decimal requiredQuantity)
+    {
+        var product = await _context.Products.FindAsync(productId);
+        if (product == null)
+            return Result.Failure(string.Format(StockError.InsufficientStock, "desconocido", 0, requiredQuantity), ErrorType.Validation);
+
+        var stock = await _context.Stocks
+            .FirstOrDefaultAsync(s => s.ProductId == productId && s.BranchId == branchId);
+
+        var availableQuantity = stock?.Quantity ?? 0;
+
+        if (availableQuantity < requiredQuantity)
+        {
+            var errorMsg = string.Format(StockError.InsufficientStock, product.Name, availableQuantity, requiredQuantity);
+            return Result.Failure(errorMsg, ErrorType.Validation);
+        }
+
+        return Result.Success();
+    }
+
     public async Task<Result> IncreaseStockAsync(int productId, int branchId, decimal quantity)
     {
         if (quantity <= 0)

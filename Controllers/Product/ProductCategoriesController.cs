@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Product;
 
 [Route("api/product-categories")]
@@ -17,6 +18,7 @@ public class ProductCategoriesController(ProductCategoriesService productCategor
     private readonly ProductCategoriesService _productCategoriesService = productCategoriesService;
 
     [HttpGet]
+    [HasPermission("productCategories.view")]
     public async Task<ActionResult<ListProductCategoriesWrapperDto>> GetListProductCategories([FromQuery] ProductCategoryQueryDto query)
     {
         var result = await _productCategoriesService.GetListAsync(query);
@@ -28,6 +30,7 @@ public class ProductCategoriesController(ProductCategoriesService productCategor
     }
 
     [HttpGet("all")]
+    [HasPermission("productCategories.view")]
     public async Task<ActionResult<ListProductCategoriesWrapperDto>> GetAllProductCategories()
     {
         var result = await _productCategoriesService.GetAllAsync();
@@ -39,6 +42,7 @@ public class ProductCategoriesController(ProductCategoriesService productCategor
     }
 
     [HttpGet("{id}")]
+    [HasPermission("productCategories.view")]
     public async Task<ActionResult<ProductCategoryWrapperDto>> GetProductCategoryById(int id)
     {
         var result = await _productCategoriesService.GetByIdAsync(id);
@@ -53,6 +57,7 @@ public class ProductCategoriesController(ProductCategoriesService productCategor
     }
 
     [HttpPost]
+    [HasPermission("productCategories.create")]
     public async Task<ActionResult<ProductCategoryWrapperDto>> Create(ProductCategoryRequestDto request)
     {
         var result = await _productCategoriesService.CreateAsync(request);
@@ -67,6 +72,7 @@ public class ProductCategoriesController(ProductCategoriesService productCategor
     }
 
     [HttpPut("{id}")]
+    [HasPermission("productCategories.update")]
     public async Task<ActionResult<ProductCategoryWrapperDto>> Update(int id, ProductCategoryRequestDto request)
     {
         var result = await _productCategoriesService.UpdateAsync(id, request);
@@ -81,6 +87,7 @@ public class ProductCategoriesController(ProductCategoriesService productCategor
     }
 
     [HttpDelete("{id}")]
+    [HasPermission("productCategories.delete")]
     public async Task<ActionResult> Delete(int id)
     {
         var result = await _productCategoriesService.DeleteAsync(id);

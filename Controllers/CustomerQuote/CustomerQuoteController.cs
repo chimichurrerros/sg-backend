@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.CustomerQuote;
 
 [Route("api/customerquotes")]
@@ -19,6 +20,7 @@ public class CustomerQuoteController(CustomerQuoteService customerQuoteService) 
     private readonly CustomerQuoteService _customerQuoteService = customerQuoteService;
 
     [HttpGet]
+    [HasPermission("customerQuotes.view")]
     public async Task<ActionResult<ListCustomerQuotesWrapperDto>> GetListCustomerQuotes([FromQuery] CustomerQuoteQueryDto query)
     {
         var result = await _customerQuoteService.GetListAsync(query);
@@ -30,6 +32,7 @@ public class CustomerQuoteController(CustomerQuoteService customerQuoteService) 
     }
 
     [HttpGet("all")]
+    [HasPermission("customerQuotes.view")]
     public async Task<ActionResult<ListCustomerQuotesWrapperDto>> GetAllCustomerQuotes()
     {
         var result = await _customerQuoteService.GetAllAsync();
@@ -41,6 +44,7 @@ public class CustomerQuoteController(CustomerQuoteService customerQuoteService) 
     }
 
     [HttpGet("{id}")]
+    [HasPermission("customerQuotes.view")]
     public async Task<ActionResult<CustomerQuoteWrapperDto>> GetCustomerQuoteById(int id)
     {
         var result = await _customerQuoteService.GetByIdAsync(id);
@@ -55,6 +59,7 @@ public class CustomerQuoteController(CustomerQuoteService customerQuoteService) 
     }
 
     [HttpPost]
+    [HasPermission("customerQuotes.create")]
     public async Task<ActionResult<CustomerQuoteWrapperDto>> Create(CreateCustomerQuoteRequestDto request)
     {
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -80,6 +85,7 @@ public class CustomerQuoteController(CustomerQuoteService customerQuoteService) 
     }
 
     [HttpPost("{id}/sell")]
+    [HasPermission("customerQuotes.create")]
     public async Task<ActionResult<SalesOrderWrapperDto>> SellFromQuote(int id)
     {
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -93,6 +99,9 @@ public class CustomerQuoteController(CustomerQuoteService customerQuoteService) 
         if (result.ErrorType == ErrorType.NotFound)
             return this.HandleNotFoundProblem(result);
 
+        if (result.ErrorType == ErrorType.Validation)
+            return this.HandleValidationProblem(result);
+
         if (result.ErrorType == ErrorType.Conflict)
             return Conflict(new ProblemDetails
             {
@@ -105,6 +114,7 @@ public class CustomerQuoteController(CustomerQuoteService customerQuoteService) 
     }
 
     [HttpPost("{id}/cancel")]
+    [HasPermission("customerQuotes.create")]
     public async Task<ActionResult> Cancel(int id)
     {
         var result = await _customerQuoteService.CancelAsync(id);
@@ -127,6 +137,7 @@ public class CustomerQuoteController(CustomerQuoteService customerQuoteService) 
     }
 
     [HttpPut("{id}")]
+    [HasPermission("customerQuotes.update")]
     public async Task<ActionResult<CustomerQuoteWrapperDto>> Update(int id, UpdateCustomerQuoteRequestDto request)
     {
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);

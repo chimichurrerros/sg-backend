@@ -271,6 +271,33 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
                     }
                 }
 
+                if (purchaseReturn.BillId.HasValue)
+                {
+                    var creditNote = new CreditNote
+                    {
+                        BillId = purchaseReturn.BillId.Value,
+                        Number = request.CreditNoteNumber,
+                        Type = CreditNoteTypeEnum.PurchaseReturn,
+                        Date = purchaseReturn.Date,
+                        Total = total,
+                        Reason = reasonResult.Value!.Name
+                    };
+                    _context.CreditNotes.Add(creditNote);
+                    await _context.SaveChangesAsync();
+
+                    foreach (var detail in request.Details)
+                    {
+                        _context.CreditNoteDetails.Add(new CreditNoteDetail
+                        {
+                            CreditNoteId = creditNote.Id,
+                            ProductId = detail.ProductId,
+                            Quantity = detail.Quantity,
+                            Price = detail.Price
+                        });
+                    }
+
+                    purchaseReturn.CreditNoteId = creditNote.Id;
+                }
                 purchaseReturn.Total = total;
                 purchaseReturn.TaxTotal = taxTotal;
                 purchaseReturn.Number = string.IsNullOrWhiteSpace(request.Number) ? $"PR-{purchaseReturn.Id:D6}" : request.Number.Trim();
@@ -339,6 +366,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
             .Include(purchaseReturn => purchaseReturn.Branch)
             .Include(purchaseReturn => purchaseReturn.Bill)
                 .ThenInclude(bill => bill!.Customer)
+            .Include(purchaseReturn => purchaseReturn.CreditNote)
             .Include(purchaseReturn => purchaseReturn.PurchaseOrderForSupplier)
                 .ThenInclude(po => po.Supplier)
             .Include(purchaseReturn => purchaseReturn.Reason)
@@ -377,6 +405,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
             Id = purchaseReturn.Id,
             PurchaseOrderForSupplierId = purchaseReturn.PurchaseOrderForSupplierId,
             BillId = purchaseReturn.BillId,
+            CreditNoteId = purchaseReturn.CreditNoteId,
             BranchId = purchaseReturn.BranchId,
             BranchName = purchaseReturn.Branch?.Name ?? string.Empty,
             ReasonId = purchaseReturn.ReasonId,
@@ -560,6 +589,30 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
                 }
             }
 
+            var creditNote = new CreditNote
+            {
+                BillId = purchaseReturn.BillId!.Value,
+                Number = retRequest.CreditNoteNumber,
+                Type = CreditNoteTypeEnum.PurchaseReturn,
+                Date = purchaseReturn.Date,
+                Total = total,
+                Reason = reasonResult2.Value!.Name
+            };
+            _context.CreditNotes.Add(creditNote);
+            await _context.SaveChangesAsync();
+
+            foreach (var detail in retRequest.Details)
+            {
+                _context.CreditNoteDetails.Add(new CreditNoteDetail
+                {
+                    CreditNoteId = creditNote.Id,
+                    ProductId = detail.ProductId,
+                    Quantity = detail.Quantity,
+                    Price = detail.Price
+                });
+            }
+
+            purchaseReturn.CreditNoteId = creditNote.Id;
             purchaseReturn.Total = total;
             purchaseReturn.TaxTotal = taxTotal;
             purchaseReturn.Number = string.IsNullOrWhiteSpace(retRequest.Number) ? $"PR-{purchaseReturn.Id:D6}" : retRequest.Number.Trim();

@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Accounting;
 
 [Route("api/account-plans")]
@@ -17,6 +18,7 @@ public class AccountPlansController(AccountPlanService accountPlanService) : Con
     private readonly AccountPlanService _accountPlanService = accountPlanService;
 
     [HttpGet]
+    [HasPermission("accountPlans.view")]
     public async Task<ActionResult<ListAccountPlansWrapperDto>> GetList([FromQuery] PaginationRequestDto query)
     {
         var result = await _accountPlanService.GetListAsync(query);
@@ -28,6 +30,7 @@ public class AccountPlansController(AccountPlanService accountPlanService) : Con
     }
 
     [HttpGet("all")]
+    [HasPermission("accountPlans.view")]
     public async Task<ActionResult<ListAccountPlansWrapperDto>> GetAll()
     {
         var result = await _accountPlanService.GetAllAsync();
@@ -39,6 +42,7 @@ public class AccountPlansController(AccountPlanService accountPlanService) : Con
     }
 
     [HttpGet("{id}")]
+    [HasPermission("accountPlans.view")]
     public async Task<ActionResult<AccountPlanWrapperDto>> GetById(int id)
     {
         var result = await _accountPlanService.GetByIdAsync(id);
@@ -53,6 +57,7 @@ public class AccountPlansController(AccountPlanService accountPlanService) : Con
     }
 
     [HttpPost]
+    [HasPermission("accountPlans.create")]
     public async Task<ActionResult<AccountPlanWrapperDto>> Create(CreateAccountPlanRequestDto request)
     {
         var result = await _accountPlanService.CreateAsync(request);
@@ -70,6 +75,7 @@ public class AccountPlansController(AccountPlanService accountPlanService) : Con
     }
 
     [HttpPut("{id}")]
+    [HasPermission("accountPlans.update")]
     public async Task<ActionResult<AccountPlanWrapperDto>> Update(int id, UpdateAccountPlanRequestDto request)
     {
         var result = await _accountPlanService.UpdateAsync(id, request);
@@ -87,6 +93,7 @@ public class AccountPlansController(AccountPlanService accountPlanService) : Con
     }
 
     [HttpDelete("{id}")]
+    [HasPermission("accountPlans.delete")]
     public async Task<ActionResult> Delete(int id)
     {
         var result = await _accountPlanService.DeleteAsync(id);

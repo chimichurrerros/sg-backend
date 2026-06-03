@@ -1,3 +1,4 @@
+using BackEnd.Models;
 using BackEnd.Utils;
 
 namespace BackEnd.DTOs.Responses.CreditNote;
@@ -16,6 +17,7 @@ public class CreditNoteResponseDto
     public int Id { get; set; }
     public int BillId { get; set; }
     public string BillNumber { get; set; } = string.Empty;
+    public CreditNoteTypeEnum Type { get; set; }
     public int CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public string CustomerRuc { get; set; } = string.Empty;

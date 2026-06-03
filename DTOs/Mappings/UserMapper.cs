@@ -12,7 +12,11 @@ public class UserMapper : AutoMapper.Profile
         // Advanced case: Map Role.Name to DTO RoleName
         CreateMap<User, UserResponseDto>()
             .ForMember(dest => dest.RoleName,
-                       opt => opt.MapFrom(src => src.Role!.Name));
+                       opt => opt.MapFrom(src => src.Role!.Name))
+            .ForMember(dest => dest.BranchName,
+                       opt => opt.MapFrom(src => src.Branch!.Name))
+            .ForMember(dest => dest.Permissions,
+                       opt => opt.MapFrom(src => src.Role!.Permissions.Select(p => p.Name).ToList()));
 
         CreateMap<User, UserWrapperDto>()
             .ForMember(dest => dest.User,

@@ -8,6 +8,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers;
 
 [Route("api/request-for-quotations")]
@@ -18,6 +19,7 @@ public class RequestForQuotationController(RequestForQuotationService requestFor
     private readonly RequestForQuotationService _requestForQuotationService = requestForQuotationService;
 
     [HttpGet("all")]
+    [HasPermission("requestForQuotations.view")]
     public async Task<ActionResult<ListRequestForQuotationsWrapperDto>> GetAll()
     {
         var result = await _requestForQuotationService.GetAllAsync();
@@ -28,6 +30,7 @@ public class RequestForQuotationController(RequestForQuotationService requestFor
     }
 
     [HttpGet]
+    [HasPermission("requestForQuotations.view")]
     public async Task<ActionResult<ListRequestForQuotationsWrapperDto>> GetList([FromQuery] RequestForQuotationQueryDto query)
     {
         var result = await _requestForQuotationService.GetListAsync(query);
@@ -38,6 +41,7 @@ public class RequestForQuotationController(RequestForQuotationService requestFor
     }
 
     [HttpGet("{id:int}")]
+    [HasPermission("requestForQuotations.view")]
     public async Task<ActionResult<RequestForQuotationWrapperDto>> GetById(int id)
     {
         var result = await _requestForQuotationService.GetByIdAsync(id);

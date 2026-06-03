@@ -19,6 +19,9 @@ public class CreditNoteService(AppDbContext context, IMapper mapper)
     {
         var query = _context.CreditNotes.AsNoTracking();
 
+        if (queryDto.Type.HasValue)
+            query = query.Where(cn => cn.Type == queryDto.Type.Value);
+
         if (!string.IsNullOrWhiteSpace(queryDto.CustomerName))
             query = query.Where(cn => cn.Bill.Customer != null && cn.Bill.Customer.Name.ToLower().Contains(queryDto.CustomerName.ToLower()));
 
@@ -72,6 +75,7 @@ public class CreditNoteService(AppDbContext context, IMapper mapper)
             var creditNote = new CreditNote
             {
                 BillId = request.BillId,
+                Type = CreditNoteTypeEnum.SalesReturn,
                 Date = request.Date == default ? DateTime.UtcNow : request.Date,
                 Total = request.Total,
                 Reason = request.Reason
@@ -100,6 +104,7 @@ public class CreditNoteService(AppDbContext context, IMapper mapper)
                 Id = creditNote.Id,
                 BillId = creditNote.BillId,
                 BillNumber = bill.Number,
+                Type = creditNote.Type,
                 CustomerId = bill.Customer?.Id ?? 0,
                 CustomerName = bill.Customer?.Name ?? string.Empty,
                 CustomerRuc = bill.Customer?.Ruc ?? string.Empty,
@@ -142,6 +147,7 @@ public class CreditNoteService(AppDbContext context, IMapper mapper)
             Id = cn.Id,
             BillId = cn.BillId,
             BillNumber = cn.Bill?.Number ?? string.Empty,
+            Type = cn.Type,
             CustomerId = cn.Bill?.Customer?.Id ?? 0,
             CustomerName = cn.Bill?.Customer?.Name ?? string.Empty,
             CustomerRuc = cn.Bill?.Customer?.Ruc ?? string.Empty,

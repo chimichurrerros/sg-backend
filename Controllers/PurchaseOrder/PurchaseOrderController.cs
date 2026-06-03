@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.PurchaseOrder;
 
 [Route("api/purchaseorders")]
@@ -17,6 +18,7 @@ public class PurchaseOrderController(PurchaseOrderService purchaseOrderService) 
     private readonly PurchaseOrderService _purchaseOrderService = purchaseOrderService;
 
     [HttpGet]
+    [HasPermission("purchaseOrders.view")]
     public async Task<ActionResult<ListPurchaseOrdersWrapperDto>> GetList([FromQuery] PurchaseOrderQueryDto query)
     {
         var result = await _purchaseOrderService.GetListAsync(query);
@@ -26,6 +28,7 @@ public class PurchaseOrderController(PurchaseOrderService purchaseOrderService) 
     }
 
     [HttpGet("all")]
+    [HasPermission("purchaseOrders.view")]
     public async Task<ActionResult<ListPurchaseOrdersWrapperDto>> GetAll()
     {
         var result = await _purchaseOrderService.GetAllAsync();
@@ -35,6 +38,7 @@ public class PurchaseOrderController(PurchaseOrderService purchaseOrderService) 
     }
 
     [HttpGet("draft/{purchaseRequestId}")]
+    [HasPermission("purchaseOrders.view")]
     public async Task<ActionResult<PurchaseOrderDraftWrapperDto>> GetDraft(int purchaseRequestId)
     {
         var result = await _purchaseOrderService.GetDraftByPurchaseRequestIdAsync(purchaseRequestId);
@@ -51,6 +55,7 @@ public class PurchaseOrderController(PurchaseOrderService purchaseOrderService) 
     }
 
     [HttpGet("{id}")]
+    [HasPermission("purchaseOrders.view")]
     public async Task<ActionResult<PurchaseOrderWrapperDto>> GetById(int id)
     {
         var result = await _purchaseOrderService.GetByIdAsync(id);
@@ -64,6 +69,7 @@ public class PurchaseOrderController(PurchaseOrderService purchaseOrderService) 
     }
 
     [HttpPost]
+    [HasPermission("purchaseOrders.create")]
     public async Task<ActionResult<PurchaseOrderWrapperDto>> Create(CreatePurchaseOrderRequestDto request)
     {
         var result = await _purchaseOrderService.CreateAsync(request);
@@ -80,6 +86,7 @@ public class PurchaseOrderController(PurchaseOrderService purchaseOrderService) 
     }
 
     [HttpPut("{id}/cancel")]
+    [HasPermission("purchaseOrders.update")]
     public async Task<ActionResult> Cancel(int id)
     {
         var result = await _purchaseOrderService.CancelMainOrderAsync(id);

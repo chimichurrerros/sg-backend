@@ -1,8 +1,11 @@
 using BackEnd.Constants.Errors;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using BackEnd.DTOs.Mappings;
+using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Requests.PurchaseReceipt;
 using BackEnd.DTOs.Responses.Bill;
+using BackEnd.DTOs.Responses.PurchaseReceipt;
 using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using BackEnd.Utils;
@@ -37,6 +40,9 @@ public class PurchaseReceiptService(
 
         if (purchaseOrderForSupplier == null)
             return Result<BillWrapperDto>.Failure(PurchaseReceiptError.PurchaseOrderNotFound, ErrorType.NotFound);
+
+        if (purchaseOrderForSupplier.SupplierId != request.SupplierId)
+            return Result<BillWrapperDto>.Failure(PurchaseReceiptError.SupplierMismatch, ErrorType.Validation);
 
         var paymentConfirmationResult = await _paymentOrderService.IsPaymentConfirmedAsync(request.PurchaseOrderForSupplierId);
         if (!paymentConfirmationResult.IsSuccess)
@@ -102,9 +108,9 @@ public class PurchaseReceiptService(
             // 3. Crear Factura (Bill) de tipo Compra
             var bill = new Bill
             {
-                BillType = BillTypeEnum.CONTADO, // Se podría hacer parametrizable
+                BillType = BillTypeEnum.CONTADO,
                 BillState = BillStateEnum.Pending,
-                CustomerId = null, // Es factura de compra, no hay cliente asociado
+                CustomerId = null,
                 PurchaseOrderForSupplierId = purchaseOrderForSupplier.Id,
                 Number = request.BillNumber,
                 Stamp = request.Stamp,
@@ -117,7 +123,25 @@ public class PurchaseReceiptService(
             _context.Bills.Add(bill);
             await _context.SaveChangesAsync();
 
-            // 4. Crear Detalles de la Factura
+            // 3.5 Crear Recepción de Compra (PurchaseReceipt)
+            var purchaseReceipt = new PurchaseReceipt
+            {
+                PurchaseOrderForSupplierId = purchaseOrderForSupplier.Id,
+                BillId = bill.Id,
+                BranchId = request.BranchId,
+                SupplierId = request.SupplierId,
+                Number = request.BillNumber,
+                Stamp = request.Stamp,
+                Date = request.Date.ToDateTime(TimeOnly.MinValue),
+                Observation = request.Observation,
+                Total = total,
+                TaxTotal = taxTotal
+            };
+
+            _context.PurchaseReceipts.Add(purchaseReceipt);
+            await _context.SaveChangesAsync();
+
+            // 4. Crear Detalles de la Factura y Recepción
             foreach (var detail in request.Details)
             {
                 var poDetail = purchaseOrderForSupplier.PurchaseOrderDetails.First(d => d.ProductId == detail.ProductId);
@@ -131,6 +155,16 @@ public class PurchaseReceiptService(
                     TaxRate = poDetail.TaxRate
                 };
                 _context.BillDetails.Add(billDetail);
+
+                var receiptDetail = new PurchaseReceiptDetail
+                {
+                    PurchaseReceiptId = purchaseReceipt.Id,
+                    ProductId = detail.ProductId,
+                    Quantity = detail.Quantity,
+                    Price = detail.Price,
+                    TaxRate = poDetail.TaxRate
+                };
+                _context.PurchaseReceiptDetails.Add(receiptDetail);
             }
 
             await _context.SaveChangesAsync();
@@ -155,5 +189,67 @@ public class PurchaseReceiptService(
             .ToListAsync();
 
         return Result<ListBillsWrapperDto>.Success(new ListBillsWrapperDto { Bills = bills });
+    }
+
+    public async Task<Result<PurchaseReceiptWrapperDto>> GetReceiptByIdAsync(int id)
+    {
+        var receipt = await LoadQuery()
+            .FirstOrDefaultAsync(r => r.Id == id);
+
+        if (receipt == null)
+            return Result<PurchaseReceiptWrapperDto>.Failure(PurchaseReceiptError.ReceiptNotFound, ErrorType.NotFound);
+
+        return Result<PurchaseReceiptWrapperDto>.Success(new PurchaseReceiptWrapperDto
+        {
+            PurchaseReceipt = PurchaseReceiptMapper.MapReceipt(receipt)
+        });
+    }
+
+    public async Task<Result<ListPurchaseReceiptsWrapperDto>> GetReceiptsAsync(PurchaseReceiptQueryDto queryDto)
+    {
+        var query = LoadQuery();
+
+        if (queryDto.PurchaseOrderForSupplierId.HasValue)
+            query = query.Where(r => r.PurchaseOrderForSupplierId == queryDto.PurchaseOrderForSupplierId.Value);
+
+        if (queryDto.BranchId.HasValue)
+            query = query.Where(r => r.BranchId == queryDto.BranchId.Value);
+
+        if (queryDto.SupplierId.HasValue)
+            query = query.Where(r => r.SupplierId == queryDto.SupplierId.Value);
+
+        if (queryDto.Date.HasValue)
+            query = query.Where(r => r.Date.Date == queryDto.Date.Value.ToDateTime(TimeOnly.MinValue).Date);
+
+        if (queryDto.StartDate.HasValue)
+            query = query.Where(r => r.Date >= queryDto.StartDate.Value.ToDateTime(TimeOnly.MinValue));
+
+        if (queryDto.EndDate.HasValue)
+            query = query.Where(r => r.Date <= queryDto.EndDate.Value.ToDateTime(TimeOnly.MinValue).AddDays(1));
+
+        var totalElements = await query.CountAsync();
+
+        var receipts = await query
+            .OrderByDescending(r => r.Id)
+            .Skip((queryDto.Page - 1) * queryDto.PageSize)
+            .Take(queryDto.PageSize)
+            .ToListAsync();
+
+        return Result<ListPurchaseReceiptsWrapperDto>.Success(new ListPurchaseReceiptsWrapperDto
+        {
+            PurchaseReceipts = receipts.Select(PurchaseReceiptMapper.MapReceipt).ToList(),
+            Pagination = new Pagination(queryDto.Page, queryDto.PageSize, totalElements)
+        });
+    }
+
+    private IQueryable<PurchaseReceipt> LoadQuery()
+    {
+        return _context.PurchaseReceipts
+            .AsNoTracking()
+            .Include(r => r.Branch)
+            .Include(r => r.Supplier)
+            .Include(r => r.Bill)
+            .Include(r => r.PurchaseReceiptDetails)
+                .ThenInclude(d => d.Product);
     }
 }

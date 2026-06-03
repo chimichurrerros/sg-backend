@@ -439,6 +439,10 @@ namespace BackEnd.Migrations
                         .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<string>("Number")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("Reason")
                         .IsRequired()
                         .HasColumnType("text");
@@ -446,6 +450,9 @@ namespace BackEnd.Migrations
                     b.Property<decimal>("Total")
                         .HasPrecision(15, 2)
                         .HasColumnType("numeric(15,2)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id")
                         .HasName("CreditNotes_pkey");
@@ -1105,6 +1112,9 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<int>("Month")
                         .HasColumnType("integer");
 
@@ -1112,6 +1122,9 @@ namespace BackEnd.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateOnly?>("PayDate")
                         .HasColumnType("date");
@@ -1256,6 +1269,9 @@ namespace BackEnd.Migrations
                         .HasColumnType("numeric(15,2)")
                         .HasDefaultValue(0m);
 
+                    b.Property<int?>("DepartmentId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1263,6 +1279,8 @@ namespace BackEnd.Migrations
 
                     b.HasKey("Id")
                         .HasName("Positions_pkey");
+
+                    b.HasIndex("DepartmentId");
 
                     b.ToTable("Positions");
                 });
@@ -1543,6 +1561,103 @@ namespace BackEnd.Migrations
                     b.ToTable("PurchaseOrdersForSupplier");
                 });
 
+            modelBuilder.Entity("BackEnd.Models.PurchaseReceipt", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("BillId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("Date")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Observation")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("PurchaseOrderForSupplierId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Stamp")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("TaxTotal")
+                        .HasPrecision(15, 2)
+                        .HasColumnType("numeric(15,2)");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(15, 2)
+                        .HasColumnType("numeric(15,2)");
+
+                    b.HasKey("Id")
+                        .HasName("PurchaseReceipts_pkey");
+
+                    b.HasIndex("BillId");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("PurchaseOrderForSupplierId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("PurchaseReceipts");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.PurchaseReceiptDetail", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(15, 2)
+                        .HasColumnType("numeric(15,2)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PurchaseReceiptId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<decimal>("TaxRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.HasKey("Id")
+                        .HasName("PurchaseReceiptDetails_pkey");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("PurchaseReceiptId");
+
+                    b.ToTable("PurchaseReceiptDetails");
+                });
+
             modelBuilder.Entity("BackEnd.Models.PurchaseRequest", b =>
                 {
                     b.Property<int>("Id")
@@ -1622,6 +1737,9 @@ namespace BackEnd.Migrations
                     b.Property<int>("BranchId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("CreditNoteId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("Date")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp without time zone")
@@ -1659,6 +1777,8 @@ namespace BackEnd.Migrations
                     b.HasIndex("BillId");
 
                     b.HasIndex("BranchId");
+
+                    b.HasIndex("CreditNoteId");
 
                     b.HasIndex("PurchaseOrderForSupplierId");
 
@@ -2198,6 +2318,9 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -2229,6 +2352,8 @@ namespace BackEnd.Migrations
 
                     b.HasKey("Id")
                         .HasName("Users_pkey");
+
+                    b.HasIndex("BranchId");
 
                     b.HasIndex("RoleId");
 
@@ -2694,6 +2819,15 @@ namespace BackEnd.Migrations
                     b.Navigation("Entity");
                 });
 
+            modelBuilder.Entity("BackEnd.Models.Position", b =>
+                {
+                    b.HasOne("BackEnd.Models.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId");
+
+                    b.Navigation("Department");
+                });
+
             modelBuilder.Entity("BackEnd.Models.PositionByScheduleByEmployee", b =>
                 {
                     b.HasOne("BackEnd.Models.Employee", "Employee")
@@ -2801,6 +2935,59 @@ namespace BackEnd.Migrations
                     b.Navigation("SupplierQuote");
                 });
 
+            modelBuilder.Entity("BackEnd.Models.PurchaseReceipt", b =>
+                {
+                    b.HasOne("BackEnd.Models.Bill", "Bill")
+                        .WithMany()
+                        .HasForeignKey("BillId")
+                        .HasConstraintName("PurchaseReceipts_BillId_fkey");
+
+                    b.HasOne("BackEnd.Models.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .IsRequired()
+                        .HasConstraintName("PurchaseReceipts_BranchId_fkey");
+
+                    b.HasOne("BackEnd.Models.PurchaseOrderForSupplier", "PurchaseOrderForSupplier")
+                        .WithMany()
+                        .HasForeignKey("PurchaseOrderForSupplierId")
+                        .IsRequired()
+                        .HasConstraintName("PurchaseReceipts_PurchaseOrderForSupplierId_fkey");
+
+                    b.HasOne("BackEnd.Models.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .IsRequired()
+                        .HasConstraintName("PurchaseReceipts_SupplierId_fkey");
+
+                    b.Navigation("Bill");
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("PurchaseOrderForSupplier");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.PurchaseReceiptDetail", b =>
+                {
+                    b.HasOne("BackEnd.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .IsRequired()
+                        .HasConstraintName("PurchaseReceiptDetails_ProductId_fkey");
+
+                    b.HasOne("BackEnd.Models.PurchaseReceipt", "PurchaseReceipt")
+                        .WithMany("PurchaseReceiptDetails")
+                        .HasForeignKey("PurchaseReceiptId")
+                        .IsRequired()
+                        .HasConstraintName("PurchaseReceiptDetails_PurchaseReceiptId_fkey");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("PurchaseReceipt");
+                });
+
             modelBuilder.Entity("BackEnd.Models.PurchaseRequest", b =>
                 {
                     b.HasOne("BackEnd.Models.User", "User")
@@ -2844,6 +3031,11 @@ namespace BackEnd.Migrations
                         .IsRequired()
                         .HasConstraintName("PurchaseReturns_BranchId_fkey");
 
+                    b.HasOne("BackEnd.Models.CreditNote", "CreditNote")
+                        .WithMany()
+                        .HasForeignKey("CreditNoteId")
+                        .HasConstraintName("PurchaseReturns_CreditNoteId_fkey");
+
                     b.HasOne("BackEnd.Models.PurchaseOrderForSupplier", "PurchaseOrderForSupplier")
                         .WithMany()
                         .HasForeignKey("PurchaseOrderForSupplierId")
@@ -2859,6 +3051,8 @@ namespace BackEnd.Migrations
                     b.Navigation("Bill");
 
                     b.Navigation("Branch");
+
+                    b.Navigation("CreditNote");
 
                     b.Navigation("PurchaseOrderForSupplier");
 
@@ -3080,11 +3274,18 @@ namespace BackEnd.Migrations
 
             modelBuilder.Entity("BackEnd.Models.User", b =>
                 {
+                    b.HasOne("BackEnd.Models.Branch", "Branch")
+                        .WithMany("Users")
+                        .HasForeignKey("BranchId")
+                        .HasConstraintName("Users_BranchId_fkey");
+
                     b.HasOne("BackEnd.Models.Role", "Role")
                         .WithMany("Users")
                         .HasForeignKey("RoleId")
                         .IsRequired()
                         .HasConstraintName("Users_RoleId_fkey");
+
+                    b.Navigation("Branch");
 
                     b.Navigation("Role");
                 });
@@ -3132,6 +3333,8 @@ namespace BackEnd.Migrations
                     b.Navigation("Employees");
 
                     b.Navigation("Stocks");
+
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("BackEnd.Models.CreditNote", b =>
@@ -3261,6 +3464,11 @@ namespace BackEnd.Migrations
                     b.Navigation("Bills");
 
                     b.Navigation("PurchaseOrderDetails");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.PurchaseReceipt", b =>
+                {
+                    b.Navigation("PurchaseReceiptDetails");
                 });
 
             modelBuilder.Entity("BackEnd.Models.PurchaseRequest", b =>

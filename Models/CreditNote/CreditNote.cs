@@ -9,6 +9,10 @@ public partial class CreditNote
 
     public int BillId { get; set; }
 
+    public string? Number { get; set; }
+
+    public CreditNoteTypeEnum Type { get; set; }
+
     public DateTime Date { get; set; }
 
     public decimal Total { get; set; }

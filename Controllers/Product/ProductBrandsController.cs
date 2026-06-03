@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Product;
 
 [Route("api/product-brands")]
@@ -17,6 +18,7 @@ public class ProductBrandsController(ProductBrandsService productBrandsService) 
     private readonly ProductBrandsService _productBrandsService = productBrandsService;
 
     [HttpGet]
+    [HasPermission("productBrands.view")]
     public async Task<ActionResult<ListProductBrandsWrapperDto>> GetListProductBrands([FromQuery] ProductBrandQueryDto query)
     {
         var result = await _productBrandsService.GetListAsync(query);
@@ -28,6 +30,7 @@ public class ProductBrandsController(ProductBrandsService productBrandsService) 
     }
 
     [HttpGet("all")]
+    [HasPermission("productBrands.view")]
     public async Task<ActionResult<ListProductBrandsWrapperDto>> GetAllProductBrands()
     {
         var result = await _productBrandsService.GetAllAsync();
@@ -39,6 +42,7 @@ public class ProductBrandsController(ProductBrandsService productBrandsService) 
     }
 
     [HttpGet("{id}")]
+    [HasPermission("productBrands.view")]
     public async Task<ActionResult<ProductBrandWrapperDto>> GetProductBrandById(int id)
     {
         var result = await _productBrandsService.GetByIdAsync(id);
@@ -53,6 +57,7 @@ public class ProductBrandsController(ProductBrandsService productBrandsService) 
     }
 
     [HttpPost]
+    [HasPermission("productBrands.create")]
     public async Task<ActionResult<ProductBrandWrapperDto>> Create(ProductBrandRequestDto request)
     {
         var result = await _productBrandsService.CreateAsync(request);
@@ -67,6 +72,7 @@ public class ProductBrandsController(ProductBrandsService productBrandsService) 
     }
 
     [HttpPut("{id}")]
+    [HasPermission("productBrands.update")]
     public async Task<ActionResult<ProductBrandWrapperDto>> Update(int id, ProductBrandRequestDto request)
     {
         var result = await _productBrandsService.UpdateAsync(id, request);
@@ -81,6 +87,7 @@ public class ProductBrandsController(ProductBrandsService productBrandsService) 
     }
 
     [HttpDelete("{id}")]
+    [HasPermission("productBrands.delete")]
     public async Task<ActionResult> Delete(int id)
     {
         var result = await _productBrandsService.DeleteAsync(id);

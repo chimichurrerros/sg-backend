@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Attendance;
 
 [Route("api/attendance")]
@@ -17,6 +18,7 @@ public class AttendanceController(AppDbContext context) : ControllerBase
     private readonly AppDbContext _context = context;
 
     [HttpPost]
+    [HasPermission("attendance.create")]
     public async Task<ActionResult<AttendanceResponseDto>> Create(CreateAttendanceRequestDto request)
     {
         if (!Enum.IsDefined(typeof(AttendanceStatus), request.Status))
@@ -61,6 +63,7 @@ public class AttendanceController(AppDbContext context) : ControllerBase
     }
 
     [HttpGet]
+    [HasPermission("attendance.view")]
     public async Task<ActionResult<List<AttendanceResponseDto>>> GetList(
         [FromQuery] DateOnly? fromDate,
         [FromQuery] DateOnly? toDate,

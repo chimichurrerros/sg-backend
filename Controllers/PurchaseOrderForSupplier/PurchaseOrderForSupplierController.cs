@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.PurchaseOrderForSupplier;
 
 [Route("api/purchaseorders-for-supplier")]
@@ -17,6 +18,7 @@ public class PurchaseOrderForSupplierController(PurchaseOrderForSupplierService 
     private readonly PurchaseOrderForSupplierService _purchaseOrderForSupplierService = purchaseOrderForSupplierService;
 
     [HttpGet]
+    [HasPermission("purchaseOrderForSuppliers.view")]
     public async Task<ActionResult<ListPurchaseOrdersForSupplierWrapperDto>> GetList([FromQuery] PurchaseOrderForSupplierQueryDto query)
     {
         var result = await _purchaseOrderForSupplierService.GetListAsync(query);
@@ -26,6 +28,7 @@ public class PurchaseOrderForSupplierController(PurchaseOrderForSupplierService 
     }
 
     [HttpGet("all")]
+    [HasPermission("purchaseOrderForSuppliers.view")]
     public async Task<ActionResult<ListPurchaseOrdersForSupplierWrapperDto>> GetAll()
     {
         var result = await _purchaseOrderForSupplierService.GetAllAsync();
@@ -35,6 +38,7 @@ public class PurchaseOrderForSupplierController(PurchaseOrderForSupplierService 
     }
 
     [HttpGet("{id}")]
+    [HasPermission("purchaseOrderForSuppliers.view")]
     public async Task<ActionResult<PurchaseOrderForSupplierWrapperDto>> GetById(int id)
     {
         var result = await _purchaseOrderForSupplierService.GetByIdAsync(id);
@@ -48,6 +52,7 @@ public class PurchaseOrderForSupplierController(PurchaseOrderForSupplierService 
     }
 
     [HttpPut("{id}/state")]
+    [HasPermission("purchaseOrderForSuppliers.update")]
     public async Task<ActionResult> UpdateState(int id, UpdatePurchaseOrderForSupplierStateDto request)
     {
         var result = await _purchaseOrderForSupplierService.UpdateStateAsync(id, request);

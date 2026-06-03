@@ -68,6 +68,7 @@ public class SalesReturnService(AppDbContext context, StockService stockService,
             var creditNote = new CreditNote
             {
                 BillId = request.BillId,
+                Type = CreditNoteTypeEnum.SalesReturn,
                 Date = request.Date == default ? DateTime.UtcNow : request.Date,
                 Total = request.Total,
                 Reason = request.Reason
@@ -75,6 +76,8 @@ public class SalesReturnService(AppDbContext context, StockService stockService,
 
             _context.CreditNotes.Add(creditNote);
             await _context.SaveChangesAsync();
+
+            creditNote.Number = $"CN-{creditNote.Id:D6}";
 
             foreach (var detail in request.Details)
             {

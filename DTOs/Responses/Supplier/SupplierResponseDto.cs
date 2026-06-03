@@ -12,6 +12,7 @@ public class SupplierResponseDto
     public bool IsActive { get; set; }
     public string BusinessName { get; set; } = null!;
     public string? FantasyName { get; set; }
+    public List<SupplierCategoryResponseDto> SupplierCategories { get; set; } = [];
 }
 
 public class SupplierWrapperDto

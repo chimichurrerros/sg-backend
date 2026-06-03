@@ -16,11 +16,18 @@ public class PositionService(AppDbContext context, IMapper mapper)
     private readonly AppDbContext _context = context;
     private readonly IMapper _mapper = mapper;
 
-    public async Task<Result<ListPositionsWrapperDto>> GetAllAsync(OrganizationQueryDto query)
+    public async Task<Result<ListPositionsWrapperDto>> GetAllAsync(OrganizationQueryDto query, int? departmentId = null)
     {
         var positionsQuery = _context.Positions
             .AsNoTracking()
-            .Where(p => string.IsNullOrWhiteSpace(query.Search) || p.Name.ToLower().Contains(query.Search.ToLower()));
+            .Where(p => (string.IsNullOrWhiteSpace(query.Search) || p.Name.ToLower().Contains(query.Search.ToLower())));
+
+        if (departmentId.HasValue)
+        {
+            positionsQuery = departmentId.Value == 0
+                ? positionsQuery.Where(p => p.DepartmentId == null)
+                : positionsQuery.Where(p => p.DepartmentId == departmentId.Value);
+        }
 
         positionsQuery = ApplySort(positionsQuery, query.SortBy, query.SortOrder);
 
@@ -29,6 +36,7 @@ public class PositionService(AppDbContext context, IMapper mapper)
         var positions = await positionsQuery
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
+            .Include(p => p.Department)
             .ProjectTo<PositionResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 

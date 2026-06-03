@@ -113,6 +113,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<PurchaseReturnReason> PurchaseReturnReasons { get; set; }
 
+    public virtual DbSet<PurchaseReceipt> PurchaseReceipts { get; set; }
+
+    public virtual DbSet<PurchaseReceiptDetail> PurchaseReceiptDetails { get; set; }
+
     public virtual DbSet<RequestForQuotation> RequestForQuotations { get; set; }
 
     public virtual DbSet<RequestForQuotationDetail> RequestForQuotationDetails { get; set; }
@@ -323,6 +327,8 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone");
             entity.Property(e => e.Total).HasPrecision(15, 2);
+            entity.Property(e => e.Number).HasMaxLength(50);
+            entity.Property(e => e.Type).HasConversion<int>();
 
             entity.HasOne(d => d.Bill).WithMany(p => p.CreditNotes)
                 .HasForeignKey(d => d.BillId)
@@ -917,6 +923,10 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ReasonId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PurchaseReturns_ReasonId_fkey");
+
+            entity.HasOne(d => d.CreditNote).WithMany()
+                .HasForeignKey(d => d.CreditNoteId)
+                .HasConstraintName("PurchaseReturns_CreditNoteId_fkey");
         });
 
         modelBuilder.Entity<PurchaseReturnDetail>(entity =>
@@ -936,6 +946,58 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.PurchaseReturnId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("PurchaseReturnDetails_PurchaseReturnId_fkey");
+        });
+
+        modelBuilder.Entity<PurchaseReceipt>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PurchaseReceipts_pkey");
+
+            entity.Property(e => e.Number).HasMaxLength(50);
+            entity.Property(e => e.Stamp).HasMaxLength(50);
+            entity.Property(e => e.Observation).HasMaxLength(500);
+            entity.Property(e => e.Total).HasPrecision(15, 2);
+            entity.Property(e => e.TaxTotal).HasPrecision(15, 2);
+            entity.Property(e => e.Date)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone");
+
+            entity.HasOne(d => d.Bill).WithMany()
+                .HasForeignKey(d => d.BillId)
+                .HasConstraintName("PurchaseReceipts_BillId_fkey");
+
+            entity.HasOne(d => d.Branch).WithMany()
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseReceipts_BranchId_fkey");
+
+            entity.HasOne(d => d.Supplier).WithMany()
+                .HasForeignKey(d => d.SupplierId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseReceipts_SupplierId_fkey");
+
+            entity.HasOne(d => d.PurchaseOrderForSupplier).WithMany()
+                .HasForeignKey(d => d.PurchaseOrderForSupplierId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseReceipts_PurchaseOrderForSupplierId_fkey");
+        });
+
+        modelBuilder.Entity<PurchaseReceiptDetail>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PurchaseReceiptDetails_pkey");
+
+            entity.Property(e => e.Price).HasPrecision(15, 2);
+            entity.Property(e => e.Quantity).HasPrecision(10, 2);
+            entity.Property(e => e.TaxRate).HasPrecision(5, 2);
+
+            entity.HasOne(d => d.Product).WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseReceiptDetails_ProductId_fkey");
+
+            entity.HasOne(d => d.PurchaseReceipt).WithMany(p => p.PurchaseReceiptDetails)
+                .HasForeignKey(d => d.PurchaseReceiptId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseReceiptDetails_PurchaseReceiptId_fkey");
         });
 
         modelBuilder.Entity<PurchaseRequest>(entity =>
@@ -1223,6 +1285,11 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.RoleId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("Users_RoleId_fkey");
+
+            entity.HasOne(d => d.Branch).WithMany(p => p.Users)
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("Users_BranchId_fkey");
         });
 
         OnModelCreatingPartial(modelBuilder);

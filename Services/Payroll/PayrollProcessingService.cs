@@ -191,6 +191,8 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
                 Month = p.Month,
                 StartDate = p.StartDate,
                 PayDate = p.PayDate,
+                ClosedAt = p.ClosedAt,
+                PaidAt = p.PaidAt,
                 PayrollStatusId = (int)p.PayrollStatusId,
                 PayrollStatusName = p.PayrollStatusId.ToString()
             })
@@ -218,6 +220,8 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             Month = p.Month,
             StartDate = p.StartDate,
             PayDate = p.PayDate,
+            ClosedAt = p.ClosedAt,
+            PaidAt = p.PaidAt,
             PayrollStatusId = (int)p.PayrollStatusId,
             PayrollStatusName = p.PayrollStatusId.ToString()
         };
@@ -496,10 +500,11 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             .ToListAsync();
 
         var summaries = details
-            .GroupBy(d => d.Employee)
+            .GroupBy(d => d.EmployeeId)
             .Select(g =>
             {
-                var employee = g.Key;
+                var firstDetail = g.First();
+                var employee = firstDetail.Employee;
                 var sueldoBruto = g
                     .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings)
                     .Sum(d => d.Amount);
@@ -533,6 +538,53 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             .ToList();
 
         return Result<List<PayrollDetailSummaryResponseDto>>.Success(summaries);
+    }
+
+    public async Task<Result<List<PayrollConceptSummaryResponseDto>>> GetConceptSummariesAsync(int processId)
+    {
+        var process = await _context.PayrollProcesses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == processId);
+
+        if (process is null)
+            return Result<List<PayrollConceptSummaryResponseDto>>.Failure(
+                PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
+
+        var details = await _context.PayrollProcessDetails
+            .AsNoTracking()
+            .Where(d => d.PayrollProcessId == processId)
+            .Include(d => d.PayrollUpdate)
+            .ToListAsync();
+
+        var earningsConcepts = details
+            .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings && d.Amount > 0)
+            .GroupBy(d => d.PayrollUpdateId)
+            .Select(g => new ConceptSummaryItemDto
+            {
+                ConceptName = g.First().PayrollUpdate.Name,
+                TotalAmount = g.Sum(d => d.Amount)
+            })
+            .OrderBy(c => c.ConceptName)
+            .ToList();
+
+        var deductionsConcepts = details
+            .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Deductions && d.Amount > 0)
+            .GroupBy(d => d.PayrollUpdateId)
+            .Select(g => new ConceptSummaryItemDto
+            {
+                ConceptName = g.First().PayrollUpdate.Name,
+                TotalAmount = g.Sum(d => d.Amount)
+            })
+            .OrderBy(c => c.ConceptName)
+            .ToList();
+
+        var result = new List<PayrollConceptSummaryResponseDto>
+        {
+            new() { PayrollType = "Ingresos", Concepts = earningsConcepts },
+            new() { PayrollType = "Egresos", Concepts = deductionsConcepts }
+        };
+
+        return Result<List<PayrollConceptSummaryResponseDto>>.Success(result);
     }
 
     public async Task<Result<PayrollProcessResponseDto>> CreatePayrollProcessAsync(PayrollProcessCreateDto request)
@@ -928,7 +980,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
 
             response.EmployeesProcessed = response.Employees.Count;
 
-            process.PayrollStatusId = PayrollProcess.PayrollStatusEnum.Processed;
+            process.PayrollStatusId = PayrollProcess.PayrollStatusEnum.Closed;
 
             await AssignPendingIncidentsAsync(pendingIncidents);
 
@@ -969,10 +1021,20 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         if (process is null)
             return Result<PayrollCloseResponseDto>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
 
-        if (process.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Processed)
-            return Result<PayrollCloseResponseDto>.Failure("La planilla debe estar en estado 'Procesado' para cerrarse.", ErrorType.Conflict);
+        if (process.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Open)
+            return Result<PayrollCloseResponseDto>.Failure("La planilla debe estar en estado 'Abierto' para cerrarse.", ErrorType.Conflict);
+
+        var hasDetails = await _context.PayrollProcessDetails.AnyAsync(d => d.PayrollProcessId == process.Id);
+
+        if (hasDetails)
+        {
+            var recalculateResult = await CalculateAsync(payrollProcessId);
+            if (!recalculateResult.IsSuccess)
+                return Result<PayrollCloseResponseDto>.Failure(recalculateResult.ErrorMessage!, ErrorType.Failure);
+        }
 
         process.PayrollStatusId = PayrollProcess.PayrollStatusEnum.Closed;
+        process.ClosedAt = DateTime.Now;
         await _context.SaveChangesAsync();
 
         return Result<PayrollCloseResponseDto>.Success(new PayrollCloseResponseDto
@@ -1022,9 +1084,8 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         if (process is null)
             return Result<PayrollCloseAndPayResponseDto>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
 
-        if (process.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Processed
-            && process.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Open)
-            return Result<PayrollCloseAndPayResponseDto>.Failure("La planilla debe estar en estado 'Procesado' para cerrar y pagar.", ErrorType.Conflict);
+        if (process.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Closed)
+            return Result<PayrollCloseAndPayResponseDto>.Failure("La planilla debe estar en estado 'Cerrado' para cerrar y pagar.", ErrorType.Conflict);
 
         var details = await _context.PayrollProcessDetails
             .AsNoTracking()
@@ -1157,6 +1218,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         process.PayrollStatusId = PayrollProcess.PayrollStatusEnum.Paid;
 
         process.PayDate = DateOnly.FromDateTime(DateTime.Now);
+        process.PaidAt = DateTime.Now;
 
         await _context.SaveChangesAsync();
 
@@ -1194,9 +1256,6 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             .AsNoTracking()
             .Include(lp => lp.Entity)
             .FirstOrDefaultAsync();
-
-        if (legalPerson is null)
-            return Result<PayrollEmployeeReceiptDto>.Failure("No se encontraron datos de la empresa.", ErrorType.NotFound);
 
         var position = await _context.PositionByScheduleByEmployees
             .AsNoTracking()
@@ -1255,10 +1314,10 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
 
         return Result<PayrollEmployeeReceiptDto>.Success(new PayrollEmployeeReceiptDto
         {
-            CompanyBusinessName = legalPerson.BussinessName,
-            CompanyCuit = legalPerson.Entity.DocumentNumber,
-            CompanyAddress = legalPerson.Entity.Address ?? "",
-            CompanyPhone = legalPerson.Entity.Phone ?? "",
+            CompanyBusinessName = legalPerson?.BussinessName ?? "",
+            CompanyCuit = legalPerson?.Entity?.DocumentNumber ?? "",
+            CompanyAddress = legalPerson?.Entity?.Address ?? "",
+            CompanyPhone = legalPerson?.Entity?.Phone ?? "",
             BranchName = employee.Branch?.Name ?? "",
             BranchAddress = employee.Branch?.Address ?? "",
             EmployeeName = $"{employee.Name} {employee.Lastname}",

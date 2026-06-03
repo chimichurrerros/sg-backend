@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.PurchaseRequest;
 
 [Route("api/purchase-requests")]
@@ -18,6 +19,7 @@ public class PurchaseRequestController(PurchaseRequestService purchaseRequestSer
     private readonly PurchaseRequestService _purchaseRequestService = purchaseRequestService;
 
     [HttpPost]
+    [HasPermission("purchaseRequests.create")]
     public async Task<ActionResult<PurchaseRequestWrapperDto>> Create(CreatePurchaseRequestDto request)
     {
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -33,6 +35,7 @@ public class PurchaseRequestController(PurchaseRequestService purchaseRequestSer
     }
 
     [HttpGet("all")]
+    [HasPermission("purchaseRequests.view")]
     public async Task<ActionResult<ListPurchaseRequestsWrapperDto>> GetAll()
     {
         var result = await _purchaseRequestService.GetAllAsync();
@@ -42,6 +45,7 @@ public class PurchaseRequestController(PurchaseRequestService purchaseRequestSer
     }
 
     [HttpGet]
+    [HasPermission("purchaseRequests.view")]
     public async Task<ActionResult<ListPurchaseRequestsWrapperDto>> GetList([FromQuery] PurchaseRequestQueryDto query)
     {
         var result = await _purchaseRequestService.GetListAsync(query);
@@ -51,6 +55,7 @@ public class PurchaseRequestController(PurchaseRequestService purchaseRequestSer
     }
 
     [HttpGet("{id:int}")]
+    [HasPermission("purchaseRequests.view")]
     public async Task<ActionResult<PurchaseRequestWrapperDto>> GetById(int id)
     {
         var result = await _purchaseRequestService.GetByIdAsync(id);
