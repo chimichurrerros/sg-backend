@@ -16,18 +16,6 @@ namespace BackEnd.Migrations
                 type: "integer",
                 nullable: true);
 
-            // Asignar el ID de la primera sucursal disponible a los usuarios existentes
-            migrationBuilder.Sql("UPDATE \"Users\" SET \"BranchId\" = (SELECT \"Id\" FROM \"Branches\" LIMIT 1) WHERE \"BranchId\" IS NULL");
-
-            // Si hay usuarios y no había sucursales, asegurar que no falle la restricción NOT NULL
-            // aunque asumimos que existe al menos una sucursal en la base de datos de desarrollo.
-            migrationBuilder.AlterColumn<int>(
-                name: "BranchId",
-                table: "Users",
-                type: "integer",
-                nullable: false,
-                oldNullable: true);
-
             migrationBuilder.CreateIndex(
                 name: "IX_Users_BranchId",
                 table: "Users",
