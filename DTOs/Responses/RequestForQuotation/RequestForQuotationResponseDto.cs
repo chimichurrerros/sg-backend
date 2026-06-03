@@ -10,6 +10,7 @@ public class RequestForQuotationProductDto
     public decimal QuantityRequested { get; set; }
     public int? CategoryId { get; set; }
     public string? CategoryName { get; set; }
+    public decimal ProductCost { get; set; }
 }
 
 public class RequestForQuotationResponseDto
