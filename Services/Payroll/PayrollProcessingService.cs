@@ -540,6 +540,53 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         return Result<List<PayrollDetailSummaryResponseDto>>.Success(summaries);
     }
 
+    public async Task<Result<List<PayrollConceptSummaryResponseDto>>> GetConceptSummariesAsync(int processId)
+    {
+        var process = await _context.PayrollProcesses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == processId);
+
+        if (process is null)
+            return Result<List<PayrollConceptSummaryResponseDto>>.Failure(
+                PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
+
+        var details = await _context.PayrollProcessDetails
+            .AsNoTracking()
+            .Where(d => d.PayrollProcessId == processId)
+            .Include(d => d.PayrollUpdate)
+            .ToListAsync();
+
+        var earningsConcepts = details
+            .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Earnings && d.Amount > 0)
+            .GroupBy(d => d.PayrollUpdateId)
+            .Select(g => new ConceptSummaryItemDto
+            {
+                ConceptName = g.First().PayrollUpdate.Name,
+                TotalAmount = g.Sum(d => d.Amount)
+            })
+            .OrderBy(c => c.ConceptName)
+            .ToList();
+
+        var deductionsConcepts = details
+            .Where(d => d.PayrollUpdate.PayrollTypeId == PayrollUpdate.PayrollTypeEnum.Deductions && d.Amount > 0)
+            .GroupBy(d => d.PayrollUpdateId)
+            .Select(g => new ConceptSummaryItemDto
+            {
+                ConceptName = g.First().PayrollUpdate.Name,
+                TotalAmount = g.Sum(d => d.Amount)
+            })
+            .OrderBy(c => c.ConceptName)
+            .ToList();
+
+        var result = new List<PayrollConceptSummaryResponseDto>
+        {
+            new() { PayrollType = "Ingresos", Concepts = earningsConcepts },
+            new() { PayrollType = "Egresos", Concepts = deductionsConcepts }
+        };
+
+        return Result<List<PayrollConceptSummaryResponseDto>>.Success(result);
+    }
+
     public async Task<Result<PayrollProcessResponseDto>> CreatePayrollProcessAsync(PayrollProcessCreateDto request)
     {
         var errors = new Dictionary<string, string[]>();
@@ -976,6 +1023,15 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
 
         if (process.PayrollStatusId != PayrollProcess.PayrollStatusEnum.Open)
             return Result<PayrollCloseResponseDto>.Failure("La planilla debe estar en estado 'Abierto' para cerrarse.", ErrorType.Conflict);
+
+        var hasDetails = await _context.PayrollProcessDetails.AnyAsync(d => d.PayrollProcessId == process.Id);
+
+        if (hasDetails)
+        {
+            var recalculateResult = await CalculateAsync(payrollProcessId);
+            if (!recalculateResult.IsSuccess)
+                return Result<PayrollCloseResponseDto>.Failure(recalculateResult.ErrorMessage!, ErrorType.Failure);
+        }
 
         process.PayrollStatusId = PayrollProcess.PayrollStatusEnum.Closed;
         process.ClosedAt = DateTime.Now;

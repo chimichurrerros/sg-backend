@@ -198,6 +198,21 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
         return StatusCode(500);
     }
 
+    [HttpGet("{id}/concept-summaries")]
+    [HasPermission("payrollProcesses.view")]
+    public async Task<ActionResult<List<PayrollConceptSummaryResponseDto>>> GetConceptSummaries(int id)
+    {
+        var result = await _payrollProcessingService.GetConceptSummariesAsync(id);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        return StatusCode(500);
+    }
+
     [HttpPost("{id}/calculate")]
     [HasPermission("payrollProcesses.create")]
     public async Task<ActionResult<PayrollProcessCalculationResponseDto>> Calculate(int id)
