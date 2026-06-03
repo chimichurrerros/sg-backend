@@ -10,4 +10,7 @@ public static class PurchaseReceiptError
     public const string PurchaseOrderDetailNotFound = "El producto no forma parte de la orden de compra especificada.";
     public const string QuantityExceeded = "La cantidad a recibir supera la cantidad pendiente en la orden de compra.";
     public const string PaymentNotConfirmed = "No puede recibir sin haber procesado el pago";
+    public const string SupplierMismatch = "El proveedor especificado no coincide con el proveedor de la orden de compra.";
+    public const string ReceiptNotFound = "La recepción no fue encontrada.";
+    public const string NumberAlreadyExists = "El número de recepción ya existe.";
 }

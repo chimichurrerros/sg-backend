@@ -1,5 +1,6 @@
 using BackEnd.DTOs.Requests.PurchaseReceipt;
 using BackEnd.DTOs.Responses.Bill;
+using BackEnd.DTOs.Responses.PurchaseReceipt;
 using BackEnd.Constants.Errors;
 using BackEnd.Extensions;
 using BackEnd.Services;
@@ -33,6 +34,29 @@ public class PurchaseReceiptController(PurchaseReceiptService purchaseReceiptSer
             return this.HandleNotFoundProblem(result);
 
         return this.HandleServerError(PurchaseReceiptError.ProcessFailed, result);
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<ListPurchaseReceiptsWrapperDto>> GetReceipts([FromQuery] PurchaseReceiptQueryDto queryDto)
+    {
+        var result = await _purchaseReceiptService.GetReceiptsAsync(queryDto);
+        if (result.IsSuccess)
+            return Ok(result.Value);
+        return StatusCode(500);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<PurchaseReceiptWrapperDto>> GetReceiptById(int id)
+    {
+        var result = await _purchaseReceiptService.GetReceiptByIdAsync(id);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        return StatusCode(500);
     }
 
     [HttpGet("all")]
