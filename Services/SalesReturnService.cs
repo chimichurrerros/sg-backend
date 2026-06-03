@@ -68,6 +68,7 @@ public class SalesReturnService(AppDbContext context, StockService stockService,
             var creditNote = new CreditNote
             {
                 BillId = request.BillId,
+                Type = CreditNoteTypeEnum.SalesReturn,
                 Date = request.Date == default ? DateTime.UtcNow : request.Date,
                 Total = request.Total,
                 Reason = request.Reason

@@ -277,6 +277,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
                     {
                         BillId = purchaseReturn.BillId.Value,
                         Number = request.CreditNoteNumber,
+                        Type = CreditNoteTypeEnum.PurchaseReturn,
                         Date = purchaseReturn.Date,
                         Total = total,
                         Reason = reasonResult.Value!.Name
@@ -592,6 +593,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
             {
                 BillId = purchaseReturn.BillId!.Value,
                 Number = retRequest.CreditNoteNumber,
+                Type = CreditNoteTypeEnum.PurchaseReturn,
                 Date = purchaseReturn.Date,
                 Total = total,
                 Reason = reasonResult2.Value!.Name

@@ -328,6 +328,7 @@ public partial class AppDbContext : DbContext
                 .HasColumnType("timestamp without time zone");
             entity.Property(e => e.Total).HasPrecision(15, 2);
             entity.Property(e => e.Number).HasMaxLength(50);
+            entity.Property(e => e.Type).HasConversion<int>();
 
             entity.HasOne(d => d.Bill).WithMany(p => p.CreditNotes)
                 .HasForeignKey(d => d.BillId)
