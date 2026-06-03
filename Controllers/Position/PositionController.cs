@@ -4,10 +4,10 @@ using BackEnd.DTOs.Responses.Position;
 using BackEnd.Extensions;
 using BackEnd.Services;
 using BackEnd.Utils;
+using BackEnd.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Position;
 
 [Route("api/positions")]
@@ -19,9 +19,9 @@ public class PositionController(PositionService positionService) : ControllerBas
 
     [HttpGet]
     [HasPermission("positions.view")]
-    public async Task<ActionResult<ListPositionsWrapperDto>> GetAll([FromQuery] OrganizationQueryDto query)
+    public async Task<ActionResult<ListPositionsWrapperDto>> GetAll([FromQuery] OrganizationQueryDto query, [FromQuery] int? departmentId = null)
     {
-        var result = await _positionService.GetAllAsync(query);
+        var result = await _positionService.GetAllAsync(query, departmentId);
 
         if (result.IsSuccess)
             return Ok(result.Value);
