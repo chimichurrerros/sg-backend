@@ -8,13 +8,16 @@ using Microsoft.EntityFrameworkCore;
 using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Requests.Bill;
 using BackEnd.Models;
+using BackEnd.Services.Accounting;
+using BackEnd.DTOs.Requests.Entry;
 
 namespace BackEnd.Services;
 
-public class BillService(AppDbContext context, IMapper mapper)
+public class BillService(AppDbContext context, IMapper mapper, EntryService entryService)
 {
     private readonly AppDbContext _context = context;
     private readonly IMapper _mapper = mapper;
+    private readonly EntryService _entryService = entryService;
 
     public async Task<Result<ListBillsWrapperDto>> GetListAsync(BillQueryDto queryDto)
     {
@@ -118,6 +121,66 @@ public class BillService(AppDbContext context, IMapper mapper)
 
         _context.Bills.Add(bill);
         await _context.SaveChangesAsync();
+
+        if (bill.PurchaseOrderForSupplierId == null && bill.Total > 0)
+        {
+            var dateOnly = bill.Date;
+            var activeProcess = await _context.AccountantProcesses
+                .FirstOrDefaultAsync(ap => !ap.IsClosed && ap.StartDate <= dateOnly && ap.EndDate >= dateOnly);
+
+            if (activeProcess == null)
+            {
+                return Result<BillWrapperDto>.Failure($"No existe un período contable activo para la fecha {bill.Date:dd/MM/yyyy}.", ErrorType.Validation);
+            }
+
+            var debitAccountMap = bill.BillType == BillTypeEnum.CONTADO 
+                ? AccountantPlanMap.Cajas 
+                : AccountantPlanMap.Cuentas;
+
+            var debitAccount = await _context.AccountPlans
+                .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Order == (int)debitAccountMap);
+
+            var creditAccount = await _context.AccountPlans
+                .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Order == (int)AccountantPlanMap.Ventas);
+
+            if (debitAccount == null)
+            {
+                return Result<BillWrapperDto>.Failure($"No se encontró la cuenta contable '{debitAccountMap}' en el período contable activo.", ErrorType.Validation);
+            }
+
+            if (creditAccount == null)
+            {
+                return Result<BillWrapperDto>.Failure("No se encontró la cuenta contable 'Ventas' en el período contable activo.", ErrorType.Validation);
+            }
+
+            var entryDetails = new List<CreateEntryDetailDto>
+            {
+                new CreateEntryDetailDto
+                {
+                    AccountPlanId = debitAccount.Id,
+                    Debit = bill.Total,
+                    Credit = 0m
+                },
+                new CreateEntryDetailDto
+                {
+                    AccountPlanId = creditAccount.Id,
+                    Debit = 0m,
+                    Credit = bill.Total
+                }
+            };
+
+            var entryResult = await _entryService.CreateAutomaticEntryAsync(
+                new DateTime(bill.Date.Year, bill.Date.Month, bill.Date.Day, 12, 0, 0, DateTimeKind.Utc),
+                $"Factura Emitida Nro. {bill.Number}",
+                ModuleEnum.Sales,
+                entryDetails
+            );
+
+            if (!entryResult.IsSuccess)
+            {
+                return Result<BillWrapperDto>.Failure($"Error al generar asiento automático: {entryResult.ErrorMessage}", entryResult.ErrorType);
+            }
+        }
 
         return await GetByIdAsync(bill.Id);
     }
