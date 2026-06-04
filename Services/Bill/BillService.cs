@@ -71,7 +71,8 @@ public class BillService(AppDbContext context, IMapper mapper)
         var totalElements = await query.CountAsync();
 
         var bills = await query
-            .OrderBy(b => b.Id)
+            .OrderByDescending(b => b.Date)
+            .ThenByDescending(b => b.Id)
             .Skip((queryDto.Page - 1) * queryDto.PageSize)
             .Take(queryDto.PageSize)
             .ProjectTo<BillResponseDto>(_mapper.ConfigurationProvider)

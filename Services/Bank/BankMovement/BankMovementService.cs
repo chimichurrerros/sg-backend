@@ -23,6 +23,7 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
         var movements = await _context.BankMovements
             .AsNoTracking()
             .OrderByDescending(bm => bm.Date)
+            .ThenByDescending(bm => bm.Id)
             .ProjectTo<BankMovementResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
@@ -37,6 +38,7 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
 
         var movements = await query
             .OrderByDescending(bm => bm.Date)
+            .ThenByDescending(bm => bm.Id)
             .Skip((pagination.Page - 1) * pagination.PageSize)
             .Take(pagination.PageSize)
             .ProjectTo<BankMovementResponseDto>(_mapper.ConfigurationProvider)
