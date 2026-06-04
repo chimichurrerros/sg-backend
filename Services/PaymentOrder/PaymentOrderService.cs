@@ -34,8 +34,8 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
         if (purchaseOrder == null)
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.PurchaseOrderNotFound, ErrorType.NotFound);
 
-        if (purchaseOrder.State != PurchaseOrderForSupplierStateEnum.Pending)
-            return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.PurchaseOrderMustBeConfirmed, ErrorType.Validation);
+        if (purchaseOrder.State != PurchaseOrderForSupplierStateEnum.Cancelled)
+            return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.PurchaseOrderMustNotBeCancelled, ErrorType.Validation);
 
         decimal creditTotal = 0;
         List<CreditNote> appliedCreditNotes = new();
