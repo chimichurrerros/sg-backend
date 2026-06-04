@@ -3,3 +3,8 @@ appsettings.json
 **/bin/
 **/obj/
 .vscode/
+.md/
+todo*
+dotnet/
+.dotnet/
+AGENTS.md

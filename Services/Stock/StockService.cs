@@ -82,7 +82,7 @@ public class StockService(AppDbContext context, IMapper mapper)
         return await GetByIdAsync(stock.Id);
     }
 
-    public async Task<Result> DecreaseStockAsync(int productId, int branchId, decimal quantity)
+    public async Task<Result> DecreaseStockAsync(int productId, int branchId, decimal? quantity)
     {
         if (quantity <= 0)
             return Result.Failure(StockError.QuantityMustBeGreaterThanZero, ErrorType.Validation);
@@ -96,13 +96,64 @@ public class StockService(AppDbContext context, IMapper mapper)
             {
                 ProductId = productId,
                 BranchId = branchId,
-                Quantity = -quantity
+                Quantity = quantity != null ? -quantity : null 
             };
             _context.Stocks.Add(stock);
         }
         else
         {
-            stock.Quantity -= quantity;
+            if (quantity != null)
+            {
+                stock.Quantity -= quantity;
+                _context.Stocks.Update(stock);
+            }
+        }
+
+        await _context.SaveChangesAsync();
+        return Result.Success();
+    }
+
+    public async Task<Result> ValidateSufficientStockAsync(int productId, int branchId, decimal requiredQuantity)
+    {
+        var product = await _context.Products.FindAsync(productId);
+        if (product == null)
+            return Result.Failure(string.Format(StockError.InsufficientStock, "desconocido", 0, requiredQuantity), ErrorType.Validation);
+
+        var stock = await _context.Stocks
+            .FirstOrDefaultAsync(s => s.ProductId == productId && s.BranchId == branchId);
+
+        var availableQuantity = stock?.Quantity ?? 0;
+
+        if (availableQuantity < requiredQuantity)
+        {
+            var errorMsg = string.Format(StockError.InsufficientStock, product.Name, availableQuantity, requiredQuantity);
+            return Result.Failure(errorMsg, ErrorType.Validation);
+        }
+
+        return Result.Success();
+    }
+
+    public async Task<Result> IncreaseStockAsync(int productId, int branchId, decimal quantity)
+    {
+        if (quantity <= 0)
+            return Result.Failure(StockError.QuantityMustBeGreaterThanZero, ErrorType.Validation);
+
+        var stock = await _context.Stocks
+            .FirstOrDefaultAsync(s => s.ProductId == productId && s.BranchId == branchId);
+
+        if (stock == null)
+        {
+            stock = new Stock
+            {
+                ProductId = productId,
+                BranchId = branchId,
+                Quantity = quantity
+            };
+            _context.Stocks.Add(stock);
+        }
+        else
+        {
+            stock.Quantity += quantity;
             _context.Stocks.Update(stock);
         }
 

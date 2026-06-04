@@ -1,88 +1,179 @@
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using BackEnd.Models;
-using BackEnd.DTOs.Requests.Bank.BankMovement; 
+using BackEnd.DTOs.Requests.Bank;
+using BackEnd.DTOs.Responses.Bank;
+using BackEnd.DTOs.Requests.Bank.BankMovement;
+using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Responses.Bank.BankMovement;
+using BackEnd.Constants.Errors;
 using BackEnd.Utils;
-using BackEnd.Services.Interfaces;
 using BackEnd.Infrastructure.Context;
 
 namespace BackEnd.Services;
 
-public class BankMovementService : IBankMovementService
+public class BankMovementService(AppDbContext context, IMapper mapper)
 {
-    private readonly AppDbContext _context;
-    private readonly IMapper _mapper;
+    private readonly AppDbContext _context = context;
+    private readonly IMapper _mapper = mapper;
 
-    public BankMovementService(AppDbContext context, IMapper mapper)
-    {
-        _context = context;
-        _mapper = mapper;
-    }
-
-    public async Task<Result<IEnumerable<BankMovementResponseDto>>> GetAllAsync()
+    public async Task<Result<ListBankMovementsWrapperDto>> GetAllAsync()
     {
         var movements = await _context.BankMovements
-            .Include(bm => bm.Account) // Traemos los datos de la cuenta asociada
             .AsNoTracking()
-            .OrderByDescending(bm => bm.Date) // Lo más normal es ver los últimos movimientos primero
+            .OrderByDescending(bm => bm.Date)
+            .ProjectTo<BankMovementResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
-        var response = _mapper.Map<IEnumerable<BankMovementResponseDto>>(movements);
-        return Result<IEnumerable<BankMovementResponseDto>>.Success(response);
+        return Result<ListBankMovementsWrapperDto>.Success(new ListBankMovementsWrapperDto { BankMovements = movements });
     }
 
-    public async Task<Result<BankMovementResponseDto>> GetByIdAsync(int id)
+    public async Task<Result<ListBankMovementsWrapperDto>> GetListAsync(PaginationRequestDto pagination)
+    {
+        var query = _context.BankMovements.AsNoTracking();
+
+        var totalElements = await query.CountAsync();
+
+        var movements = await query
+            .OrderByDescending(bm => bm.Date)
+            .Skip((pagination.Page - 1) * pagination.PageSize)
+            .Take(pagination.PageSize)
+            .ProjectTo<BankMovementResponseDto>(_mapper.ConfigurationProvider)
+            .ToListAsync();
+
+        var _pagination = new Pagination(pagination.Page, pagination.PageSize, totalElements);
+
+        return Result<ListBankMovementsWrapperDto>.Success(new ListBankMovementsWrapperDto { BankMovements = movements, Pagination = _pagination });
+    }
+
+    public async Task<Result<BankMovementWrapperDto>> GetByIdAsync(int id)
     {
         var movement = await _context.BankMovements
-            .Include(bm => bm.Account)
             .AsNoTracking()
-            .FirstOrDefaultAsync(bm => bm.Id == id);
+            .Where(bm => bm.Id == id)
+            .ProjectTo<BankMovementResponseDto>(_mapper.ConfigurationProvider)
+            .FirstOrDefaultAsync();
 
         if (movement == null)
-            return Result<BankMovementResponseDto>.Failure("El movimiento no existe.", ErrorType.NotFound);
+            return Result<BankMovementWrapperDto>.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
-        var response = _mapper.Map<BankMovementResponseDto>(movement);
-        return Result<BankMovementResponseDto>.Success(response);
+        return Result<BankMovementWrapperDto>.Success(new BankMovementWrapperDto { BankMovement = movement });
     }
 
-    public async Task<Result<BankMovementResponseDto>> CreateAsync(BankMovementRequestDto request)
-    {
-        // 1. Verificamos que la cuenta exista
-        var account = await _context.Accounts.FindAsync(request.AccountId);
-        if (account == null)
-            return Result<BankMovementResponseDto>.Failure("La cuenta bancaria seleccionada no existe.", ErrorType.NotFound);
+    public async Task<Result<BankMovementWrapperDto>> CreateAsync(BankMovementRequestDto request)
+{
+    var account = await _context.Accounts
+    .Include(a => a.Bank)
+    .FirstOrDefaultAsync(a => a.Id == request.AccountId);
+    if (account == null)
+        return Result<BankMovementWrapperDto>.Failure(AccountError.AccountNotFound, ErrorType.NotFound);
 
         // 2. Mapeamos el DTO a Entidad
         var newMovement = _mapper.Map<BankMovement>(request);
-        
+
         // Nos aseguramos de que la fecha sea la de hoy si no enviaron una
-        if (newMovement.Date == default) 
+        if (newMovement.Date == default)
             newMovement.Date = DateTime.Now;
 
         // 3. REGLA DE NEGOCIO CRÍTICA: Actualizar saldos de la cuenta
-        // ¡OJO! Cambia "Income" y "Expense" por los nombres exactos que le diste a tu enum
-        if (newMovement.MovementType == BankMovementTypeEnum.Credit) 
+        if (newMovement.MovementType == BankMovementTypeEnum.Credit)
         {
             account.CurrentBalance += newMovement.Amount;
             account.AvailableBalance += newMovement.Amount;
         }
         else if (newMovement.MovementType == BankMovementTypeEnum.Debit)
         {
-            // Opcional: Validar que haya saldo suficiente antes de restar
+            // Validar que haya saldo suficiente antes de restar
             if (account.AvailableBalance < newMovement.Amount)
-                return Result<BankMovementResponseDto>.Failure("Saldo insuficiente para realizar este movimiento.", ErrorType.Validation);
+                return Result<BankMovementWrapperDto>.Failure(AccountError.NotEnoughFunds, ErrorType.Validation);
 
-            account.CurrentBalance -= newMovement.Amount;
-            account.AvailableBalance -= newMovement.Amount;
+        account.CurrentBalance -= newMovement.Amount;
+        account.AvailableBalance -= newMovement.Amount;
+    }
+
+    // 3. ¡LA NUEVA MAGIA DEL CHEQUE!
+    if (request.CheckDetails != null)
+    {
+        var newCheck = _mapper.Map<Check>(request.CheckDetails);
+        newCheck.AccountId = newMovement.AccountId;
+        newCheck.Amount = newMovement.Amount;
+        newCheck.Status = CheckStatusEnum.Pending;
+
+        if (newMovement.MovementType == BankMovementTypeEnum.Debit)
+        {
+            newCheck.IssuingBank = account.Bank?.Name ?? "";
+        }
+        else
+        {
+            newCheck.Receiver = account.Name;
         }
 
-        // 4. Guardamos todo. Como modificamos 'account' y agregamos 'newMovement', 
-        // EF Core hará todo en una sola transacción segura cuando llamemos a SaveChangesAsync
-        _context.BankMovements.Add(newMovement);
+        newMovement.Check = newCheck;
+    }
+
+    _context.BankMovements.Add(newMovement);   
+    await _context.SaveChangesAsync();
+
+        return await GetByIdAsync(newMovement.Id);
+    }
+
+    public async Task<Result<BankMovementDto>> CreateMovementAsync(CreateBankMovementDto request)
+    {
+        var accountValidation = await ValidateAccountAsync(request.AccountId, request.Amount);
+        if (!accountValidation.IsSuccess)
+            return Result<BankMovementDto>.Failure(accountValidation.ErrorMessage!, accountValidation.ErrorType);
+
+        var account = await _context.Accounts.FindAsync(request.AccountId);
+        if (account == null)
+            return Result<BankMovementDto>.Failure(AccountError.AccountNotFound, ErrorType.NotFound);
+
+        var movement = new Models.BankMovement
+        {
+            AccountId = request.AccountId,
+            Amount = request.Amount,
+            Date = request.Date == default ? DateTime.UtcNow : request.Date,
+            ReferenceNumber = request.ReferenceNumber,
+            MovementType = request.MovementType
+        };
+
+        if (movement.MovementType == BankMovementTypeEnum.Credit)
+        {
+            account.CurrentBalance += movement.Amount;
+            account.AvailableBalance += movement.Amount;
+        }
+        else
+        {
+            account.CurrentBalance -= movement.Amount;
+            account.AvailableBalance -= movement.Amount;
+        }
+
+        _context.BankMovements.Add(movement);
         await _context.SaveChangesAsync();
 
-        var response = _mapper.Map<BankMovementResponseDto>(newMovement);
-        return Result<BankMovementResponseDto>.Success(response);
+        return Result<BankMovementDto>.Success(new BankMovementDto
+        {
+            Id = movement.Id,
+            AccountId = movement.AccountId,
+            Amount = movement.Amount,
+            Date = movement.Date,
+            ReferenceNumber = movement.ReferenceNumber,
+            MovementType = movement.MovementType
+        });
+    }
+
+    public async Task<Result<bool>> ValidateAccountAsync(int accountId, decimal amount)
+    {
+        if (amount <= 0)
+            return Result<bool>.Failure(AccountError.InvalidAmount, ErrorType.Validation);
+
+        var account = await _context.Accounts.FindAsync(accountId);
+        if (account == null)
+            return Result<bool>.Failure(AccountError.AccountNotFound, ErrorType.NotFound);
+
+        if (account.AvailableBalance < amount)
+            return Result<bool>.Failure(AccountError.NotEnoughFunds, ErrorType.Validation);
+
+        return Result<bool>.Success(true);
     }
 }

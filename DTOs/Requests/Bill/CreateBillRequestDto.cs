@@ -12,7 +12,7 @@ public partial class CreateBillRequestDto
 
     public int? SalesOrderId { get; set; }
 
-    public int? PurchaseOrderId { get; set; }
+    public int? PurchaseOrderForSupplierId { get; set; }
 
     public string? Stamp { get; set; }
 
@@ -41,7 +41,7 @@ public partial class UpdateBillRequestDto
 
     public int? SalesOrderId { get; set; }
 
-    public int? PurchaseOrderId { get; set; }
+    public int? PurchaseOrderForSupplierId { get; set; }
 
     public string? Stamp { get; set; }
 

@@ -1,5 +1,5 @@
 using AutoMapper;
-using BackEnd.Models;   
+using BackEnd.Models;
 using BackEnd.DTOs.Requests.Bank.BankMovement;
 using BackEnd.DTOs.Responses.Bank.BankMovement;
 

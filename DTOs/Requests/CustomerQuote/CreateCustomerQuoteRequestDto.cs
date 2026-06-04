@@ -1,75 +1,64 @@
-using System.ComponentModel.DataAnnotations;
+using BackEnd.DTOs.Requests.SalesOrder;
+using BackEnd.Models;
 
 namespace BackEnd.DTOs.Requests.CustomerQuote;
 
-/// <summary>
-/// DTO for a quote detail line used when creating or updating a customer quote.
-/// </summary>
-public class CustomerQuoteDetailRequestDto
+public class CreateCustomerQuoteRequestDto
 {
-    /// <summary>
-    /// Identifier of the product to include in the quote.
-    /// </summary>
-    [Required]
-    public int ProductId { get; set; }
+    public CustomerQuoteCustomerRequestDto? Customer { get; set; } = new();
+    public CustomerQuoteDataRequestDto Sale { get; set; } = new();
+    public CustomerQuotePayRequestDto Pay { get; set; } = new();
+    public List<CustomerQuoteProductRequestDto> Products { get; set; } = new();
+    public CustomerQuoteTotalsRequestDto Totals { get; set; } = new();
+}
 
-    /// <summary>
-    /// Quantity requested for the product.
-    /// </summary>
-    [Range(typeof(decimal), "0.01", "79228162514264337593543950335")]
+public class UpdateCustomerQuoteRequestDto
+{
+    public CustomerQuoteCustomerRequestDto? Customer { get; set; } = new();
+    public CustomerQuoteDataRequestDto Sale { get; set; } = new();
+    public CustomerQuotePayRequestDto Pay { get; set; } = new();
+    public List<CustomerQuoteProductRequestDto> Products { get; set; } = new();
+    public CustomerQuoteTotalsRequestDto Totals { get; set; } = new();
+}
+
+public class CustomerQuoteCustomerRequestDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string Ruc { get; set; } = string.Empty;
+    public DateOnly? BirthDate { get; set; }
+    public string? Email { get; set; }
+}
+
+public class CustomerQuoteDataRequestDto
+{
+    public BillTypeEnum? Bill { get; set; }
+    public DateTime? Date { get; set; }
+    public int? CashierNumber { get; set; }
+    public int? BranchId { get; set; }
+    public int? AccountId { get; set; }
+    public int? MovementType { get; set; }
+}
+
+public class CustomerQuotePayRequestDto
+{
+    public PosPaymentMethod Method { get; set; }
+    public PosSaleCondition Condition { get; set; }
+}
+
+public class CustomerQuoteProductRequestDto
+{
+    public int? ProductId { get; set; }
+    public string? Barcode { get; set; }
     public decimal Quantity { get; set; }
-
-    /// <summary>
-    /// Unit price assigned to the product in the quote.
-    /// </summary>
-    [Range(typeof(decimal), "0.00", "79228162514264337593543950335")]
     public decimal Price { get; set; }
 }
 
-/// <summary>
-/// DTO for creating a new customer quote.
-/// </summary>
-public class CreateCustomerQuoteRequestDto
+public class CustomerQuoteTotalsRequestDto
 {
-    /// <summary>
-    /// Identifier of the customer receiving the quote.
-    /// </summary>
-    [Required]
-    public int CustomerId { get; set; }
-
-    /// <summary>
-    /// Identifier of the user creating the quote.
-    /// </summary>
-    [Required]
-    public int UserId { get; set; }
-
-    /// <summary>
-    /// Quote detail lines included in the quote.
-    /// </summary>
-    [MinLength(1)]
-    public List<CustomerQuoteDetailRequestDto> Details { get; set; } = [];
-}
-
-/// <summary>
-/// DTO for updating an existing customer quote.
-/// </summary>
-public class UpdateCustomerQuoteRequestDto
-{
-    /// <summary>
-    /// Identifier of the customer receiving the quote.
-    /// </summary>
-    [Required]
-    public int CustomerId { get; set; }
-
-    /// <summary>
-    /// Identifier of the user responsible for the quote update.
-    /// </summary>
-    [Required]
-    public int UserId { get; set; }
-
-    /// <summary>
-    /// New quote detail lines that replace the current quote lines.
-    /// </summary>
-    [MinLength(1)]
-    public List<CustomerQuoteDetailRequestDto> Details { get; set; } = [];
+    public decimal Subtotal { get; set; }
+    public decimal Iva { get; set; }
+    public decimal Total { get; set; }
+    public decimal Amount { get; set; }
+    public decimal Change { get; set; }
+    public decimal ImportValue { get; set; }
 }

@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.BillDetail;
 
 [Route("api/bill-details")]
@@ -17,6 +18,7 @@ public class BillDetailController(BillDetailService billDetailService) : Control
     private readonly BillDetailService _billDetailService = billDetailService;
 
     [HttpGet("by-bill/{billId}")]
+    [HasPermission("billDetails.view")]
     public async Task<ActionResult<ListBillDetailsWrapperDto>> GetListByBillId(int billId, [FromQuery] PaginationRequestDto pagination)
     {
         var result = await _billDetailService.GetListByBillIdAsync(billId, pagination);
@@ -25,6 +27,7 @@ public class BillDetailController(BillDetailService billDetailService) : Control
     }
 
     [HttpGet("{id}")]
+    [HasPermission("billDetails.view")]
     public async Task<ActionResult<BillDetailWrapperDto>> GetBillDetailById(int id)
     {
         var result = await _billDetailService.GetByIdAsync(id);
@@ -34,6 +37,7 @@ public class BillDetailController(BillDetailService billDetailService) : Control
     }
 
     [HttpPost]
+    [HasPermission("billDetails.create")]
     public async Task<ActionResult<BillDetailWrapperDto>> Create(CreateBillDetailRequestDto request)
     {
         var result = await _billDetailService.CreateAsync(request);
@@ -42,6 +46,7 @@ public class BillDetailController(BillDetailService billDetailService) : Control
     }
 
     [HttpPut("{id}")]
+    [HasPermission("billDetails.update")]
     public async Task<ActionResult<BillDetailWrapperDto>> Update(int id, UpdateBillDetailRequestDto request)
     {
         var result = await _billDetailService.UpdateAsync(id, request);

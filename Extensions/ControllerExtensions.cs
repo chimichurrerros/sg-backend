@@ -18,7 +18,15 @@ public static class ControllerExtensions
 
     public static ActionResult HandleValidationProblem(this ControllerBase controller, Result result)
     {
-        return controller.BadRequest(new ValidationProblemDetails(result.Errors!));
+        if (result.Errors != null)
+            return controller.BadRequest(new ValidationProblemDetails(result.Errors));
+
+        return controller.BadRequest(new ProblemDetails
+        {
+            Title = "Validation Error",
+            Status = StatusCodes.Status400BadRequest,
+            Detail = result.ErrorMessage
+        });
     }
 
     public static ActionResult HandleNotFoundProblem(this ControllerBase controller, Result result)
@@ -44,14 +52,26 @@ public static class ControllerExtensions
         });
     }
 
+    public static ActionResult HandleConflictProblem(this ControllerBase controller, Result result)
+    {
+        return controller.Conflict(new ProblemDetails
+        {
+            Title = ApplicationError.Conflict,
+            Status = StatusCodes.Status409Conflict,
+            Detail = result.ErrorMessage
+        });
+    }
+
     public static ActionResult HandleServerError(this ControllerBase controller, string title, Result result, int? id = null)
     {
         var detail = result.ErrorMessage;
         if (id.HasValue) detail = string.Format($"{detail}{SalesOrderError.IdSuffix}", id.Value);
 
-        return controller.Problem(
-            title: title,
-            detail: detail,
-            statusCode: StatusCodes.Status500InternalServerError);
+        return controller.StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+        {
+            Title = title,
+            Status = StatusCodes.Status500InternalServerError,
+            Detail = detail
+        });
     }
 }

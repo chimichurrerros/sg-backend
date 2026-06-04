@@ -7,6 +7,7 @@ using BackEnd.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.Customer;
 
 [Route("api/customers")]
@@ -17,6 +18,7 @@ public class CustomerController(CustomerService customerService) : ControllerBas
     private readonly CustomerService _customerService = customerService;
 
     [HttpGet]
+    [HasPermission("customers.view")]
     public async Task<ActionResult<ListCustomersWrapperDto>> GetListCustomers([FromQuery] PaginationRequestDto pagination)
     {
         var result = await _customerService.GetListAsync(pagination);
@@ -25,6 +27,7 @@ public class CustomerController(CustomerService customerService) : ControllerBas
     }
 
     [HttpGet("{id}")]
+    [HasPermission("customers.view")]
     public async Task<ActionResult<CustomerWrapperDto>> GetCustomerById(int id)
     {
         var result = await _customerService.GetByIdAsync(id);
@@ -34,6 +37,7 @@ public class CustomerController(CustomerService customerService) : ControllerBas
     }
 
     [HttpPost]
+    [HasPermission("customers.create")]
     public async Task<ActionResult<CustomerWrapperDto>> Create(CreateCustomerRequestDto request)
     {
         var result = await _customerService.CreateAsync(request);
@@ -43,6 +47,7 @@ public class CustomerController(CustomerService customerService) : ControllerBas
     }
 
     [HttpPut("{id}")]
+    [HasPermission("customers.update")]
     public async Task<ActionResult<CustomerWrapperDto>> Update(int id, UpdateCustomerRequestDto request)
     {
         var result = await _customerService.UpdateAsync(id, request);
@@ -50,5 +55,15 @@ public class CustomerController(CustomerService customerService) : ControllerBas
         if (result.ErrorType == ErrorType.NotFound) return this.HandleNotFoundProblem(result);
         if (result.ErrorType == ErrorType.Validation) return this.HandleValidationProblem(result);
         return StatusCode(500);
+    }
+
+    [HttpGet("all")]
+    [HasPermission("customers.view")]
+    public async Task<ActionResult<ListCustomersWrapperDto>> GetAll()
+    {
+        var result = await _customerService.GetAllAsync();
+        if (result.IsSuccess) return Ok(result.Value);
+        else return this.HandleBadRequestProblem(result);
+
     }
 }

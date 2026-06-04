@@ -5,7 +5,14 @@ using BackEnd.Utils;
 public class SupplierResponseDto
 {
     public int Id { get; set; }
-    public int EntityId { get; set; }
+    public string Ruc { get; set; } = null!;
+    public string? Phone { get; set; }
+    public string? Address { get; set; }
+    public string? Email { get; set; }
+    public bool IsActive { get; set; }
+    public string BusinessName { get; set; } = null!;
+    public string? FantasyName { get; set; }
+    public List<SupplierCategoryResponseDto> SupplierCategories { get; set; } = [];
 }
 
 public class SupplierWrapperDto

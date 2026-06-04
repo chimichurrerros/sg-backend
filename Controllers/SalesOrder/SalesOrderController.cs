@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using BackEnd.DTOs.Requests.Pagination;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.SalesOrder;
 
 [Route("api/sales-orders")]
@@ -19,6 +20,7 @@ public class SalesOrderController(SalesOrderService salesOrderService) : Control
     private readonly SalesOrderService _salesOrderService = salesOrderService;
 
     [HttpPost]
+    [HasPermission("salesOrders.create")]
     public async Task<ActionResult<SalesOrderWrapperDto>> Create(CreateSalesOrderRequestDto request)
     {
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -36,7 +38,27 @@ public class SalesOrderController(SalesOrderService salesOrderService) : Control
         return this.HandleServerError(SalesOrderError.ProcessFailed, result);
     }
 
+    [HttpPost("pos")]
+    [HasPermission("salesOrders.create")]
+    public async Task<ActionResult<SalesOrderWrapperDto>> CreateFromPos(CreatePosSaleRequestDto request)
+    {
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = int.Parse(userIdString!);
+
+        var result = await _salesOrderService.CreateFromPosAsync(request, userId);
+        if (result.IsSuccess) return Created($"/api/sales-orders/{result.Value!.SalesOrder.Id}", result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result, null);
+
+        if (result.ErrorType == ErrorType.Validation)
+            return this.HandleBadRequestProblem(result);
+
+        return this.HandleServerError(SalesOrderError.ProcessFailed, result);
+    }
+
     [HttpGet("all")]
+    [HasPermission("salesOrders.view")]
     public async Task<ActionResult<ListSalesOrdersWrapperDto>> GetAll()
     {
         var result = await _salesOrderService.GetAllAsync();
@@ -46,6 +68,7 @@ public class SalesOrderController(SalesOrderService salesOrderService) : Control
     }
 
     [HttpGet()]
+    [HasPermission("salesOrders.view")]
     public async Task<ActionResult<ListSalesOrdersWrapperDto>> GetList([FromQuery] PaginationRequestDto pagination)
     {
         var result = await _salesOrderService.GetListAsync(pagination);
@@ -55,6 +78,7 @@ public class SalesOrderController(SalesOrderService salesOrderService) : Control
     }
 
     [HttpGet("{id:int}")]
+    [HasPermission("salesOrders.view")]
     public async Task<ActionResult<SalesOrderWrapperDto>> GetById(int id)
     {
         var result = await _salesOrderService.GetByIdAsync(id);

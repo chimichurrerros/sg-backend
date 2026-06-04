@@ -16,20 +16,68 @@ public class BillService(AppDbContext context, IMapper mapper)
     private readonly AppDbContext _context = context;
     private readonly IMapper _mapper = mapper;
 
-    public async Task<Result<ListBillsWrapperDto>> GetListAsync(PaginationRequestDto pagination)
+    public async Task<Result<ListBillsWrapperDto>> GetListAsync(BillQueryDto queryDto)
     {
         var query = _context.Bills.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(queryDto.CustomerName))
+        {
+            query = query.Where(b => b.Customer != null && b.Customer.Name.ToLower().Contains(queryDto.CustomerName.ToLower()));
+        }
+
+        if (queryDto.CustomerId.HasValue)
+        {
+            query = query.Where(b => b.CustomerId == queryDto.CustomerId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryDto.Number))
+        {
+            query = query.Where(b => b.Number.ToLower().Contains(queryDto.Number.ToLower()));
+        }
+
+        if (queryDto.Date.HasValue)
+        {
+            query = query.Where(b => b.Date == queryDto.Date.Value);
+        }
+
+        if (queryDto.StartDate.HasValue)
+        {
+            query = query.Where(b => b.Date >= queryDto.StartDate.Value);
+        }
+
+        if (queryDto.EndDate.HasValue)
+        {
+            query = query.Where(b => b.Date <= queryDto.EndDate.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryDto.CustomerRuc))
+        {
+            query = query.Where(b => b.Customer != null && b.Customer.Ruc.ToLower().Contains(queryDto.CustomerRuc.ToLower()));
+        }
+
+        if (queryDto.IsPurchaseBill.HasValue)
+        {
+            if (queryDto.IsPurchaseBill.Value)
+                query = query.Where(b => b.PurchaseOrderForSupplierId != null);
+            else
+                query = query.Where(b => b.SalesOrderId != null);
+        }
+
+        if (queryDto.PurchaseOrderForSupplierId.HasValue)
+        {
+            query = query.Where(b => b.PurchaseOrderForSupplierId == queryDto.PurchaseOrderForSupplierId.Value);
+        }
 
         var totalElements = await query.CountAsync();
 
         var bills = await query
             .OrderBy(b => b.Id)
-            .Skip((pagination.Page - 1) * pagination.PageSize)
-            .Take(pagination.PageSize)
+            .Skip((queryDto.Page - 1) * queryDto.PageSize)
+            .Take(queryDto.PageSize)
             .ProjectTo<BillResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
-        var _pagination = new Pagination(pagination.Page, pagination.PageSize, totalElements);
+        var _pagination = new Pagination(queryDto.Page, queryDto.PageSize, totalElements);
 
         return Result<ListBillsWrapperDto>.Success(new ListBillsWrapperDto { Bills = bills, Pagination = _pagination });
     }
@@ -56,7 +104,7 @@ public class BillService(AppDbContext context, IMapper mapper)
             BillState = request.BillState,
             CustomerId = request.CustomerId,
             SalesOrderId = request.SalesOrderId,
-            PurchaseOrderId = request.PurchaseOrderId,
+            PurchaseOrderForSupplierId = request.PurchaseOrderForSupplierId,
             Stamp = request.Stamp,
             Number = request.Number,
             Date = request.Date,
@@ -83,7 +131,7 @@ public class BillService(AppDbContext context, IMapper mapper)
         bill.BillType = request.BillType;
         bill.CustomerId = request.CustomerId;
         bill.SalesOrderId = request.SalesOrderId;
-        bill.PurchaseOrderId = request.PurchaseOrderId;
+        bill.PurchaseOrderForSupplierId = request.PurchaseOrderForSupplierId;
         bill.Stamp = request.Stamp;
         bill.Number = request.Number;
         bill.Date = request.Date;

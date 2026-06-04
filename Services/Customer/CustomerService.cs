@@ -15,6 +15,15 @@ public class CustomerService(AppDbContext context, IMapper mapper)
     private readonly AppDbContext _context = context;
     private readonly IMapper _mapper = mapper;
 
+    public async Task<Result<ListCustomersWrapperDto>> GetAllAsync()
+    {
+        var products = await _context.Customers
+            .ProjectTo<CustomerResponseDto>(_mapper.ConfigurationProvider)
+            .ToListAsync();
+
+        return Result<ListCustomersWrapperDto>.Success(new ListCustomersWrapperDto { Customers = products });
+    }
+
     public async Task<Result<ListCustomersWrapperDto>> GetListAsync(PaginationRequestDto pagination)
     {
         var customersQuery = _context.Customers.AsNoTracking();
@@ -65,7 +74,9 @@ public class CustomerService(AppDbContext context, IMapper mapper)
             var customer = new Customer
             {
                 Name = request.Name,
-                Ruc = request.Ruc
+                Ruc = request.Ruc,
+                BirthDate = request.BirthDate,
+                Email = request.Email
             };
 
             _context.Customers.Add(customer);
@@ -100,8 +111,14 @@ public class CustomerService(AppDbContext context, IMapper mapper)
 
         try
         {
-            customer.Name = request.Name;
-            customer.Ruc = request.Ruc;
+            if (request.Name is not null)
+                customer.Name = request.Name;
+            if (request.Ruc is not null)
+                customer.Ruc = request.Ruc;
+            if (request.BirthDate.HasValue)
+                customer.BirthDate = request.BirthDate;
+            if (request.Email is not null)
+                customer.Email = request.Email;
 
             await _context.SaveChangesAsync();
 
@@ -133,6 +150,9 @@ public class CustomerService(AppDbContext context, IMapper mapper)
             if (rucExists) errors[nameof(request.Ruc)] = [CustomerError.RucAlreadyExists];
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Email) && !IsValidEmail(request.Email))
+            errors[nameof(request.Email)] = [CustomerError.InvalidEmail];
+
         if (errors.Count > 0)
         {
             var errorMessage = string.Join("; ", errors.Values.SelectMany(v => v));
@@ -146,17 +166,23 @@ public class CustomerService(AppDbContext context, IMapper mapper)
     {
         var errors = new Dictionary<string, string[]>();
 
-        if (string.IsNullOrWhiteSpace(request.Name))
+        if (request.Name is not null && string.IsNullOrWhiteSpace(request.Name))
             errors[nameof(request.Name)] = [CustomerError.NameRequired];
 
-        if (string.IsNullOrWhiteSpace(request.Ruc))
-            errors[nameof(request.Ruc)] = [CustomerError.RucRequired];
-        else
+        if (request.Ruc is not null)
         {
-            var rucExists = await _context.Customers.AnyAsync(c =>
-                c.Ruc == request.Ruc && c.Id != currentEntityId);
-            if (rucExists) errors[nameof(request.Ruc)] = [CustomerError.RucAlreadyExists];
+            if (string.IsNullOrWhiteSpace(request.Ruc))
+                errors[nameof(request.Ruc)] = [CustomerError.RucRequired];
+            else
+            {
+                var rucExists = await _context.Customers.AnyAsync(c =>
+                    c.Ruc == request.Ruc && c.Id != currentEntityId);
+                if (rucExists) errors[nameof(request.Ruc)] = [CustomerError.RucAlreadyExists];
+            }
         }
+
+        if (request.Email is not null && !string.IsNullOrWhiteSpace(request.Email) && !IsValidEmail(request.Email))
+            errors[nameof(request.Email)] = [CustomerError.InvalidEmail];
 
         if (errors.Count > 0)
         {
@@ -165,5 +191,18 @@ public class CustomerService(AppDbContext context, IMapper mapper)
         }
 
         return Result.Success();
+    }
+
+    private static bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

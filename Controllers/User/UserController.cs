@@ -8,18 +8,20 @@ using BackEnd.Extensions;
 using BackEnd.Utils;
 using BackEnd.DTOs.Requests.Pagination;
 
+using BackEnd.Infrastructure.Authorization;
 namespace BackEnd.Controllers.User;
 
 [Route("api/users")]
 [ApiController]
-[Authorize(Roles = "Admin")] // Use this if you want this controller to be accessible only by admins.
+[Authorize] // Use this if you want this controller to be accessible only by admins.
 // Use this if you want this controller to be accessible only by admins. 
-// [Authorize(Roles = "Admin")]
+// [Authorize]
 public class UserController(UserService usuarioService) : ControllerBase
 {
     private readonly UserService _usuarioService = usuarioService;
 
     [HttpGet()]
+    [HasPermission("users.view")]
     public async Task<ActionResult<ListUsersWrapperDto>> GetListUsers([FromQuery] PaginationRequestDto pagination)
     {
         var result = await _usuarioService.GetListAsync(pagination);
@@ -32,6 +34,7 @@ public class UserController(UserService usuarioService) : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [HasPermission("users.view")]
     public async Task<ActionResult<UserWrapperDto>> GetUserById(string id)
     {
         var result = await _usuarioService.GetByIdAsync(id);
@@ -43,6 +46,7 @@ public class UserController(UserService usuarioService) : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [HasPermission("users.update")]
     public async Task<ActionResult<UserWrapperDto>> Update(int id, UpdateUserRequestDto request)
     {
         var result = await _usuarioService.UpdateAsync(id, request);
@@ -60,6 +64,7 @@ public class UserController(UserService usuarioService) : ControllerBase
     }
 
     [HttpPatch("{id}/status")]
+    [HasPermission("users.update")]
     public async Task<ActionResult> ToggleStatus(int id)
     {
         var result = await _usuarioService.ToggleStatusAsync(id);
@@ -70,6 +75,21 @@ public class UserController(UserService usuarioService) : ControllerBase
         if (result.ErrorType == ErrorType.NotFound)
             return this.HandleNotFoundProblem(result);
             
+        return StatusCode(500);
+    }
+
+    [HttpPut("{id}/role")]
+    [HasPermission("users.update")]
+    public async Task<ActionResult<UserWrapperDto>> UpdateRole(int id, [FromBody] UpdateUserRoleRequestDto request)
+    {
+        var result = await _usuarioService.UpdateRoleAsync(id, request.RoleId);
+
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
         return StatusCode(500);
     }
 }

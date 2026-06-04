@@ -53,6 +53,7 @@ public class UserService(AppDbContext context, IMapper mapper)
 	{
 		var user = await _context.Users
 			.Include(u => u.Role)
+			.Include(u => u.Branch)
 			.FirstOrDefaultAsync(u => u.Id == id);
 
 		if (user == null)
@@ -88,5 +89,26 @@ public class UserService(AppDbContext context, IMapper mapper)
 		await _context.SaveChangesAsync();
 
 		return Result.Success();
+	}
+
+	public async Task<Result<UserWrapperDto>> UpdateRoleAsync(int userId, int roleId)
+	{
+		var user = await _context.Users
+			.Include(u => u.Role)
+			.Include(u => u.Branch)
+			.FirstOrDefaultAsync(u => u.Id == userId);
+
+		if (user == null)
+			return Result<UserWrapperDto>.Failure(AuthError.UserNotFound, ErrorType.NotFound);
+
+		var roleExists = await _context.Roles.AnyAsync(r => r.Id == roleId);
+		if (!roleExists)
+			return Result<UserWrapperDto>.Failure(ApplicationError.NotFound, ErrorType.NotFound);
+
+		user.RoleId = roleId;
+		_context.Users.Update(user);
+		await _context.SaveChangesAsync();
+
+		return Result<UserWrapperDto>.Success(_mapper.Map<UserWrapperDto>(user));
 	}
 }

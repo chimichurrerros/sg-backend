@@ -9,7 +9,6 @@ using BackEnd.Constants.Errors;
 using BackEnd.Services;
 using BackEnd.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
-using BackEnd.Services.Interfaces;
 
 // NECESITO ESTO PARA GUARDAR LA EL DATE TIME SIN JODER CON EL DBCONTEXT
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -30,43 +29,77 @@ builder.Services.AddHttpContextAccessor();
 // The application services should be here 
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionHandler>();
 builder.Services.AddScoped<AuthService, AuthService>();
+builder.Services.AddScoped<PermissionService>();
+builder.Services.AddScoped<RoleService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<SupplierService>();
 builder.Services.AddScoped<CustomerService>();
 builder.Services.AddScoped<CustomerQuoteService>();
+builder.Services.AddScoped<SupplierQuoteService>();
+builder.Services.AddScoped<PurchaseOrderService>();
+builder.Services.AddScoped<PurchaseOrderForSupplierService>();
 builder.Services.AddScoped<EmployeeService>();
 builder.Services.AddScoped<ProductBrandsService>();
 builder.Services.AddScoped<ProductCategoriesService>();
 builder.Services.AddScoped<ProductsService>();
 builder.Services.AddScoped<BranchService>();
 builder.Services.AddScoped<SupplierCategoryService>();
-builder.Services.AddScoped<ICheckService, CheckService>();
+builder.Services.AddScoped<CheckService>();
 builder.Services.AddScoped<BillService>();
 builder.Services.AddScoped<BillDetailService>();
 builder.Services.AddScoped<StockService>();
 builder.Services.AddScoped<SalesOrderService>();
 builder.Services.AddScoped<StatesService>();
-builder.Services.AddScoped<IAccountService, AccountService>();
-builder.Services.AddScoped<IBankMovementService, BankMovementService>();
-
-
-
-
-
+builder.Services.AddScoped<ServicesService>();
+builder.Services.AddScoped<AccountService>();
+builder.Services.AddScoped<BankMovementService>();
+builder.Services.AddScoped<PurchaseRequestService>();
+builder.Services.AddScoped<PurchaseReceiptService>();
+builder.Services.AddScoped<PurchaseReturnService>();
+builder.Services.AddScoped<BankService>();
+builder.Services.AddScoped<PaymentOrderService>();
+builder.Services.AddScoped<CreditNoteService>();
+builder.Services.AddScoped<SalesReturnService>();
+builder.Services.AddScoped<DepartmentService>();
+builder.Services.AddScoped<PositionService>();
+builder.Services.AddScoped<ScheduleService>();
+builder.Services.AddSingleton<FormulaEvaluatorService>();
+builder.Services.AddScoped<PayrollUpdateService>();
+builder.Services.AddScoped<PayrollProcessingService>();
+builder.Services.AddScoped<IEmployeeAssignmentService, EmployeeAssignmentService>();
+builder.Services.AddScoped<AccountantProcessService>();
+builder.Services.AddScoped<AccountPlanService>();
+builder.Services.AddScoped<EntryService>();
+builder.Services.AddScoped<AccountingReportService>();
+builder.Services.AddScoped<RequestForQuotationService>();
 // ------------------------------------------------------------------------------------------------------
 // Authorization configuration
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 builder.Services.AddAuthorization();
 // ------------------------------------------------------------------------------------------------------
 // CORS configuracion
+var allowedOrigins = builder.Configuration.GetValue<string>("AllowedOrigins")
+    ?? "http://localhost:5173";
+var explicitOrigins = allowedOrigins.Split(';', StringSplitOptions.RemoveEmptyEntries);
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("DevPolicy", policy =>
+    options.AddPolicy("CorsPolicy", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials();
+        policy.SetIsOriginAllowed(origin =>
+        {
+            if (explicitOrigins.Contains(origin))
+                return true;
+            var uri = new Uri(origin);
+            return uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.Equals("mbeju.xyz", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.EndsWith(".mbeju.xyz", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.EndsWith(".netlify.app", StringComparison.OrdinalIgnoreCase);
+        })
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials();
     });
 });
 // ------------------------------------------------------------------------------------------------------
@@ -85,7 +118,9 @@ builder.Services.AddDbContextPool<AppDbContext>(options =>
         npgsqlOptions.MapEnum<CheckStatusEnum>("check_status_enum");
         npgsqlOptions.MapEnum<CheckTypeEnum>("check_type_enum");
         npgsqlOptions.MapEnum<SalesOrderStateEnum>("sales_order_state_enum");
+        npgsqlOptions.MapEnum<PurchaseRequestStateEnum>("purchase_request_state_enum");
         npgsqlOptions.MapEnum<AccountTypeEnum>("account_type_enum");
+        npgsqlOptions.MapEnum<ModuleEnum>("module_enum");
     }));
 
 //*******************************************END-END-END*************************************************
@@ -135,10 +170,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseCors("DevPolicy");
-}
+app.UseCors("CorsPolicy");
 
 app.UseSwagger();
 app.UseSwaggerUI(options =>

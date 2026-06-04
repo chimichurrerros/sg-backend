@@ -1,3 +1,5 @@
+using BackEnd.Utils;
+
 namespace BackEnd.DTOs.Responses.Checks;
 
 using BackEnd.Models;
@@ -24,6 +26,18 @@ public class CheckResponseDto
 
     public decimal Amount { get; set; }
 
+
     public CheckStatusEnum Status { get; set; }
+}
+
+public class CheckWrapperDto
+{
+    public CheckResponseDto Check { get; set; } = null!;
+}
+
+public class ListChecksWrapperDto
+{
+    public List<CheckResponseDto> Checks { get; set; } = [];
+    public Pagination Pagination { get; set; } = null!;
 }
 

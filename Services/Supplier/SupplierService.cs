@@ -14,7 +14,7 @@ namespace BackEnd.Services;
 /// <summary>
 /// Service responsible for all supplier management business logic.
 /// All validation and data manipulation occurs at this layer.
-/// Suppliers are always created as LegalPerson entities (not PhysicalPerson).
+/// Suppliers are stored directly with their own business data.
 /// </summary>
 public class SupplierService(AppDbContext context, IMapper mapper)
 {
@@ -65,9 +65,8 @@ public class SupplierService(AppDbContext context, IMapper mapper)
         // Query supplier without tracking (read-only operation)
         var supplier = await _context.Suppliers
             .AsNoTracking()
-            .Include(s => s.Entity)
-                .ThenInclude(e => e.LegalPerson)
             .Include(s => s.SupplierCategories)
+                .ThenInclude(sc => sc.ProductCategory)
             .FirstOrDefaultAsync(s => s.Id == id);
 
         // Return error if supplier not found
@@ -79,13 +78,12 @@ public class SupplierService(AppDbContext context, IMapper mapper)
     }
 
     /// <summary>
-    /// Creates a new supplier with automatic Entity and LegalPerson creation.
-    /// Process: 1) Validate input, 2) Create Entity (LegalPerson type), 3) Create Supplier, 
-    /// 4) Associate Entity to Supplier, 5) Create LegalPerson, 6) Add product categories.
+    /// Creates a new supplier directly.
+    /// Process: 1) Validate input, 2) Create Supplier, 3) Add product categories.
     /// All operations occur within a single database transaction.
     /// </summary>
     /// <param name="request">Create supplier request DTO containing legal entity data</param>
-    /// <returns>Wrapped result containing the created supplier with Entity data</returns>
+    /// <returns>Wrapped result containing the created supplier</returns>
     public async Task<Result<SupplierWrapperDto>> CreateAsync(CreateSupplierRequestDto request)
     {
         // Step 1: Validate all input data
@@ -101,44 +99,21 @@ public class SupplierService(AppDbContext context, IMapper mapper)
 
         try
         {
-            // Step 3: Create Entity with LegalPerson type (EntityPersonType.Legal = 2)
-            var entity = new Entity
+            var supplier = new Supplier
             {
-                EntityTypeId = (int)EntityPersonType.Legal, // Always LegalPerson for suppliers
-                DocumentNumber = request.DocumentNumber,
+                Ruc = request.Ruc,
                 Phone = request.Phone,
                 Address = request.Address,
                 Email = request.Email,
-                IsActive = request.IsActive
-            };
-
-            // Add entity to context and persist
-            _context.Entities.Add(entity);
-            await _context.SaveChangesAsync();
-
-            // Step 4: Create Supplier and associate to the newly created Entity
-            var supplier = new Supplier
-            {
-                EntityId = entity.Id // Link to the created entity
-            };
-
-            // Add supplier to context and persist
-            _context.Suppliers.Add(supplier);
-            await _context.SaveChangesAsync();
-
-            // Step 5: Create LegalPerson data for the Entity
-            var legalPerson = new LegalPerson
-            {
-                EntityId = entity.Id,
-                BussinessName = request.BusinessName,
+                IsActive = request.IsActive,
+                BusinessName = request.BusinessName,
                 FantasyName = request.FantasyName
             };
 
-            // Add legal person data to context and persist
-            _context.LegalPersons.Add(legalPerson);
+            _context.Suppliers.Add(supplier);
             await _context.SaveChangesAsync();
 
-            // Step 6: Add product categories if provided
+            // Step 3: Add product categories if provided
             if (request.ProductCategoryIds.Count > 0)
             {
                 await AddSupplierCategoriesAsync(supplier.Id, request.ProductCategoryIds);
@@ -150,9 +125,8 @@ public class SupplierService(AppDbContext context, IMapper mapper)
 
             // Fetch the created supplier with all related data for response
             var createdSupplier = await _context.Suppliers
-                .Include(s => s.Entity)
-                    .ThenInclude(e => e.LegalPerson)
                 .Include(s => s.SupplierCategories)
+                    .ThenInclude(sc => sc.ProductCategory)
                 .FirstOrDefaultAsync(s => s.Id == supplier.Id);
 
             // Map to DTO and return success
@@ -176,10 +150,8 @@ public class SupplierService(AppDbContext context, IMapper mapper)
     /// <returns>Wrapped result containing the updated supplier or error</returns>
     public async Task<Result<SupplierWrapperDto>> UpdateAsync(int id, UpdateSupplierRequestDto request)
     {
-        // Step 1: Load supplier with related Entity and LegalPerson data
+        // Step 1: Load supplier with related categories
         var supplier = await _context.Suppliers
-            .Include(s => s.Entity)
-                .ThenInclude(e => e.LegalPerson)
             .Include(s => s.SupplierCategories)
             .FirstOrDefaultAsync(s => s.Id == id);
 
@@ -188,7 +160,7 @@ public class SupplierService(AppDbContext context, IMapper mapper)
             return Result<SupplierWrapperDto>.Failure(SupplierError.SupplierNotFound, ErrorType.NotFound);
 
         // Step 2: Validate all input data
-        var validationResult = await ValidateUpdateRequestAsync(request, supplier.EntityId);
+        var validationResult = await ValidateUpdateRequestAsync(request, supplier.Id);
         if (!validationResult.IsSuccess)
             return Result<SupplierWrapperDto>.Failure(
                 validationResult.ErrorMessage!,
@@ -200,33 +172,16 @@ public class SupplierService(AppDbContext context, IMapper mapper)
 
         try
         {
-            // Step 4: Update Entity fields (document, contact info, etc.)
-            supplier.Entity.DocumentNumber = request.DocumentNumber;
-            supplier.Entity.Phone = request.Phone;
-            supplier.Entity.Address = request.Address;
-            supplier.Entity.Email = request.Email;
-            supplier.Entity.IsActive = request.IsActive;
+            // Step 4: Update Supplier fields directly
+            supplier.Ruc = request.Ruc;
+            supplier.Phone = request.Phone;
+            supplier.Address = request.Address;
+            supplier.Email = request.Email;
+            supplier.IsActive = request.IsActive;
+            supplier.BusinessName = request.BusinessName;
+            supplier.FantasyName = request.FantasyName;
 
-            // Step 5: Update or create LegalPerson data
-            if (supplier.Entity.LegalPerson == null)
-            {
-                // Create LegalPerson if it doesn't exist (shouldn't happen, but handle it)
-                supplier.Entity.LegalPerson = new LegalPerson
-                {
-                    EntityId = supplier.Entity.Id,
-                    BussinessName = request.BusinessName,
-                    FantasyName = request.FantasyName
-                };
-                _context.LegalPersons.Add(supplier.Entity.LegalPerson);
-            }
-            else
-            {
-                // Update existing LegalPerson
-                supplier.Entity.LegalPerson.BussinessName = request.BusinessName;
-                supplier.Entity.LegalPerson.FantasyName = request.FantasyName;
-            }
-
-            // Step 6: Replace product categories with new ones
+            // Step 5: Replace product categories with new ones
             await ReplaceSupplierCategoriesAsync(supplier.Id, request.ProductCategoryIds);
 
             // Persist all changes
@@ -235,8 +190,14 @@ public class SupplierService(AppDbContext context, IMapper mapper)
             // Commit transaction
             await transaction.CommitAsync();
 
+            var updatedSupplier = await _context.Suppliers
+                .AsNoTracking()
+                .Include(s => s.SupplierCategories)
+                    .ThenInclude(sc => sc.ProductCategory)
+                .FirstOrDefaultAsync(s => s.Id == supplier.Id);
+
             // Map to DTO and return success
-            return Result<SupplierWrapperDto>.Success(_mapper.Map<SupplierWrapperDto>(supplier));
+            return Result<SupplierWrapperDto>.Success(_mapper.Map<SupplierWrapperDto>(updatedSupplier));
         }
         catch (Exception)
         {
@@ -248,9 +209,9 @@ public class SupplierService(AppDbContext context, IMapper mapper)
 
     /// <summary>
     /// Validates the Create request. Checks:
-    /// 1) Document number is not empty
-    /// 2) Business name is not empty (LegalPerson requirement)
-    /// 3) Document number is unique
+    /// 1) RUC is not empty
+    /// 2) Business name is not empty
+    /// 3) RUC is unique
     /// 4) All product categories exist in database
     /// </summary>
     /// <param name="request">Create supplier request to validate</param>
@@ -259,22 +220,22 @@ public class SupplierService(AppDbContext context, IMapper mapper)
     {
         var errors = new Dictionary<string, string[]>();
 
-        // Validate document number (required and not empty)
-        if (string.IsNullOrWhiteSpace(request.DocumentNumber))
+        // Validate RUC (required and not empty)
+        if (string.IsNullOrWhiteSpace(request.Ruc))
         {
-            errors["DocumentNumber"] = [SupplierError.DocumentNumberRequired];
+            errors["Ruc"] = [SupplierError.RucRequired];
         }
         else
         {
-            // Check if document already exists (must be unique)
-            var documentExists = await _context.Entities.AnyAsync(e =>
-                e.DocumentNumber == request.DocumentNumber);
+            // Check if RUC already exists (must be unique)
+            var documentExists = await _context.Suppliers.AnyAsync(s =>
+                s.Ruc == request.Ruc);
 
             if (documentExists)
-                errors["DocumentNumber"] = [SupplierError.DocumentNumberAlreadyExists];
+                errors["Ruc"] = [SupplierError.RucAlreadyExists];
         }
 
-        // Validate business name (required for LegalPerson)
+        // Validate business name (required)
         if (string.IsNullOrWhiteSpace(request.BusinessName))
             errors["BusinessName"] = [SupplierError.BusinessNameRequired];
 
@@ -297,25 +258,25 @@ public class SupplierService(AppDbContext context, IMapper mapper)
     /// Validates the Update request (same validations as Create).
     /// </summary>
     /// <param name="request">Update supplier request to validate</param>
-    /// <param name="currentEntityId">The current entity ID (for uniqueness check exclusion)</param>
+    /// <param name="currentSupplierId">The current supplier ID (for uniqueness check exclusion)</param>
     /// <returns>Success result or validation error with details</returns>
-    private async Task<Result> ValidateUpdateRequestAsync(UpdateSupplierRequestDto request, int currentEntityId)
+    private async Task<Result> ValidateUpdateRequestAsync(UpdateSupplierRequestDto request, int currentSupplierId)
     {
         var errors = new Dictionary<string, string[]>();
 
-        // Validate document number
-        if (string.IsNullOrWhiteSpace(request.DocumentNumber))
+        // Validate RUC
+        if (string.IsNullOrWhiteSpace(request.Ruc))
         {
-            errors["DocumentNumber"] = [SupplierError.DocumentNumberRequired];
+            errors["Ruc"] = [SupplierError.RucRequired];
         }
         else
         {
-            // Check if document already exists (excluding current entity)
-            var documentExists = await _context.Entities.AnyAsync(e =>
-                e.DocumentNumber == request.DocumentNumber && e.Id != currentEntityId);
+            // Check if RUC already exists (excluding current supplier)
+            var documentExists = await _context.Suppliers.AnyAsync(s =>
+                s.Ruc == request.Ruc && s.Id != currentSupplierId);
 
             if (documentExists)
-                errors["DocumentNumber"] = [SupplierError.DocumentNumberAlreadyExists];
+                errors["Ruc"] = [SupplierError.RucAlreadyExists];
         }
 
         // Validate business name
@@ -392,6 +353,66 @@ public class SupplierService(AppDbContext context, IMapper mapper)
                 ProductCategoryId = categoryId
             });
         }
+    }
+
+    public async Task<Result<EligibleSuppliersWrapperDto>> GetEligibleSuppliersAsync(List<int> productIds)
+    {
+        if (productIds == null || productIds.Count == 0)
+            return Result<EligibleSuppliersWrapperDto>.Failure(SupplierError.ProductsRequired, ErrorType.Validation);
+
+        var products = await _context.Products
+            .AsNoTracking()
+            .Where(p => productIds.Contains(p.Id) && p.ProductCategoryId != null)
+            .Select(p => new { p.Id, p.ProductCategoryId, CategoryName = p.ProductCategory.Name })
+            .ToListAsync();
+
+        var distinctCategoryIds = products
+            .Select(p => p.ProductCategoryId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (distinctCategoryIds.Count == 0)
+            return Result<EligibleSuppliersWrapperDto>.Success(new EligibleSuppliersWrapperDto());
+
+        var suppliers = await _context.Suppliers
+            .AsNoTracking()
+            .Include(s => s.SupplierCategories)
+                .ThenInclude(sc => sc.ProductCategory)
+            .Where(s => s.IsActive && s.SupplierCategories.Any(sc => distinctCategoryIds.Contains(sc.ProductCategoryId)))
+            .ToListAsync();
+
+        var dtos = suppliers.Select(s =>
+        {
+            var matchingCategoryIds = s.SupplierCategories
+                .Where(sc => distinctCategoryIds.Contains(sc.ProductCategoryId))
+                .Select(sc => sc.ProductCategoryId)
+                .ToHashSet();
+
+            var matchingProductIds = products
+                .Where(p => p.ProductCategoryId.HasValue && matchingCategoryIds.Contains(p.ProductCategoryId.Value))
+                .Select(p => p.Id)
+                .ToList();
+
+            var categoryNames = s.SupplierCategories
+                .Where(sc => matchingCategoryIds.Contains(sc.ProductCategoryId))
+                .Select(sc => sc.ProductCategory.Name)
+                .Distinct()
+                .ToList();
+
+            return new EligibleSupplierDto
+            {
+                SupplierId = s.Id,
+                BusinessName = s.BusinessName,
+                FantasyName = s.FantasyName,
+                ProductIds = matchingProductIds,
+                CategoryNames = categoryNames
+            };
+        }).ToList();
+
+        return Result<EligibleSuppliersWrapperDto>.Success(new EligibleSuppliersWrapperDto
+        {
+            EligibleSuppliers = dtos
+        });
     }
 
     /// <summary>
