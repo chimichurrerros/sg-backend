@@ -1,6 +1,7 @@
 using System.Globalization;
 using BackEnd.Constants.Errors;
 using BackEnd.DTOs.Requests.Entry;
+using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Requests.PayrollProcess;
 using BackEnd.DTOs.Responses.PayrollProcess;
 using BackEnd.Infrastructure.Context;
@@ -479,14 +480,14 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         }
     }
 
-    public async Task<Result<List<PayrollDetailSummaryResponseDto>>> GetDetailSummariesAsync(int processId)
+    public async Task<Result<ListPayrollDetailSummariesWrapperDto>> GetDetailSummariesAsync(int processId, PaginationRequestDto pagination)
     {
         var process = await _context.PayrollProcesses
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == processId);
 
         if (process is null)
-            return Result<List<PayrollDetailSummaryResponseDto>>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
+            return Result<ListPayrollDetailSummariesWrapperDto>.Failure(PayrollProcessError.PayrollProcessNotFound, ErrorType.NotFound);
 
         var referenceDate = process.PayDate ?? new DateOnly(process.Year, process.Month, DateTime.DaysInMonth(process.Year, process.Month));
 
@@ -499,7 +500,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             .Include(d => d.PayrollUpdate)
             .ToListAsync();
 
-        var summaries = details
+        var allSummaries = details
             .GroupBy(d => d.EmployeeId)
             .Select(g =>
             {
@@ -537,7 +538,17 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             .OrderBy(s => s.FullName)
             .ToList();
 
-        return Result<List<PayrollDetailSummaryResponseDto>>.Success(summaries);
+        var totalElements = allSummaries.Count;
+        var items = allSummaries
+            .Skip((pagination.Page - 1) * pagination.PageSize)
+            .Take(pagination.PageSize)
+            .ToList();
+
+        return Result<ListPayrollDetailSummariesWrapperDto>.Success(new ListPayrollDetailSummariesWrapperDto
+        {
+            Summaries = items,
+            Pagination = new Pagination(pagination.Page, pagination.PageSize, totalElements)
+        });
     }
 
     public async Task<Result<List<PayrollConceptSummaryResponseDto>>> GetConceptSummariesAsync(int processId)
@@ -701,6 +712,10 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         if (payrollUpdate.FormulaTypeId != PayrollUpdate.FormulaTypeEnum.Fixed)
             return Result<PayrollManualDetailResponseDto>.Failure(PayrollManualDetailError.PayrollUpdateMustBeFixed, ErrorType.Validation);
 
+        var roundedAmount = decimal.Round(request.Amount, 0, MidpointRounding.AwayFromZero);
+        if (roundedAmount == 0m)
+            return Result<PayrollManualDetailResponseDto>.Failure("El monto debe ser mayor a 0", ErrorType.Validation);
+
         var existingDetail = await _context.PayrollProcessDetails
             .FirstOrDefaultAsync(detail =>
                 detail.PayrollProcessId == payrollProcessId &&
@@ -714,14 +729,14 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
                 PayrollProcessId = payrollProcessId,
                 EmployeeId = request.EmployeeId,
                 PayrollUpdateId = request.PayrollUpdateId,
-                Amount = request.Amount
+                Amount = roundedAmount
             };
 
             _context.PayrollProcessDetails.Add(existingDetail);
         }
         else
         {
-            existingDetail.Amount = request.Amount;
+            existingDetail.Amount = roundedAmount;
         }
 
         await _context.SaveChangesAsync();
@@ -1329,7 +1344,8 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         if (string.IsNullOrWhiteSpace(payrollUpdate.Formula))
             throw new InvalidOperationException($"El concepto '{payrollUpdate.Name}' no tiene fórmula definida.");
 
-        return _formulaEvaluator.EvaluateFormula(payrollUpdate.Formula, variables);
+        var raw = _formulaEvaluator.EvaluateFormula(payrollUpdate.Formula, variables);
+        return decimal.Round(raw, 0, MidpointRounding.AwayFromZero);
     }
 
     private async Task AssignPendingIncidentsAsync(List<ManualConceptIncident> pendingIncidents)
@@ -1367,11 +1383,15 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         decimal amount,
         Dictionary<(int EmployeeId, int PayrollUpdateId), PayrollProcessDetail> detailsByKey)
     {
+        var roundedAmount = decimal.Round(amount, 0, MidpointRounding.AwayFromZero);
+        if (roundedAmount == 0m)
+            return;
+
         var key = (employeeId, payrollUpdateId);
 
         if (detailsByKey.TryGetValue(key, out var existingDetail))
         {
-            existingDetail.Amount = amount;
+            existingDetail.Amount = roundedAmount;
             return;
         }
 
@@ -1380,7 +1400,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             PayrollProcessId = payrollProcessId,
             EmployeeId = employeeId,
             PayrollUpdateId = payrollUpdateId,
-            Amount = amount
+            Amount = roundedAmount
         };
 
         _context.PayrollProcessDetails.Add(detail);
