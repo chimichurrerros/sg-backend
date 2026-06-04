@@ -1135,48 +1135,37 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
         if (activeProcess == null)
             return Result<PayrollCloseAndPayResponseDto>.Failure($"No existe un período contable activo para la fecha actual ({today:dd/MM/yyyy}).", ErrorType.Validation);
 
-        // Buscar cuentas contables por nombre y pertenecientes al periodo activo
+        // Buscar cuentas contables por código en el periodo activo
         var accountSueldos = await _context.AccountPlans
-            .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Name.Contains("Sueldos") && a.Name.Contains("Jornales"));
-
-        var accountBonificacion = await _context.AccountPlans
-            .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && (a.Name.Contains("Bonificación") || a.Name.Contains("Familiar")));
+            .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Code == "4.2.1.01");
 
         var accountIps = await _context.AccountPlans
-            .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Name.Contains("IPS") && (a.Name.Contains("Aporte") || a.Name.Contains("Retención")));
+            .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Code == "2.1.2.01");
 
         var accountCaja = await _context.AccountPlans
-            .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && (a.Name.Contains("Caja") || a.Name.Contains("Banco")));
+            .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Code == "1.1.1.02");
 
         if (accountSueldos is null)
-            return Result<PayrollCloseAndPayResponseDto>.Failure("No se encontró la cuenta contable 'Sueldos y Jornales'.", ErrorType.Validation);
+            return Result<PayrollCloseAndPayResponseDto>.Failure("No se encontró la cuenta contable '4.2.1.01 - Pagos de Salarios (Gasto)'.", ErrorType.Validation);
+
+        if (accountIps is null)
+            return Result<PayrollCloseAndPayResponseDto>.Failure("No se encontró la cuenta contable '2.1.2.01 - Retenciones IPS por Pagar'.", ErrorType.Validation);
 
         if (accountCaja is null)
-            return Result<PayrollCloseAndPayResponseDto>.Failure("No se encontró la cuenta contable 'Caja/Banco'.", ErrorType.Validation);
+            return Result<PayrollCloseAndPayResponseDto>.Failure("No se encontró la cuenta contable '1.1.1.02 - Bancos (Cuenta Corriente)'.", ErrorType.Validation);
 
         var entryDetails = new List<CreateEntryDetailDto>();
 
-        // DEBE: Sueldos y Jornales
+        // DEBE: Pagos de Salarios (incluye sueldos + bonificación familiar)
         entryDetails.Add(new CreateEntryDetailDto
         {
             AccountPlanId = accountSueldos.Id,
-            Debit = sueldosJornales,
+            Debit = sueldosJornales + (bonificacionFamiliar > 0m ? bonificacionFamiliar : 0m),
             Credit = 0m
         });
 
-        // DEBE: Bonificación Familiar (si existe cuenta y hay monto)
-        if (bonificacionFamiliar > 0m && accountBonificacion is not null)
-        {
-            entryDetails.Add(new CreateEntryDetailDto
-            {
-                AccountPlanId = accountBonificacion.Id,
-                Debit = bonificacionFamiliar,
-                Credit = 0m
-            });
-        }
-
-        // HABER: IPS
-        if (ipsRetencion > 0m && accountIps is not null)
+        // HABER: Retenciones IPS por Pagar
+        if (ipsRetencion > 0m)
         {
             entryDetails.Add(new CreateEntryDetailDto
             {
@@ -1186,7 +1175,7 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
             });
         }
 
-        // HABER: Caja o Banco (neto pagado)
+        // HABER: Bancos (Cuenta Corriente)
         entryDetails.Add(new CreateEntryDetailDto
         {
             AccountPlanId = accountCaja.Id,
