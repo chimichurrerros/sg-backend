@@ -1,6 +1,5 @@
 using BackEnd.Constants.Errors;
 using BackEnd.DTOs.Requests.Bank;
-using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Requests.PaymentOrder;
 using BackEnd.DTOs.Responses.PaymentOrder;
 using BackEnd.Infrastructure.Context;
@@ -15,17 +14,17 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
     private readonly AppDbContext _context = context;
     private readonly BankMovementService _bankMovementService = bankMovementService;
 
-    // Crea una orden de pago nueva
+    // Crea una orden de pago con multiples metodos
     public async Task<Result<PaymentOrderWrapperDto>> CreateAsync(CreatePaymentOrderDto request)
     {
         if (request.PurchaseOrderForSupplierId <= 0)
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.PurchaseOrderNotFound, ErrorType.Validation);
 
-        if (request.Amount <= 0)
-            return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.InvalidAmount, ErrorType.Validation);
+        if (request.Methods == null || request.Methods.Count == 0)
+            return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.DetailsRequired, ErrorType.Validation);
 
-        if (request.BankAccountId <= 0)
-            return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.BankAccountRequired, ErrorType.Validation);
+        if (request.Methods.Any(m => m.Amount <= 0))
+            return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.InvalidAmount, ErrorType.Validation);
 
         var purchaseOrder = await _context.PurchaseOrdersForSupplier
             .AsNoTracking()
@@ -34,41 +33,50 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
         if (purchaseOrder == null)
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.PurchaseOrderNotFound, ErrorType.NotFound);
 
-        if (purchaseOrder.State != PurchaseOrderForSupplierStateEnum.Cancelled)
+        if (purchaseOrder.State == PurchaseOrderForSupplierStateEnum.Cancelled)
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.PurchaseOrderMustNotBeCancelled, ErrorType.Validation);
 
-        decimal creditTotal = 0;
-        List<CreditNote> appliedCreditNotes = new();
+        var totalAmount = request.Methods.Sum(m => m.Amount);
+        if (totalAmount <= 0)
+            return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.InvalidAmount, ErrorType.Validation);
 
-        if (request.CreditNotes != null && request.CreditNotes.Count > 0)
+        var bankMethods = request.Methods
+            .Where(m => m.Method != "CreditNote")
+            .ToList();
+
+        var creditMethods = request.Methods
+            .Where(m => m.Method == "CreditNote")
+            .ToList();
+
+        var appliedCreditNotes = new List<(CreditNote CreditNote, decimal Amount)>();
+
+        foreach (var cm in creditMethods)
         {
-            foreach (var cn in request.CreditNotes)
-            {
-                if (cn.CreditNoteId <= 0 || cn.Amount <= 0)
-                    return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.InvalidAmount, ErrorType.Validation);
+            if (cm.CreditNoteId == null || cm.CreditNoteId <= 0)
+                return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.InvalidAmount, ErrorType.Validation);
 
-                var creditNote = await _context.CreditNotes
-                    .FirstOrDefaultAsync(c => c.Id == cn.CreditNoteId);
+            var creditNote = await _context.CreditNotes
+                .FirstOrDefaultAsync(c => c.Id == cm.CreditNoteId);
 
-                if (creditNote == null)
-                    return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.CreditNoteNotFound, ErrorType.NotFound);
+            if (creditNote == null)
+                return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.CreditNoteNotFound, ErrorType.NotFound);
 
-                if (creditNote.Type != CreditNoteTypeEnum.PurchaseReturn)
-                    return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.CreditNoteNotPurchaseReturn, ErrorType.Validation);
+            if (creditNote.Type != CreditNoteTypeEnum.PurchaseReturn)
+                return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.CreditNoteNotPurchaseReturn, ErrorType.Validation);
 
-                appliedCreditNotes.Add(creditNote);
-                creditTotal += cn.Amount;
-            }
-
-            if (creditTotal > request.Amount)
-                return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.CreditNoteAmountExceedsTotal, ErrorType.Validation);
+            appliedCreditNotes.Add((creditNote, cm.Amount));
         }
 
-        var netAmount = request.Amount - creditTotal;
-
-        if (netAmount > 0)
+        foreach (var bm in bankMethods)
         {
-            var accountValidation = await _bankMovementService.ValidateAccountAsync(request.BankAccountId, netAmount);
+            if (bm.AccountId == null || bm.AccountId <= 0)
+                return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.BankAccountRequired, ErrorType.Validation);
+
+            var validMethods = new[] { "Transfer", "Check", "Cash" };
+            if (!validMethods.Contains(bm.Method))
+                return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.InvalidPaymentMethod, ErrorType.Validation);
+
+            var accountValidation = await _bankMovementService.ValidateAccountAsync(bm.AccountId.Value, bm.Amount);
             if (!accountValidation.IsSuccess)
                 return Result<PaymentOrderWrapperDto>.Failure(accountValidation.ErrorMessage!, accountValidation.ErrorType);
         }
@@ -81,7 +89,7 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
             {
                 SupplierId = purchaseOrder.SupplierId,
                 Date = request.PaymentDate == default ? DateTime.UtcNow : request.PaymentDate,
-                Total = request.Amount,
+                Total = totalAmount,
                 State = PaymentOrderStateEnum.Processed
             };
 
@@ -96,7 +104,7 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
                 Number = $"PO-PAY-{paymentOrder.Id:D6}",
                 Stamp = request.Notes,
                 Date = DateOnly.FromDateTime(paymentOrder.Date),
-                Total = request.Amount,
+                Total = totalAmount,
                 TaxTotal = 0,
                 IsCredit = false
             };
@@ -108,36 +116,34 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
             {
                 PaymentOrderId = paymentOrder.Id,
                 BillId = bill.Id,
-                Amount = request.Amount
+                Amount = totalAmount
             });
 
             await _context.SaveChangesAsync();
 
-            if (request.CreditNotes != null && request.CreditNotes.Count > 0)
+            foreach (var (creditNote, amount) in appliedCreditNotes)
             {
-                foreach (var cn in request.CreditNotes)
+                _context.PaymentOrderCreditNotes.Add(new PaymentOrderCreditNote
                 {
-                    _context.PaymentOrderCreditNotes.Add(new PaymentOrderCreditNote
-                    {
-                        PaymentOrderId = paymentOrder.Id,
-                        CreditNoteId = cn.CreditNoteId,
-                        Amount = cn.Amount
-                    });
-                }
-
-                await _context.SaveChangesAsync();
+                    PaymentOrderId = paymentOrder.Id,
+                    CreditNoteId = creditNote.Id,
+                    Amount = amount
+                });
             }
 
-            if (netAmount > 0)
+            if (appliedCreditNotes.Count > 0)
+                await _context.SaveChangesAsync();
+
+            foreach (var bm in bankMethods)
             {
                 var movementResult = await _bankMovementService.CreateMovementAsync(new CreateBankMovementDto
                 {
-                    AccountId = request.BankAccountId,
-                    Amount = netAmount,
+                    AccountId = bm.AccountId!.Value,
+                    Amount = bm.Amount,
                     Date = request.PaymentDate == default ? DateTime.UtcNow : request.PaymentDate,
-                    ReferenceNumber = request.ReferenceNumber,
+                    ReferenceNumber = bm.ReferenceNumber,
                     MovementType = BankMovementTypeEnum.Debit,
-                    CheckDetails = request.PaymentMethod == "Check" ? request.CheckDetails : null
+                    CheckDetails = bm.Method == "Check" ? bm.CheckDetails : null
                 });
 
                 if (!movementResult.IsSuccess)
@@ -150,7 +156,7 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
                 {
                     PaymentOrderId = paymentOrder.Id,
                     BankMovementId = movementResult.Value!.Id,
-                    Amount = netAmount
+                    Amount = bm.Amount
                 });
             }
 
@@ -341,16 +347,22 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
             .Select(link => link.Bill.PurchaseOrderForSupplierId)
             .FirstOrDefault(id => id.HasValue) ?? 0;
 
-        var hasMovements = paymentOrder.PaymentOrderMovements.Any();
-        var hasCheck = hasMovements && paymentOrder.PaymentOrderMovements
+        var methods = new List<string>();
+
+        var hasCheck = paymentOrder.PaymentOrderMovements
             .Any(m => m.BankMovement.Check != null);
+        var hasRegularMovements = paymentOrder.PaymentOrderMovements
+            .Any(m => m.BankMovement.Check == null);
         var hasCreditNotes = paymentOrder.PaymentOrderCreditNotes.Any();
 
-        var paymentMethod = "Bank";
-        if (!hasMovements && hasCreditNotes)
-            paymentMethod = "CreditNote";
-        else if (hasCheck)
-            paymentMethod = "Check";
+        if (hasCheck)
+            methods.Add("Check");
+        if (hasRegularMovements)
+            methods.Add("Transfer");
+        if (hasCreditNotes)
+            methods.Add("CreditNote");
+
+        var paymentMethod = methods.Count > 0 ? string.Join(", ", methods) : "Bank";
 
         return new PaymentOrderResponseDto
         {
