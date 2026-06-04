@@ -13,15 +13,35 @@ namespace BackEnd.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterDatabase()
-                .Annotation("Npgsql:Enum:account_type_enum", "cash,checking,savings")
-                .Annotation("Npgsql:Enum:bank_movement_type_enum", "debit,credit")
-                .Annotation("Npgsql:Enum:bill_state_enum", "pending,paid,voided")
-                .Annotation("Npgsql:Enum:bill_type_enum", "contado,credito")
-                .Annotation("Npgsql:Enum:check_status_enum", "pending,cashed,voided")
-                .Annotation("Npgsql:Enum:check_type_enum", "day,deferred")
-                .Annotation("Npgsql:Enum:purchase_request_state_enum", "pending,approved,rejected,completed")
-                .Annotation("Npgsql:Enum:sales_order_state_enum", "pending,confirmed,cancelled");
+            migrationBuilder.Sql(@"
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'account_type_enum') THEN
+        CREATE TYPE account_type_enum AS ENUM ('cash','checking','savings');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'bank_movement_type_enum') THEN
+        CREATE TYPE bank_movement_type_enum AS ENUM ('debit','credit');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'bill_state_enum') THEN
+        CREATE TYPE bill_state_enum AS ENUM ('pending','paid','voided');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'bill_type_enum') THEN
+        CREATE TYPE bill_type_enum AS ENUM ('contado','credito');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'check_status_enum') THEN
+        CREATE TYPE check_status_enum AS ENUM ('pending','cashed','voided');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'check_type_enum') THEN
+        CREATE TYPE check_type_enum AS ENUM ('day','deferred');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'purchase_request_state_enum') THEN
+        CREATE TYPE purchase_request_state_enum AS ENUM ('pending','approved','rejected','completed');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'sales_order_state_enum') THEN
+        CREATE TYPE sales_order_state_enum AS ENUM ('pending','confirmed','cancelled');
+    END IF;
+END
+$$;");
 
             migrationBuilder.CreateTable(
                 name: "AccountPlans",

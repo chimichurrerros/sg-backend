@@ -18,7 +18,6 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
     // Crea una orden de pago nueva
     public async Task<Result<PaymentOrderWrapperDto>> CreateAsync(CreatePaymentOrderDto request)
     {
-        // Validaciones básicas de que los IDs y montos sean lógicos
         if (request.PurchaseOrderForSupplierId <= 0)
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.PurchaseOrderNotFound, ErrorType.Validation);
 
@@ -28,31 +27,57 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
         if (request.BankAccountId <= 0)
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.BankAccountRequired, ErrorType.Validation);
 
-        // Busca la orden de compra asociada
         var purchaseOrder = await _context.PurchaseOrdersForSupplier
             .AsNoTracking()
             .FirstOrDefaultAsync(po => po.Id == request.PurchaseOrderForSupplierId);
 
-        // Si no existe la orden de compra, devuelve error 404
         if (purchaseOrder == null)
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.PurchaseOrderNotFound, ErrorType.NotFound);
 
-        // La orden de compra obligatoriamente tiene que estar Confirmada para pagarse
         if (purchaseOrder.State != PurchaseOrderForSupplierStateEnum.Confirmed)
             return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.PurchaseOrderMustBeConfirmed, ErrorType.Validation);
 
-        // Valida que la cuenta bancaria exista y tenga saldo disponible suficiente para el pago
-        var accountValidation = await _bankMovementService.ValidateAccountAsync(request.BankAccountId, request.Amount);
-        if (!accountValidation.IsSuccess)
-            return Result<PaymentOrderWrapperDto>.Failure(accountValidation.ErrorMessage!, accountValidation.ErrorType);
+        decimal creditTotal = 0;
+        List<CreditNote> appliedCreditNotes = new();
 
-        // Iniciamos transacción para asegurar que se cree la orden, la factura, el movimiento de banco y sus relaciones de forma segura
+        if (request.CreditNotes != null && request.CreditNotes.Count > 0)
+        {
+            foreach (var cn in request.CreditNotes)
+            {
+                if (cn.CreditNoteId <= 0 || cn.Amount <= 0)
+                    return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.InvalidAmount, ErrorType.Validation);
+
+                var creditNote = await _context.CreditNotes
+                    .FirstOrDefaultAsync(c => c.Id == cn.CreditNoteId);
+
+                if (creditNote == null)
+                    return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.CreditNoteNotFound, ErrorType.NotFound);
+
+                if (creditNote.Type != CreditNoteTypeEnum.PurchaseReturn)
+                    return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.CreditNoteNotPurchaseReturn, ErrorType.Validation);
+
+                appliedCreditNotes.Add(creditNote);
+                creditTotal += cn.Amount;
+            }
+
+            if (creditTotal > request.Amount)
+                return Result<PaymentOrderWrapperDto>.Failure(PaymentOrderError.CreditNoteAmountExceedsTotal, ErrorType.Validation);
+        }
+
+        var netAmount = request.Amount - creditTotal;
+
+        if (netAmount > 0)
+        {
+            var accountValidation = await _bankMovementService.ValidateAccountAsync(request.BankAccountId, netAmount);
+            if (!accountValidation.IsSuccess)
+                return Result<PaymentOrderWrapperDto>.Failure(accountValidation.ErrorMessage!, accountValidation.ErrorType);
+        }
+
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
         try
         {
-            // 1. Crea la cabecera de la Orden de Pago (nace como Procesada directamente)
-            var paymentOrder = new PaymentOrder
+            var paymentOrder = new Models.PaymentOrder
             {
                 SupplierId = purchaseOrder.SupplierId,
                 Date = request.PaymentDate == default ? DateTime.UtcNow : request.PaymentDate,
@@ -63,7 +88,6 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
             _context.PaymentOrders.Add(paymentOrder);
             await _context.SaveChangesAsync();
 
-            // 2. Crea la factura (Bill) al contado y pagada vinculada a la Orden de Compra
             var bill = new Bill
             {
                 BillType = BillTypeEnum.CONTADO,
@@ -80,7 +104,6 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
             _context.Bills.Add(bill);
             await _context.SaveChangesAsync();
 
-            // 3. Vincula la orden de pago recién creada con la factura
             _context.PaymentOrderBills.Add(new PaymentOrderBill
             {
                 PaymentOrderId = paymentOrder.Id,
@@ -90,41 +113,54 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
 
             await _context.SaveChangesAsync();
 
-            // 4. Registra el movimiento bancario (Débito / Salida de dinero)
-            var movementResult = await _bankMovementService.CreateMovementAsync(new CreateBankMovementDto
+            if (request.CreditNotes != null && request.CreditNotes.Count > 0)
             {
-                AccountId = request.BankAccountId,
-                Amount = request.Amount,
-                Date = request.PaymentDate == default ? DateTime.UtcNow : request.PaymentDate,
-                ReferenceNumber = request.ReferenceNumber,
-                MovementType = BankMovementTypeEnum.Debit
-            });
+                foreach (var cn in request.CreditNotes)
+                {
+                    _context.PaymentOrderCreditNotes.Add(new PaymentOrderCreditNote
+                    {
+                        PaymentOrderId = paymentOrder.Id,
+                        CreditNoteId = cn.CreditNoteId,
+                        Amount = cn.Amount
+                    });
+                }
 
-            // Si falla el registro del movimiento en el banco, cancelamos todo
-            if (!movementResult.IsSuccess)
-            {
-                await transaction.RollbackAsync();
-                return Result<PaymentOrderWrapperDto>.Failure(movementResult.ErrorMessage!, movementResult.ErrorType);
+                await _context.SaveChangesAsync();
             }
 
-            // 5. Vincula el movimiento bancario con la orden de pago
-            _context.PaymentOrderMovements.Add(new PaymentOrderMovement
+            if (netAmount > 0)
             {
-                PaymentOrderId = paymentOrder.Id,
-                BankMovementId = movementResult.Value!.Id,
-                Amount = request.Amount
-            });
+                var movementResult = await _bankMovementService.CreateMovementAsync(new CreateBankMovementDto
+                {
+                    AccountId = request.BankAccountId,
+                    Amount = netAmount,
+                    Date = request.PaymentDate == default ? DateTime.UtcNow : request.PaymentDate,
+                    ReferenceNumber = request.ReferenceNumber,
+                    MovementType = BankMovementTypeEnum.Debit,
+                    CheckDetails = request.PaymentMethod == "Check" ? request.CheckDetails : null
+                });
 
-            // Guarda los cambios y confirma la transacción en la base de datos
+                if (!movementResult.IsSuccess)
+                {
+                    await transaction.RollbackAsync();
+                    return Result<PaymentOrderWrapperDto>.Failure(movementResult.ErrorMessage!, movementResult.ErrorType);
+                }
+
+                _context.PaymentOrderMovements.Add(new PaymentOrderMovement
+                {
+                    PaymentOrderId = paymentOrder.Id,
+                    BankMovementId = movementResult.Value!.Id,
+                    Amount = netAmount
+                });
+            }
+
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            // Retorna la orden de pago completa obteniéndola por ID
             return await GetByIdAsync(paymentOrder.Id);
         }
         catch (Exception ex)
         {
-            // Ante cualquier error inesperado, deshace todos los registros creados a medias
             await transaction.RollbackAsync();
             return Result<PaymentOrderWrapperDto>.Failure($"{PaymentOrderError.ProcessFailed}: {ex.Message}", ErrorType.Unexpected);
         }
@@ -148,22 +184,37 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
     }
 
     // Obtiene una lista paginada de las órdenes de pago
-    public async Task<Result<ListPaymentOrdersWrapperDto>> GetListAsync(PaginationRequestDto pagination)
+    public async Task<Result<ListPaymentOrdersWrapperDto>> GetListAsync(PaymentOrderQueryDto query)
     {
-        var query = LoadQuery();
-        var total = await query.CountAsync(); // Total general para paginación
+        var rQuery = LoadQuery();
 
-        // Trae las órdenes correspondientes a la página
-        var paymentOrders = await query
+        if (query.SupplierId.HasValue)
+            rQuery = rQuery.Where(po => po.SupplierId == query.SupplierId.Value);
+
+        if (query.State.HasValue)
+            rQuery = rQuery.Where(po => (int)po.State == query.State.Value);
+
+        if (query.PurchaseOrderForSupplierId.HasValue)
+            rQuery = rQuery.Where(po => po.PaymentOrderBills.Any(pob => pob.Bill.PurchaseOrderForSupplierId == query.PurchaseOrderForSupplierId.Value));
+
+        if (query.StartDate.HasValue)
+            rQuery = rQuery.Where(po => DateOnly.FromDateTime(po.Date) >= query.StartDate.Value);
+
+        if (query.EndDate.HasValue)
+            rQuery = rQuery.Where(po => DateOnly.FromDateTime(po.Date) <= query.EndDate.Value);
+
+        var total = await rQuery.CountAsync();
+
+        var paymentOrders = await rQuery
             .OrderByDescending(po => po.Id)
-            .Skip((pagination.Page - 1) * pagination.PageSize)
-            .Take(pagination.PageSize)
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
             .ToListAsync();
 
         return Result<ListPaymentOrdersWrapperDto>.Success(new ListPaymentOrdersWrapperDto
         {
             PaymentOrders = paymentOrders.Select(MapResponse).ToList(),
-            Pagination = new Pagination(pagination.Page, pagination.PageSize, total)
+            Pagination = new Pagination(query.Page, query.PageSize, total)
         });
     }
 
@@ -271,6 +322,7 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
                 .ThenInclude(pob => pob.Bill)
             .Include(po => po.PaymentOrderMovements)
                 .ThenInclude(pom => pom.BankMovement)
+                .ThenInclude(bm => bm.Check)
             .Include(po => po.PaymentOrderCreditNotes)
                 .ThenInclude(pocn => pocn.CreditNote);
     }
@@ -289,6 +341,17 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
             .Select(link => link.Bill.PurchaseOrderForSupplierId)
             .FirstOrDefault(id => id.HasValue) ?? 0;
 
+        var hasMovements = paymentOrder.PaymentOrderMovements.Any();
+        var hasCheck = hasMovements && paymentOrder.PaymentOrderMovements
+            .Any(m => m.BankMovement.Check != null);
+        var hasCreditNotes = paymentOrder.PaymentOrderCreditNotes.Any();
+
+        var paymentMethod = "Bank";
+        if (!hasMovements && hasCreditNotes)
+            paymentMethod = "CreditNote";
+        else if (hasCheck)
+            paymentMethod = "Check";
+
         return new PaymentOrderResponseDto
         {
             Id = paymentOrder.Id,
@@ -297,6 +360,7 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
             Date = paymentOrder.Date,
             Total = paymentOrder.Total,
             StateId = paymentOrder.State.ToString(),
+            PaymentMethod = paymentMethod,
 
             // Mapea la lista de facturas relacionadas
             Bills = paymentOrder.PaymentOrderBills.Select(link => new PaymentOrderBillDto

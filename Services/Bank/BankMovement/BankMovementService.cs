@@ -124,7 +124,9 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
         if (!accountValidation.IsSuccess)
             return Result<BankMovementDto>.Failure(accountValidation.ErrorMessage!, accountValidation.ErrorType);
 
-        var account = await _context.Accounts.FindAsync(request.AccountId);
+        var account = await _context.Accounts
+            .Include(a => a.Bank)
+            .FirstOrDefaultAsync(a => a.Id == request.AccountId);
         if (account == null)
             return Result<BankMovementDto>.Failure(AccountError.AccountNotFound, ErrorType.NotFound);
 
@@ -146,6 +148,19 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
         {
             account.CurrentBalance -= movement.Amount;
             account.AvailableBalance -= movement.Amount;
+        }
+
+        if (request.CheckDetails != null)
+        {
+            var newCheck = _mapper.Map<Check>(request.CheckDetails);
+            newCheck.AccountId = movement.AccountId;
+            newCheck.Amount = movement.Amount;
+            newCheck.Status = CheckStatusEnum.Pending;
+
+            if (movement.MovementType == BankMovementTypeEnum.Debit)
+                newCheck.IssuingBank = account.Bank?.Name ?? "";
+
+            movement.Check = newCheck;
         }
 
         _context.BankMovements.Add(movement);
