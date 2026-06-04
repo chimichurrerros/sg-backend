@@ -194,6 +194,10 @@ namespace BackEnd.Migrations
                         .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<BankMovementTypeEnum>("MovementType")
                         .HasColumnType("bank_movement_type_enum");
 

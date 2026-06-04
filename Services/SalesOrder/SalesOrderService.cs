@@ -235,6 +235,7 @@ public class SalesOrderService(
                         MovementType = (BankMovementTypeEnum)movementType,
                         Date = DateTime.UtcNow,
                         Amount = total,
+                        Description = $"Venta - Orden #{salesOrder.Id}",
                         ReferenceNumber = $"SALE-{salesOrder.Id}"
                     };
                     _context.BankMovements.Add(bankMovement);
