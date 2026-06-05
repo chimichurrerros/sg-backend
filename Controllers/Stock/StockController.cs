@@ -1,4 +1,3 @@
-using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Requests.Stock;
 using BackEnd.DTOs.Responses.Stock;
 using BackEnd.Extensions;
@@ -19,9 +18,9 @@ public class StockController(StockService stockService) : ControllerBase
 
     [HttpGet]
     [HasPermission("stock.view")]
-    public async Task<ActionResult<ListStocksWrapperDto>> GetListStocks([FromQuery] PaginationRequestDto pagination)
+    public async Task<ActionResult<ListStocksWrapperDto>> GetListStocks([FromQuery] StockQueryDto query)
     {
-        var result = await _stockService.GetListAsync(pagination);
+        var result = await _stockService.GetListAsync(query);
 
         if (result.IsSuccess)
             return Ok(result.Value);

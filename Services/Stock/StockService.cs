@@ -26,20 +26,38 @@ public class StockService(AppDbContext context, IMapper mapper)
         return Result<ListStocksWrapperDto>.Success(new ListStocksWrapperDto { Stocks = stocks });
     }
 
-    public async Task<Result<ListStocksWrapperDto>> GetListAsync(PaginationRequestDto pagination)
+    public async Task<Result<ListStocksWrapperDto>> GetListAsync(StockQueryDto query)
     {
-        var query = _context.Stocks.AsNoTracking();
+        var rQuery = _context.Stocks.AsNoTracking();
 
-        var totalElements = await query.CountAsync();
+        if (query.ProductId.HasValue)
+            rQuery = rQuery.Where(s => s.ProductId == query.ProductId.Value);
 
-        var stocks = await query
-            .OrderBy(v => v.Id)
-            .Skip((pagination.Page - 1) * pagination.PageSize)
-            .Take(pagination.PageSize)
+        if (query.BranchId.HasValue)
+            rQuery = rQuery.Where(s => s.BranchId == query.BranchId.Value);
+
+        if (query.MinQuantity.HasValue)
+            rQuery = rQuery.Where(s => s.Quantity >= query.MinQuantity.Value);
+
+        if (query.MaxQuantity.HasValue)
+            rQuery = rQuery.Where(s => s.Quantity <= query.MaxQuantity.Value);
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+            rQuery = rQuery.Where(s => s.Product.Name.Contains(query.Search));
+
+        if (query.BelowMinimum == true)
+            rQuery = rQuery.Where(s => s.Product.MinimumStock != null && s.Quantity < s.Product.MinimumStock);
+
+        var totalElements = await rQuery.CountAsync();
+
+        var stocks = await rQuery
+            .OrderBy(s => s.Id)
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
             .ProjectTo<StockResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
-        var _pagination = new Pagination(pagination.Page, pagination.PageSize, totalElements);
+        var _pagination = new Pagination(query.Page, query.PageSize, totalElements);
 
         return Result<ListStocksWrapperDto>.Success(new ListStocksWrapperDto { Stocks = stocks, Pagination = _pagination });
     }
