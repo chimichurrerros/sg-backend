@@ -15,4 +15,6 @@ public enum AccountantPlanMap
     Ventas = 11,
     ComprasAProveedores = 12,
     PagosDeSalarios = 13,
+    IVADebito = 14,
+    IVACredito = 15
 }
