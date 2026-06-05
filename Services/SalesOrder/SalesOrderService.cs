@@ -180,7 +180,7 @@ public class SalesOrderService(
                 Date = DateOnly.FromDateTime(request.Date ?? DateTime.UtcNow),
                 Total = total,
                 TaxTotal = taxTotal,
-                BillState = BillStateEnum.Pending,
+                BillState = BillStateEnum.Paid,
                 IsCredit = request.IsCredit ?? false
             });
 
