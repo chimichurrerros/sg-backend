@@ -210,13 +210,13 @@ public class ProductsService(AppDbContext context, IMapper mapper)
     }
 
     public async Task<Result<ListProductsStockWrapperDto>> GetByBranchIdAsync(int branchId)
-{
-    var products = await _context.Stocks
-        .AsNoTracking()
-        .Where(s => s.BranchId == branchId && s.Product.IsService != true)
-        .ProjectTo<ProductStockResponseDto>(_mapper.ConfigurationProvider)
-        .ToListAsync();
-    return Result<ListProductsStockWrapperDto>.Success(
-        new ListProductsStockWrapperDto { ProductsStock = products });
-}
+    {
+        var products = await _context.Stocks
+            .AsNoTracking()
+            .Where(s => s.BranchId == branchId)
+            .ProjectTo<ProductStockResponseDto>(_mapper.ConfigurationProvider)
+            .ToListAsync();
+        return Result<ListProductsStockWrapperDto>.Success(
+            new ListProductsStockWrapperDto { ProductsStock = products });
+    }
 }
