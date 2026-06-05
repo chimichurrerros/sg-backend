@@ -21,8 +21,6 @@ public partial class BankMovement
 
     public string? ReferenceNumber { get; set; }
 
-    public string? Description { get; set; }
-
     public virtual Account Account { get; set; } = null!;
 
     public virtual ICollection<PaymentOrderMovement> PaymentOrderMovements { get; set; } = new List<PaymentOrderMovement>();
