@@ -92,8 +92,8 @@ public class AccountingReportService(AppDbContext context)
             query = query.Where(e => e.Date <= endDate.Value);
         }
 
-        // Ejecutamos la consulta ordenando por fecha y luego por el identificador del asiento para mantener consistencia
-        var entries = await query.OrderBy(e => e.Date).ThenBy(e => e.Id).ToListAsync();
+        // Ejecutamos la consulta ordenando por el identificador del asiento y luego por fecha
+        var entries = await query.OrderBy(e => e.Id).ThenBy(e => e.Date).ToListAsync();
 
         var journalBook = new JournalBookDto();
 
@@ -206,10 +206,10 @@ public class AccountingReportService(AppDbContext context)
             var movements = new List<LedgerMovementDto>();
             decimal runningBalance = initialBalance;
 
-            // Ordenamos los movimientos del periodo cronológicamente por fecha del asiento y luego por ID del asiento
+            // Ordenamos los movimientos del periodo por ID del asiento y luego por fecha
             var orderedMovements = movementDetails
-                .OrderBy(d => d.Entry.Date)
-                .ThenBy(d => d.Entry.Id)
+                .OrderBy(d => d.Entry.Id)
+                .ThenBy(d => d.Entry.Date)
                 .ToList();
 
             // Procesamos cada movimiento actualizando el saldo acumulado (runningBalance) y mapeándolo al DTO

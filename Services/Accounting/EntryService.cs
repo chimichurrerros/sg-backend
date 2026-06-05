@@ -21,6 +21,8 @@ public class EntryService(AppDbContext context, IMapper mapper, AccountantProces
     {
         var entries = await _context.Entries
             .AsNoTracking()
+            .OrderBy(e => e.Id)
+            .ThenBy(e => e.Date)
             .ProjectTo<EntryResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
@@ -35,6 +37,7 @@ public class EntryService(AppDbContext context, IMapper mapper, AccountantProces
 
         var result = await query
             .OrderBy(v => v.Id)
+            .ThenBy(v => v.Date)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
             .ProjectTo<EntryResponseDto>(_mapper.ConfigurationProvider)
