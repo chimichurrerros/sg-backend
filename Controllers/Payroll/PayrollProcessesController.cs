@@ -247,6 +247,9 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
         if (result.ErrorType == ErrorType.NotFound)
             return this.HandleNotFoundProblem(result);
 
+        if (result.ErrorType == ErrorType.Validation)
+            return this.HandleValidationProblem(result);
+
         if (result.ErrorType == ErrorType.Conflict)
             return Conflict(result.ErrorMessage);
 
@@ -288,6 +291,9 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
 
         if (result.ErrorType == ErrorType.Conflict)
             return Conflict(result.ErrorMessage);
+
+        if (result.ErrorType == ErrorType.Failure)
+            return this.HandleBadRequestProblem(result);
 
         return StatusCode(500);
     }

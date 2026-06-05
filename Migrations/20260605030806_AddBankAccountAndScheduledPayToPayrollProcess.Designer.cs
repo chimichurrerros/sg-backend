@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260605124152_AddBillNumberSequences")]
-    partial class AddBillNumberSequences
+    [Migration("20260605030806_AddBankAccountAndScheduledPayToPayrollProcess")]
+    partial class AddBankAccountAndScheduledPayToPayrollProcess
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -320,32 +320,6 @@ namespace BackEnd.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("BillDetails");
-                });
-
-            modelBuilder.Entity("BackEnd.Models.BillNumberSequence", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("BranchId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("LastNumber")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.HasKey("Id")
-                        .HasName("BillNumberSequences_pkey");
-
-                    b.HasIndex("BranchId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_BillNumberSequences_BranchId");
-
-                    b.ToTable("BillNumberSequences");
                 });
 
             modelBuilder.Entity("BackEnd.Models.Branch", b =>
@@ -1147,6 +1121,9 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("BankAccountId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("ClosedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -1170,6 +1147,9 @@ namespace BackEnd.Migrations
                     b.Property<int>("ProcessTypeId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("ScheduledPayDateTime")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<DateOnly>("StartDate")
                         .HasColumnType("date");
 
@@ -1178,6 +1158,8 @@ namespace BackEnd.Migrations
 
                     b.HasKey("Id")
                         .HasName("PayrollProcesses_pkey");
+
+                    b.HasIndex("BankAccountId");
 
                     b.ToTable("PayrollProcesses");
                 });
@@ -1473,9 +1455,6 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("BranchId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("Date")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp without time zone")
@@ -1498,8 +1477,6 @@ namespace BackEnd.Migrations
 
                     b.HasKey("Id")
                         .HasName("PurchaseOrders_pkey");
-
-                    b.HasIndex("BranchId");
 
                     b.HasIndex("PurchaseRequestId");
 
@@ -1706,9 +1683,6 @@ namespace BackEnd.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("BranchId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("Date")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp without time zone")
@@ -1729,8 +1703,6 @@ namespace BackEnd.Migrations
 
                     b.HasKey("Id")
                         .HasName("PurchaseRequests_pkey");
-
-                    b.HasIndex("BranchId");
 
                     b.HasIndex("UserId");
 
@@ -2496,18 +2468,6 @@ namespace BackEnd.Migrations
                     b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("BackEnd.Models.BillNumberSequence", b =>
-                {
-                    b.HasOne("BackEnd.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("BillNumberSequences_BranchId_fkey");
-
-                    b.Navigation("Branch");
-                });
-
             modelBuilder.Entity("BackEnd.Models.BranchDepartment", b =>
                 {
                     b.HasOne("BackEnd.Models.Employee", "Boss")
@@ -2827,6 +2787,17 @@ namespace BackEnd.Migrations
                     b.Navigation("PaymentOrder");
                 });
 
+            modelBuilder.Entity("BackEnd.Models.PayrollProcess", b =>
+                {
+                    b.HasOne("BackEnd.Models.Account", "BankAccount")
+                        .WithMany("PayrollProcesses")
+                        .HasForeignKey("BankAccountId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("PayrollProcesses_BankAccountId_fkey");
+
+                    b.Navigation("BankAccount");
+                });
+
             modelBuilder.Entity("BackEnd.Models.PayrollProcessDetail", b =>
                 {
                     b.HasOne("BackEnd.Models.Employee", "Employee")
@@ -2931,19 +2902,11 @@ namespace BackEnd.Migrations
 
             modelBuilder.Entity("BackEnd.Models.PurchaseOrder", b =>
                 {
-                    b.HasOne("BackEnd.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .IsRequired()
-                        .HasConstraintName("PurchaseOrders_BranchId_fkey");
-
                     b.HasOne("BackEnd.Models.PurchaseRequest", "PurchaseRequest")
                         .WithMany()
                         .HasForeignKey("PurchaseRequestId")
                         .IsRequired()
                         .HasConstraintName("PurchaseOrders_PurchaseRequestId_fkey");
-
-                    b.Navigation("Branch");
 
                     b.Navigation("PurchaseRequest");
                 });
@@ -3055,19 +3018,11 @@ namespace BackEnd.Migrations
 
             modelBuilder.Entity("BackEnd.Models.PurchaseRequest", b =>
                 {
-                    b.HasOne("BackEnd.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .IsRequired()
-                        .HasConstraintName("PurchaseRequests_BranchId_fkey");
-
                     b.HasOne("BackEnd.Models.User", "User")
                         .WithMany("PurchaseRequests")
                         .HasForeignKey("UserId")
                         .IsRequired()
                         .HasConstraintName("PurchaseRequests_UserId_fkey");
-
-                    b.Navigation("Branch");
 
                     b.Navigation("User");
                 });
@@ -3366,6 +3321,8 @@ namespace BackEnd.Migrations
             modelBuilder.Entity("BackEnd.Models.Account", b =>
                 {
                     b.Navigation("BankMovements");
+
+                    b.Navigation("PayrollProcesses");
                 });
 
             modelBuilder.Entity("BackEnd.Models.AccountPlan", b =>
