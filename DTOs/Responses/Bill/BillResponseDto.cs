@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using BackEnd.DTOs.Responses.BillDetail;
 using BackEnd.Models;
 using BackEnd.Utils;
 
@@ -19,6 +21,7 @@ public class BillResponseDto
     public decimal Total { get; set; }
     public decimal TaxTotal { get; set; }
     public bool IsCredit { get; set; }
+    public List<BillDetailResponseDto> BillDetails { get; set; } = [];
 }
 
 public class BillWrapperDto

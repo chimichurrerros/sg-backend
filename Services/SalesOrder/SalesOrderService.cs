@@ -312,6 +312,7 @@ public class SalesOrderService(
             .Include(so => so.Customer)
             .Include(so => so.User)
             .Include(so => so.Bills)
+                .ThenInclude(b => b.BillDetails)
             .Include(so => so.SalesOrderDetails)
                 .ThenInclude(sod => sod.Product)
             .FirstOrDefaultAsync(so => so.Id == id);

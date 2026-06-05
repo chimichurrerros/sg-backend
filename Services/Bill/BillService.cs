@@ -104,6 +104,7 @@ public class BillService(AppDbContext context, IMapper mapper, EntryService entr
             .AsNoTracking()
             .Include(b => b.SalesOrder)
                 .ThenInclude(so => so!.SalesOrderDetails)
+            .Include(b => b.BillDetails)
             .FirstOrDefaultAsync(b => b.Id == id);
 
         if (bill == null)
