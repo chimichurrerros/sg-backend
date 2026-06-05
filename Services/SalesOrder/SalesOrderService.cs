@@ -267,7 +267,12 @@ public class SalesOrderService(
 
     public async Task<Result<ListSalesOrdersWrapperDto>> GetListAsync(PaginationRequestDto pagination)
     {
-        var query = _context.SalesOrders.AsNoTracking().Include(so => so.SalesOrderDetails);
+        var query = _context.SalesOrders.AsNoTracking()
+            .Include(so => so.Customer)
+            .Include(so => so.User)
+            .Include(so => so.Bills)
+            .Include(so => so.SalesOrderDetails)
+                .ThenInclude(sod => sod.Product);
         var totalElements = await query.CountAsync();
 
         var salesOrders = await query
