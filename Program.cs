@@ -120,7 +120,7 @@ builder.Services.AddDbContextPool<AppDbContext>(options =>
         npgsqlOptions.MapEnum<CheckTypeEnum>("check_type_enum");
         npgsqlOptions.MapEnum<SalesOrderStateEnum>("sales_order_state_enum");
         npgsqlOptions.MapEnum<PurchaseRequestStateEnum>("purchase_request_state_enum");
-        npgsqlOptions.MapEnum<AccountTypeEnum>("account_type_enum");
+        npgsqlOptions.MapEnum<AccountTypeEnum>("account_type_enum", "public");
         npgsqlOptions.MapEnum<ModuleEnum>("module_enum");
     }));
 
