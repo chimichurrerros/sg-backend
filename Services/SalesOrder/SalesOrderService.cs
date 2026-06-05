@@ -258,11 +258,22 @@ public class SalesOrderService(
     {
         var salesOrders = await _context.SalesOrders
             .AsNoTracking()
-            .ProjectTo<SalesOrderResponseDto>(_mapper.ConfigurationProvider)
+            .Include(so => so.Customer)
+            .Include(so => so.User)
+            .Include(so => so.Bills)
+            .Include(so => so.SalesOrderDetails)
+                .ThenInclude(sod => sod.Product)
             .OrderByDescending(so => so.Date)
             .ToListAsync();
 
-        return Result<ListSalesOrdersWrapperDto>.Success(new ListSalesOrdersWrapperDto { SalesOrders = salesOrders });
+        for (int i = 0; i < salesOrders.Count; i++)
+        {
+            salesOrders[i].Total = salesOrders[i].SalesOrderDetails.Sum(sod => sod.QuantityInvoiced * sod.Price);
+        }
+
+        var salesOrdersDto = salesOrders.Select(s => _mapper.Map<SalesOrderResponseDto>(s)).ToList();
+
+        return Result<ListSalesOrdersWrapperDto>.Success(new ListSalesOrdersWrapperDto { SalesOrders = salesOrdersDto });
     }
 
     public async Task<Result<ListSalesOrdersWrapperDto>> GetListAsync(PaginationRequestDto pagination)
@@ -298,14 +309,21 @@ public class SalesOrderService(
     {
         var salesOrder = await _context.SalesOrders
             .AsNoTracking()
-            .Where(so => so.Id == id)
-            .ProjectTo<SalesOrderResponseDto>(_mapper.ConfigurationProvider)
-            .FirstOrDefaultAsync();
+            .Include(so => so.Customer)
+            .Include(so => so.User)
+            .Include(so => so.Bills)
+            .Include(so => so.SalesOrderDetails)
+                .ThenInclude(sod => sod.Product)
+            .FirstOrDefaultAsync(so => so.Id == id);
 
         if (salesOrder == null)
             return Result<SalesOrderWrapperDto>.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
-        return Result<SalesOrderWrapperDto>.Success(new SalesOrderWrapperDto { SalesOrder = salesOrder });
+        salesOrder.Total = salesOrder.SalesOrderDetails.Sum(sod => sod.QuantityInvoiced * sod.Price);
+
+        var salesOrderDto = _mapper.Map<SalesOrderResponseDto>(salesOrder);
+
+        return Result<SalesOrderWrapperDto>.Success(new SalesOrderWrapperDto { SalesOrder = salesOrderDto });
     }
 
     private static Result<SalesOrderWrapperDto> ToSalesOrderFailure<T>(Result<T> serviceResult, string fallbackMessage)
