@@ -129,13 +129,12 @@ public class ServicesService(AppDbContext context, IMapper mapper)
 
     public async Task<Result> DeleteAsync(int id)
     {
-        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id && p.IsService == true);
+        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id || p.IsService == true);
 
-        if (product == null || product.IsDeleted)
+        if (product == null)
             return Result.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
-        product.IsDeleted = true;
-        _context.Products.Update(product);
+        _context.Products.Remove(product);
         await _context.SaveChangesAsync();
 
         return Result.Success();

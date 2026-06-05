@@ -11,7 +11,6 @@ public class ServiceResponseDto
     public string Barcode { get; set; } = null!;
     public decimal Price { get; set; }
     public decimal Cost { get; set; }
-    public bool? IsDeleted { get; set; }
 }
 
 public class ServiceWrapperDto
