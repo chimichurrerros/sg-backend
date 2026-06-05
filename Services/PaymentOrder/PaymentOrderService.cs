@@ -211,7 +211,8 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
-            return Result<PaymentOrderWrapperDto>.Failure($"{PaymentOrderError.ProcessFailed}: {ex.Message}", ErrorType.Unexpected);
+            var message = ex.InnerException?.Message ?? ex.Message;
+            return Result<PaymentOrderWrapperDto>.Failure($"{PaymentOrderError.ProcessFailed}: {message}", ErrorType.Unexpected);
         }
     }
 
@@ -340,7 +341,8 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
-            return Result<PaymentOrderWrapperDto>.Failure($"{PaymentOrderError.ProcessFailed}: {ex.Message}", ErrorType.Unexpected);
+            var message = ex.InnerException?.Message ?? ex.Message;
+            return Result<PaymentOrderWrapperDto>.Failure($"{PaymentOrderError.ProcessFailed}: {message}", ErrorType.Unexpected);
         }
     }
 
