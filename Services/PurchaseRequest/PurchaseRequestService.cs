@@ -25,6 +25,13 @@ public class PurchaseRequestService(
         if (request.SupplierIds == null || request.SupplierIds.Count == 0)
             return Result<PurchaseRequestWrapperDto>.Failure(RequestForQuotationError.SuppliersRequired, ErrorType.Validation);
 
+        if (request.BranchId <= 0)
+            return Result<PurchaseRequestWrapperDto>.Failure(PurchaseRequestError.BranchRequired, ErrorType.Validation);
+
+        var branchExists = await _context.Branches.AnyAsync(b => b.Id == request.BranchId);
+        if (!branchExists)
+            return Result<PurchaseRequestWrapperDto>.Failure(PurchaseRequestError.BranchNotFound, ErrorType.NotFound);
+
         // if (request.SupplierIds.Count < 3)
         //     return Result<PurchaseRequestWrapperDto>.Failure(RequestForQuotationError.InsufficientSuppliers, ErrorType.Validation);
 
@@ -88,6 +95,7 @@ public class PurchaseRequestService(
 
             var purchaseRequest = new PurchaseRequest
             {
+                BranchId = request.BranchId,
                 UserId = userId,
                 Date = DateTime.UtcNow,
                 PurchaseRequestState = PurchaseRequestStateEnum.Pending,
@@ -182,6 +190,9 @@ public class PurchaseRequestService(
 
         if (query.State.HasValue)
             rQuery = rQuery.Where(pr => (int)pr.PurchaseRequestState == query.State.Value);
+
+        if (query.BranchId.HasValue)
+            rQuery = rQuery.Where(pr => pr.BranchId == query.BranchId.Value);
 
         var totalElements = await rQuery.CountAsync();
 

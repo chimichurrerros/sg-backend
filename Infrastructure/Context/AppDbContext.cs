@@ -1017,6 +1017,11 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.SupplierIds).HasColumnType("integer[]");
 
+            entity.HasOne(d => d.Branch).WithMany()
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseRequests_BranchId_fkey");
+
             entity.HasOne(d => d.User).WithMany(p => p.PurchaseRequests)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)

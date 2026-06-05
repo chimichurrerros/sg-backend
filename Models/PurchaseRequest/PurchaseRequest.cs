@@ -7,6 +7,8 @@ public partial class PurchaseRequest
 {
     public int Id { get; set; }
 
+    public int BranchId { get; set; }
+
     public int UserId { get; set; }
 
     public DateTime Date { get; set; }
@@ -22,6 +24,8 @@ public partial class PurchaseRequest
     public virtual ICollection<SupplierQuote> SupplierQuotes { get; set; } = new List<SupplierQuote>();
 
     public virtual ICollection<RequestForQuotation> RequestForQuotations { get; set; } = new List<RequestForQuotation>();
+
+    public virtual Branch Branch { get; set; } = null!;
 
     public virtual User User { get; set; } = null!;
 }

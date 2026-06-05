@@ -9,6 +9,8 @@ namespace BackEnd.DTOs.Responses.PurchaseRequest;
 public class PurchaseRequestResponseDto
 {
     public int Id { get; set; }
+    public int BranchId { get; set; }
+    public string BranchName { get; set; } = string.Empty;
     public int UserId { get; set; }
     public string UserName { get; set; } = string.Empty;
     public DateTime Date { get; set; }

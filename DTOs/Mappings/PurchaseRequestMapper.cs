@@ -9,6 +9,7 @@ public class PurchaseRequestMapper : Profile
     public PurchaseRequestMapper()
     {
         CreateMap<PurchaseRequest, PurchaseRequestResponseDto>()
+            .ForMember(dest => dest.BranchName, opt => opt.MapFrom(src => src.Branch.Name))
             .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => $"{src.User.Name} {src.User.LastName}"))
             .ForMember(dest => dest.SupplierIds, opt => opt.MapFrom(src => src.SupplierIds.ToList()))
             .ForMember(dest => dest.Details, opt => opt.MapFrom(src => src.PurchaseRequestDetails));
