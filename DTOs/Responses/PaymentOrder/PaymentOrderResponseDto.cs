@@ -38,6 +38,7 @@ public class PaymentOrderResponseDto
     public DateTime Date { get; set; }
     public decimal Total { get; set; }
     public string StateId { get; set; } = string.Empty;
+    public string PaymentMethod { get; set; } = string.Empty;
     public List<PaymentOrderBillDto> Bills { get; set; } = [];
     public List<PaymentOrderMovementDto> Movements { get; set; } = [];
     public List<PaymentOrderCreditNoteDto> CreditNotes { get; set; } = [];

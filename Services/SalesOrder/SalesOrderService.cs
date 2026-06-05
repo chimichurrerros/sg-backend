@@ -146,7 +146,7 @@ public class SalesOrderService(
                 var lineTotal = detail.Quantity * Price;
                 var lineTax = lineTotal * (TaxRate / 100m);
 
-                total += lineTotal + lineTax;
+                total += lineTotal;
                 taxTotal += lineTax;
 
                 var salesOrderDetail = new SalesOrderDetail
@@ -267,19 +267,26 @@ public class SalesOrderService(
 
     public async Task<Result<ListSalesOrdersWrapperDto>> GetListAsync(PaginationRequestDto pagination)
     {
-        var query = _context.SalesOrders.AsNoTracking();
+        var query = _context.SalesOrders.AsNoTracking().Include(so => so.SalesOrderDetails);
         var totalElements = await query.CountAsync();
 
         var salesOrders = await query
             .OrderByDescending(so => so.Date)
             .Skip((pagination.Page - 1) * pagination.PageSize)
             .Take(pagination.PageSize)
-            .ProjectTo<SalesOrderResponseDto>(_mapper.ConfigurationProvider)
+            //.ProjectTo<SalesOrderResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
+
+        for (int i = 0; i < salesOrders.Count; i++)
+        {
+            salesOrders[i].Total = salesOrders[i].SalesOrderDetails.Sum(sod => sod.QuantityInvoiced * sod.Price);
+        }
+
+        var salesOrdersDto = salesOrders.Select(s => _mapper.Map<SalesOrderResponseDto>(s)).ToList();
 
         var _pagination = new Pagination(pagination.Page, pagination.PageSize, totalElements);
 
-        return Result<ListSalesOrdersWrapperDto>.Success(new ListSalesOrdersWrapperDto { SalesOrders = salesOrders, Pagination = _pagination });
+        return Result<ListSalesOrdersWrapperDto>.Success(new ListSalesOrdersWrapperDto { SalesOrders = salesOrdersDto, Pagination = _pagination });
     }
 
     public async Task<Result<SalesOrderWrapperDto>> GetByIdAsync(int id)

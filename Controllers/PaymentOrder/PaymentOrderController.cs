@@ -1,4 +1,3 @@
-using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Requests.PaymentOrder;
 using BackEnd.DTOs.Responses.PaymentOrder;
 using BackEnd.DTOs.Responses.PurchaseReturn;
@@ -54,9 +53,9 @@ public class PaymentOrderController(PaymentOrderService paymentOrderService, Bac
 
     [HttpGet]
     [HasPermission("paymentOrders.view")]
-    public async Task<ActionResult<ListPaymentOrdersWrapperDto>> GetList([FromQuery] PaginationRequestDto pagination)
+    public async Task<ActionResult<ListPaymentOrdersWrapperDto>> GetList([FromQuery] PaymentOrderQueryDto query)
     {
-        var result = await _paymentOrderService.GetListAsync(pagination);
+        var result = await _paymentOrderService.GetListAsync(query);
 
         if (result.IsSuccess)
             return Ok(result.Value);

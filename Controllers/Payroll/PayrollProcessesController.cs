@@ -1,3 +1,4 @@
+using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Requests.PayrollProcess;
 using BackEnd.DTOs.Responses.PayrollProcess;
 using BackEnd.Extensions;
@@ -185,9 +186,9 @@ public class PayrollProcessesController(PayrollProcessingService payrollProcessi
 
     [HttpGet("{id}/detail-summaries")]
     [HasPermission("payrollProcesses.view")]
-    public async Task<ActionResult<List<PayrollDetailSummaryResponseDto>>> GetDetailSummaries(int id)
+    public async Task<ActionResult<ListPayrollDetailSummariesWrapperDto>> GetDetailSummaries(int id, [FromQuery] PaginationRequestDto pagination)
     {
-        var result = await _payrollProcessingService.GetDetailSummariesAsync(id);
+        var result = await _payrollProcessingService.GetDetailSummariesAsync(id, pagination);
 
         if (result.IsSuccess)
             return Ok(result.Value);

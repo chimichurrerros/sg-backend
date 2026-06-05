@@ -20,6 +20,8 @@ public class CheckService(AppDbContext context, IMapper mapper)
     {
         var checks = await _context.Checks
             .AsNoTracking()
+            .OrderByDescending(c => c.EmisionDate)
+            .ThenByDescending(c => c.Id)
             .ProjectTo<CheckResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
@@ -33,7 +35,8 @@ public class CheckService(AppDbContext context, IMapper mapper)
         var totalElements = await query.CountAsync();
 
         var checks = await query
-            .OrderBy(v => v.Id)
+            .OrderByDescending(v => v.EmisionDate)
+            .ThenByDescending(v => v.Id)
             .Skip((pagination.Page - 1) * pagination.PageSize)
             .Take(pagination.PageSize)
             .ProjectTo<CheckResponseDto>(_mapper.ConfigurationProvider)

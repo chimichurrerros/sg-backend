@@ -12,7 +12,8 @@ public class RequestForQuotationMapper : AutoMapper.Profile
             .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.Name : null))
             .ForMember(dest => dest.QuantityRequested, opt => opt.MapFrom(src => src.QuantityRequested))
             .ForMember(dest => dest.CategoryId, opt => opt.MapFrom(src => src.Product != null ? src.Product.ProductCategoryId : null))
-            .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Product != null && src.Product.ProductCategory != null ? src.Product.ProductCategory.Name : null));
+            .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Product != null && src.Product.ProductCategory != null ? src.Product.ProductCategory.Name : null))
+            .ForMember(dest => dest.ProductCost, opt => opt.MapFrom(src => src.Product != null ? src.Product.Cost : 0));
 
         CreateMap<RequestForQuotation, RequestForQuotationResponseDto>()
             .ForMember(dest => dest.SupplierName,

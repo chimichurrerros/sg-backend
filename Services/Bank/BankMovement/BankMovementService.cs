@@ -23,6 +23,7 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
         var movements = await _context.BankMovements
             .AsNoTracking()
             .OrderByDescending(bm => bm.Date)
+            .ThenByDescending(bm => bm.Id)
             .ProjectTo<BankMovementResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
@@ -37,6 +38,7 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
 
         var movements = await query
             .OrderByDescending(bm => bm.Date)
+            .ThenByDescending(bm => bm.Id)
             .Skip((pagination.Page - 1) * pagination.PageSize)
             .Take(pagination.PageSize)
             .ProjectTo<BankMovementResponseDto>(_mapper.ConfigurationProvider)
@@ -124,7 +126,9 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
         if (!accountValidation.IsSuccess)
             return Result<BankMovementDto>.Failure(accountValidation.ErrorMessage!, accountValidation.ErrorType);
 
-        var account = await _context.Accounts.FindAsync(request.AccountId);
+        var account = await _context.Accounts
+            .Include(a => a.Bank)
+            .FirstOrDefaultAsync(a => a.Id == request.AccountId);
         if (account == null)
             return Result<BankMovementDto>.Failure(AccountError.AccountNotFound, ErrorType.NotFound);
 
@@ -135,7 +139,6 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
             Date = request.Date == default ? DateTime.UtcNow : request.Date,
             Description = request.Description,
             ReferenceNumber = request.ReferenceNumber,
-            Description = request.Description,
             MovementType = request.MovementType
         };
 
@@ -150,6 +153,19 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
             account.AvailableBalance -= movement.Amount;
         }
 
+        if (request.CheckDetails != null)
+        {
+            var newCheck = _mapper.Map<Check>(request.CheckDetails);
+            newCheck.AccountId = movement.AccountId;
+            newCheck.Amount = movement.Amount;
+            newCheck.Status = CheckStatusEnum.Pending;
+
+            if (movement.MovementType == BankMovementTypeEnum.Debit)
+                newCheck.IssuingBank = account.Bank?.Name ?? "";
+
+            movement.Check = newCheck;
+        }
+
         _context.BankMovements.Add(movement);
         await _context.SaveChangesAsync();
 
@@ -161,7 +177,6 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
             Date = movement.Date,
             Description = movement.Description,
             ReferenceNumber = movement.ReferenceNumber,
-            Description = movement.Description,
             MovementType = movement.MovementType
         });
     }
