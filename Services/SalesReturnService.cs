@@ -9,14 +9,17 @@ using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using BackEnd.Utils;
 using Microsoft.EntityFrameworkCore;
+using BackEnd.Services.Accounting;
+using BackEnd.DTOs.Requests.Entry;
 
 namespace BackEnd.Services;
 
-public class SalesReturnService(AppDbContext context, StockService stockService, IMapper mapper)
+public class SalesReturnService(AppDbContext context, StockService stockService, IMapper mapper, EntryService entryService)
 {
     private readonly AppDbContext _context = context;
     private readonly StockService _stockService = stockService;
     private readonly IMapper _mapper = mapper;
+    private readonly EntryService _entryService = entryService;
 
     public async Task<Result<SalesReturnWrapperDto>> CreateAsync(CreateSalesReturnDto request)
     {
@@ -121,6 +124,44 @@ public class SalesReturnService(AppDbContext context, StockService stockService,
 
             _context.SalesReturns.Add(salesReturn);
             await _context.SaveChangesAsync();
+
+            if (creditNote.Total > 0)
+            {
+
+                // Credit Account: Cajas (if Contado) or Cuentas (if Credito)
+                var creditAccountMap = bill.BillType == BillTypeEnum.CONTADO 
+                    ? AccountantPlanMap.Cajas 
+                    : AccountantPlanMap.Cuentas;
+
+                var entryDetails = new List<CreateEntryDetailDto>
+                {
+                    new CreateEntryDetailDto
+                    {
+                        AccountPlanId = (int)AccountantPlanMap.Ventas,
+                        Debit = creditNote.Total,
+                        Credit = 0m
+                    },
+                    new CreateEntryDetailDto
+                    {
+                        AccountPlanId = (int)creditAccountMap,
+                        Debit = 0m,
+                        Credit = creditNote.Total
+                    }
+                };
+
+                var entryResult = await _entryService.CreateAutomaticEntryAsync(
+                    creditNote.Date,
+                    $"Nota de Crédito Emitida Nro. {creditNote.Number ?? creditNote.Id.ToString()}",
+                    ModuleEnum.Sales,
+                    entryDetails
+                );
+
+                if (!entryResult.IsSuccess)
+                {
+                    await transaction.RollbackAsync();
+                    return Result<SalesReturnWrapperDto>.Failure($"Error al generar asiento automático: {entryResult.ErrorMessage}", entryResult.ErrorType);
+                }
+            }
 
             await transaction.CommitAsync();
 
