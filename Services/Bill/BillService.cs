@@ -148,12 +148,13 @@ public class BillService(AppDbContext context, IMapper mapper, EntryService entr
                 ? AccountantPlanMap.Cajas
                 : AccountantPlanMap.Cuentas;
 
+            decimal tenPolcientoTotal = (bill.Total * 10) / 100;
             var entryDetails = new List<CreateEntryDetailDto>
             {
                 new CreateEntryDetailDto
                 {
                     AccountPlanId = (int)debitAccountMap,
-                    Debit = bill.Total,
+                    Debit = bill.Total - tenPolcientoTotal,
                     Credit = 0m
                 },
                 new CreateEntryDetailDto
@@ -161,6 +162,12 @@ public class BillService(AppDbContext context, IMapper mapper, EntryService entr
                     AccountPlanId = (int)AccountantPlanMap.Ventas,
                     Debit = 0m,
                     Credit = bill.Total
+                },
+                new CreateEntryDetailDto
+                {
+                    AccountPlanId = (int)AccountantPlanMap.IVADebito,
+                    Debit = tenPolcientoTotal,
+                    Credit = 0m
                 }
             };
 
