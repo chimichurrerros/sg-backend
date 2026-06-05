@@ -106,11 +106,22 @@ public class PurchaseReceiptService(
             await _context.SaveChangesAsync();
 
             // 3. Crear Factura (Bill) de tipo Compra
+            var companyCustomer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.Ruc == "80085481-0");
+
+            if (companyCustomer == null)
+            {
+                await transaction.RollbackAsync();
+                return Result<BillWrapperDto>.Failure(
+                    "Cliente BIGOTIRES S.R.L (RUC 80085481-0) no encontrado. Verifique que exista en la base de datos.",
+                    ErrorType.NotFound);
+            }
+
             var bill = new Bill
             {
                 BillType = BillTypeEnum.CONTADO,
                 BillState = BillStateEnum.Pending,
-                CustomerId = null,
+                CustomerId = companyCustomer.Id,
                 PurchaseOrderForSupplierId = purchaseOrderForSupplier.Id,
                 Number = request.BillNumber,
                 Stamp = request.Stamp,
