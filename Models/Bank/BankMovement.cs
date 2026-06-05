@@ -17,7 +17,11 @@ public partial class BankMovement
 
     public decimal Amount { get; set; }
 
+    public string? Description { get; set; }
+
     public string? ReferenceNumber { get; set; }
+
+    public string? Description { get; set; }
 
     public virtual Account Account { get; set; } = null!;
 
