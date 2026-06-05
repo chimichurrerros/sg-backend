@@ -666,7 +666,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
 
             purchaseReturn.CreditNoteId = creditNote.Id;
 
-            if (creditNote.Total > 0)
+            if (true)
             {
                 // Credit Account: Cajas (if Contado) or Cuentas (if Credito)
                 var creditAccountMap = bill.BillType == BillTypeEnum.CONTADO 
@@ -678,10 +678,19 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
                 {
                     new CreateEntryDetailDto
                     {
-                        AccountPlanId = (int)AccountantPlanMap.Ventas,
+                        AccountPlanId = (int)AccountantPlanMap.ComprasAProveedores,
                         Debit = creditNote.Total - tenPolcientoTotal,
                         Credit = 0m
                     },
+
+
+                    new CreateEntryDetailDto
+                    {
+                        AccountPlanId = (int)AccountantPlanMap.IVACredito,
+                        Debit = tenPolcientoTotal,
+                        Credit = 0m
+                    },
+
                     new CreateEntryDetailDto
                     {
                         AccountPlanId = (int)creditAccountMap,
@@ -689,18 +698,12 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
                         Credit = creditNote.Total
                     },
 
-                    new CreateEntryDetailDto
-                    {
-                        AccountPlanId = (int)AccountantPlanMap.IVADebito,
-                        Debit = tenPolcientoTotal,
-                        Credit = 0m
-                    }
                 };
 
                 var entryResult = await _entryService.CreateAutomaticEntryAsync(
                     creditNote.Date,
-                    $"Nota de Crédito Emitida Nro. {creditNote.Number ?? creditNote.Id.ToString()}",
-                    ModuleEnum.Sales,
+                    $"Nota de Crédito Recibida Nro. {creditNote.Number ?? creditNote.Id.ToString()}",
+                    ModuleEnum.Purchases,
                     entryDetails
                 );
 
