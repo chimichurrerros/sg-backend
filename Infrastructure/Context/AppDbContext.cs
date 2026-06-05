@@ -186,7 +186,7 @@ public partial class AppDbContext : DbContext
         modelBuilder.HasPostgresEnum<BillStateEnum>();
         modelBuilder.HasPostgresEnum<SalesOrderStateEnum>();
         modelBuilder.HasPostgresEnum<BankMovementTypeEnum>();
-        modelBuilder.HasPostgresEnum<AccountTypeEnum>();
+        modelBuilder.HasPostgresEnum<AccountTypeEnum>("public", "account_type_enum");
         modelBuilder.HasPostgresEnum<PurchaseRequestStateEnum>();
         modelBuilder.HasPostgresEnum<ModuleEnum>();
 
@@ -196,7 +196,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("Accounts_pkey");
 
-            entity.Property(e => e.AccountType).HasColumnType("account_type_enum");
+            entity.Property(e => e.AccountType).HasColumnType("public.account_type_enum");
             entity.Property(e => e.AvailableBalance).HasPrecision(15, 2);
             entity.Property(e => e.CurrentBalance).HasPrecision(15, 2);
             entity.Property(e => e.Name).HasMaxLength(100);
