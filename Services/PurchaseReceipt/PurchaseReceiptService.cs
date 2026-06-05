@@ -2,6 +2,7 @@ using BackEnd.Constants.Errors;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using BackEnd.DTOs.Mappings;
+using BackEnd.DTOs.Requests.Entry;
 using BackEnd.DTOs.Requests.Pagination;
 using BackEnd.DTOs.Requests.PurchaseReceipt;
 using BackEnd.DTOs.Responses.Bill;
@@ -18,12 +19,14 @@ public class PurchaseReceiptService(
     StockService stockService,
     BillService billService,
     PaymentOrderService paymentOrderService,
+    EntryService entryService,
     IMapper mapper)
 {
     private readonly AppDbContext _context = context;
     private readonly StockService _stockService = stockService;
     private readonly BillService _billService = billService;
     private readonly PaymentOrderService _paymentOrderService = paymentOrderService;
+    private readonly EntryService _entryService = entryService;
     private readonly IMapper _mapper = mapper;
 
     public async Task<Result<BillWrapperDto>> ReceivePurchaseOrderAsync(CreatePurchaseReceiptDto request)
@@ -168,6 +171,59 @@ public class PurchaseReceiptService(
             }
 
             await _context.SaveChangesAsync();
+
+            // 5. Generar asiento contable automático de compra
+            var entryDate = request.Date.ToDateTime(TimeOnly.MinValue);
+            var activeProcess = await _context.AccountantProcesses
+                .FirstOrDefaultAsync(ap => !ap.IsClosed && ap.StartDate <= DateOnly.FromDateTime(entryDate) && ap.EndDate >= DateOnly.FromDateTime(entryDate));
+
+            if (activeProcess == null)
+            {
+                await transaction.RollbackAsync();
+                return Result<BillWrapperDto>.Failure($"No existe un período contable activo para la fecha {request.Date}.", ErrorType.Validation);
+            }
+
+            var accountCompras = await _context.AccountPlans
+                .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Name.Contains("Compras"));
+
+            var accountIva = await _context.AccountPlans
+                .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && (a.Name.Contains("IVA") || a.Name.Contains("Credito Fiscal")));
+
+            var accountCaja = await _context.AccountPlans
+                .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && (a.Name.Contains("Caja") || a.Name.Contains("Banco")));
+
+            if (accountCompras == null)
+            {
+                await transaction.RollbackAsync();
+                return Result<BillWrapperDto>.Failure("No se encontró la cuenta contable 'Compras'.", ErrorType.Validation);
+            }
+
+            if (accountCaja == null)
+            {
+                await transaction.RollbackAsync();
+                return Result<BillWrapperDto>.Failure("No se encontró la cuenta contable 'Caja/Banco'.", ErrorType.Validation);
+            }
+
+            var entryDetails = new List<CreateEntryDetailDto>
+            {
+                new() { AccountPlanId = accountCompras.Id, Debit = total - taxTotal, Credit = 0m },
+                new() { AccountPlanId = accountIva?.Id ?? accountCompras.Id, Debit = taxTotal, Credit = 0m },
+                new() { AccountPlanId = accountCaja.Id, Debit = 0m, Credit = total }
+            };
+
+            var entryResult = await _entryService.CreateAutomaticEntryAsync(
+                entryDate,
+                $"Compra: {purchaseOrderForSupplier.Supplier.BusinessName} - Factura N° {request.BillNumber}",
+                ModuleEnum.Purchases,
+                entryDetails
+            );
+
+            if (!entryResult.IsSuccess)
+            {
+                await transaction.RollbackAsync();
+                return Result<BillWrapperDto>.Failure(entryResult.ErrorMessage!, ErrorType.Failure);
+            }
+
             await transaction.CommitAsync();
 
             return await _billService.GetByIdAsync(bill.Id);
