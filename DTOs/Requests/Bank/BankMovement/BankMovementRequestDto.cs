@@ -9,7 +9,7 @@ public class BankMovementRequestDto
 
     public int BankAccountId { get; set; }
     public decimal Amount { get; set; }
-    public string Description { get; set; } = null!;
+    public string? Description { get; set; }
     public DateTime Date { get; set; }
     public BankMovementTypeEnum MovementType { get; set; }
     public CreateCheckRequestDto? CheckDetails { get; set; }

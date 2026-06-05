@@ -58,9 +58,6 @@ namespace BackEnd.Migrations
                         .HasPrecision(15, 2)
                         .HasColumnType("numeric(15,2)");
 
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -196,6 +193,10 @@ namespace BackEnd.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<BankMovementTypeEnum>("MovementType")
                         .HasColumnType("bank_movement_type_enum");
@@ -2353,7 +2354,7 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("Users_pkey");
 
-                    b.HasIndex("BranchId");
+                    b.HasIndex("PhysicalPersonEntityId");
 
                     b.HasIndex("RoleId");
 
@@ -3274,10 +3275,9 @@ namespace BackEnd.Migrations
 
             modelBuilder.Entity("BackEnd.Models.User", b =>
                 {
-                    b.HasOne("BackEnd.Models.Branch", "Branch")
+                    b.HasOne("BackEnd.Models.PhysicalPerson", null)
                         .WithMany("Users")
-                        .HasForeignKey("BranchId")
-                        .HasConstraintName("Users_BranchId_fkey");
+                        .HasForeignKey("PhysicalPersonEntityId");
 
                     b.HasOne("BackEnd.Models.Role", "Role")
                         .WithMany("Users")
@@ -3414,6 +3414,15 @@ namespace BackEnd.Migrations
             modelBuilder.Entity("BackEnd.Models.PayrollUpdate", b =>
                 {
                     b.Navigation("PayrollProcessDetails");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.PhysicalPerson", b =>
+                {
+                    b.Navigation("EmployeeKids");
+
+                    b.Navigation("Employees");
+
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("BackEnd.Models.Position", b =>

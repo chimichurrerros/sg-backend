@@ -12,11 +12,10 @@ using BackEnd.DTOs.Requests.Entry;
 
 namespace BackEnd.Services;
 
-public class CreditNoteService(AppDbContext context, IMapper mapper, EntryService entryService)
+public class CreditNoteService(AppDbContext context, IMapper mapper)
 {
     private readonly AppDbContext _context = context;
     private readonly IMapper _mapper = mapper;
-    private readonly EntryService _entryService = entryService;
 
     public async Task<Result<ListCreditNotesWrapperDto>> GetListAsync(CreditNoteQueryDto queryDto)
     {
@@ -99,72 +98,6 @@ public class CreditNoteService(AppDbContext context, IMapper mapper, EntryServic
             }
 
             await _context.SaveChangesAsync();
-
-            if (creditNote.Total > 0)
-            {
-                var dateOnly = DateOnly.FromDateTime(creditNote.Date);
-                var activeProcess = await _context.AccountantProcesses
-                    .FirstOrDefaultAsync(ap => !ap.IsClosed && ap.StartDate <= dateOnly && ap.EndDate >= dateOnly);
-
-                if (activeProcess == null)
-                {
-                    await transaction.RollbackAsync();
-                    return Result<CreditNoteWrapperDto>.Failure($"No existe un período contable activo para la fecha {creditNote.Date:dd/MM/yyyy}.", ErrorType.Validation);
-                }
-
-                // Debit Account: Ventas
-                var debitAccount = await _context.AccountPlans
-                    .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Order == (int)AccountantPlanMap.Ventas);
-
-                // Credit Account: Cajas (if Contado) or Cuentas (if Credito)
-                var creditAccountMap = bill.BillType == BillTypeEnum.CONTADO 
-                    ? AccountantPlanMap.Cajas 
-                    : AccountantPlanMap.Cuentas;
-
-                var creditAccount = await _context.AccountPlans
-                    .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Order == (int)creditAccountMap);
-
-                if (debitAccount == null)
-                {
-                    await transaction.RollbackAsync();
-                    return Result<CreditNoteWrapperDto>.Failure("No se encontró la cuenta contable 'Ventas' en el período contable activo.", ErrorType.Validation);
-                }
-
-                if (creditAccount == null)
-                {
-                    await transaction.RollbackAsync();
-                    return Result<CreditNoteWrapperDto>.Failure($"No se encontró la cuenta contable '{creditAccountMap}' en el período contable activo.", ErrorType.Validation);
-                }
-
-                var entryDetails = new List<CreateEntryDetailDto>
-                {
-                    new CreateEntryDetailDto
-                    {
-                        AccountPlanId = debitAccount.Id,
-                        Debit = creditNote.Total,
-                        Credit = 0m
-                    },
-                    new CreateEntryDetailDto
-                    {
-                        AccountPlanId = creditAccount.Id,
-                        Debit = 0m,
-                        Credit = creditNote.Total
-                    }
-                };
-
-                var entryResult = await _entryService.CreateAutomaticEntryAsync(
-                    creditNote.Date,
-                    $"Nota de Crédito Emitida Nro. {creditNote.Number ?? creditNote.Id.ToString()}",
-                    ModuleEnum.Sales,
-                    entryDetails
-                );
-
-                if (!entryResult.IsSuccess)
-                {
-                    await transaction.RollbackAsync();
-                    return Result<CreditNoteWrapperDto>.Failure($"Error al generar asiento automático: {entryResult.ErrorMessage}", entryResult.ErrorType);
-                }
-            }
 
             await transaction.CommitAsync();
 

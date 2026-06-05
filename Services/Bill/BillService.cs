@@ -124,46 +124,22 @@ public class BillService(AppDbContext context, IMapper mapper, EntryService entr
 
         if (bill.PurchaseOrderForSupplierId == null && bill.Total > 0)
         {
-            var dateOnly = bill.Date;
-            var activeProcess = await _context.AccountantProcesses
-                .FirstOrDefaultAsync(ap => !ap.IsClosed && ap.StartDate <= dateOnly && ap.EndDate >= dateOnly);
 
-            if (activeProcess == null)
-            {
-                return Result<BillWrapperDto>.Failure($"No existe un período contable activo para la fecha {bill.Date:dd/MM/yyyy}.", ErrorType.Validation);
-            }
-
-            var debitAccountMap = bill.BillType == BillTypeEnum.CONTADO 
-                ? AccountantPlanMap.Cajas 
+            var debitAccountMap = bill.BillType == BillTypeEnum.CONTADO
+                ? AccountantPlanMap.Cajas
                 : AccountantPlanMap.Cuentas;
-
-            var debitAccount = await _context.AccountPlans
-                .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Order == (int)debitAccountMap);
-
-            var creditAccount = await _context.AccountPlans
-                .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Order == (int)AccountantPlanMap.Ventas);
-
-            if (debitAccount == null)
-            {
-                return Result<BillWrapperDto>.Failure($"No se encontró la cuenta contable '{debitAccountMap}' en el período contable activo.", ErrorType.Validation);
-            }
-
-            if (creditAccount == null)
-            {
-                return Result<BillWrapperDto>.Failure("No se encontró la cuenta contable 'Ventas' en el período contable activo.", ErrorType.Validation);
-            }
 
             var entryDetails = new List<CreateEntryDetailDto>
             {
                 new CreateEntryDetailDto
                 {
-                    AccountPlanId = debitAccount.Id,
+                    AccountPlanId = (int)debitAccountMap,
                     Debit = bill.Total,
                     Credit = 0m
                 },
                 new CreateEntryDetailDto
                 {
-                    AccountPlanId = creditAccount.Id,
+                    AccountPlanId = (int)AccountantPlanMap.Ventas,
                     Debit = 0m,
                     Credit = bill.Total
                 }

@@ -235,6 +235,7 @@ public class SalesOrderService(
                         MovementType = (BankMovementTypeEnum)movementType,
                         Date = DateTime.UtcNow,
                         Amount = total,
+                        Description = $"Venta - Orden #{salesOrder.Id}",
                         ReferenceNumber = $"SALE-{salesOrder.Id}"
                     };
                     _context.BankMovements.Add(bankMovement);
@@ -266,7 +267,12 @@ public class SalesOrderService(
 
     public async Task<Result<ListSalesOrdersWrapperDto>> GetListAsync(PaginationRequestDto pagination)
     {
-        var query = _context.SalesOrders.AsNoTracking().Include(so => so.SalesOrderDetails);
+        var query = _context.SalesOrders.AsNoTracking()
+            .Include(so => so.Customer)
+            .Include(so => so.User)
+            .Include(so => so.Bills)
+            .Include(so => so.SalesOrderDetails)
+                .ThenInclude(sod => sod.Product);
         var totalElements = await query.CountAsync();
 
         var salesOrders = await query
