@@ -1041,13 +1041,6 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
 
         var hasDetails = await _context.PayrollProcessDetails.AnyAsync(d => d.PayrollProcessId == process.Id);
 
-        if (hasDetails)
-        {
-            var recalculateResult = await CalculateAsync(payrollProcessId);
-            if (!recalculateResult.IsSuccess)
-                return Result<PayrollCloseResponseDto>.Failure(recalculateResult.ErrorMessage!, ErrorType.Failure);
-        }
-
         process.PayrollStatusId = PayrollProcess.PayrollStatusEnum.Closed;
         process.ClosedAt = DateTime.Now;
         await _context.SaveChangesAsync();
@@ -1152,22 +1145,22 @@ public class PayrollProcessingService(AppDbContext context, FormulaEvaluatorServ
 
         // Buscar cuentas contables por código en el periodo activo
         var accountSueldos = await _context.AccountPlans
-            .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Code == "4.2.1.01");
+            .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Code == "4.2");
 
         var accountIps = await _context.AccountPlans
-            .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Code == "2.1.2.01");
+            .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Code == "2.4");
 
         var accountCaja = await _context.AccountPlans
-            .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Code == "1.1.1.02");
+            .FirstOrDefaultAsync(a => a.AccountantProcessId == activeProcess.Id && a.Code == "1.3");
 
         if (accountSueldos is null)
-            return Result<PayrollCloseAndPayResponseDto>.Failure("No se encontró la cuenta contable '4.2.1.01 - Pagos de Salarios (Gasto)'.", ErrorType.Validation);
+            return Result<PayrollCloseAndPayResponseDto>.Failure("No se encontró la cuenta contable '4.2 - PagosDeSalarios'.", ErrorType.Validation);
 
         if (accountIps is null)
-            return Result<PayrollCloseAndPayResponseDto>.Failure("No se encontró la cuenta contable '2.1.2.01 - Retenciones IPS por Pagar'.", ErrorType.Validation);
+            return Result<PayrollCloseAndPayResponseDto>.Failure("No se encontró la cuenta contable '2.4 - IPS_A_Pagar'.", ErrorType.Validation);
 
         if (accountCaja is null)
-            return Result<PayrollCloseAndPayResponseDto>.Failure("No se encontró la cuenta contable '1.1.1.02 - Bancos (Cuenta Corriente)'.", ErrorType.Validation);
+            return Result<PayrollCloseAndPayResponseDto>.Failure("No se encontró la cuenta contable '1.3 - Bancos'.", ErrorType.Validation);
 
         var entryDetails = new List<CreateEntryDetailDto>();
 
