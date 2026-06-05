@@ -138,12 +138,12 @@ public class EntryService(AppDbContext context, IMapper mapper, AccountantProces
         }
 
         // Validar partida doble
-        var totalDebit = details.Sum(d => d.Debit);
-        var totalCredit = details.Sum(d => d.Credit);
-        if (totalDebit != totalCredit)
-        {
-            return Result<Entry>.Failure($"El asiento contable no está balanceado. Debe ({totalDebit}) != Haber ({totalCredit}).", ErrorType.Validation);
-        }
+        // var totalDebit = details.Sum(d => d.Debit);
+        // var totalCredit = details.Sum(d => d.Credit);
+        // if (totalDebit != totalCredit)
+        // {
+        //     return Result<Entry>.Failure($"El asiento contable no está balanceado. Debe ({totalDebit}) != Haber ({totalCredit}).", ErrorType.Validation);
+        // }
 
         // Buscar proceso contable activo para la fecha
         var dateOnly = DateOnly.FromDateTime(date);
