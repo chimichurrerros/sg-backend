@@ -2350,8 +2350,6 @@ namespace BackEnd.Migrations
                     b.HasKey("Id")
                         .HasName("Users_pkey");
 
-                    b.HasIndex("PhysicalPersonEntityId");
-
                     b.HasIndex("RoleId");
 
                     b.HasIndex(new[] { "Email" }, "Users_Email_key")
