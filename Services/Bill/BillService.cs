@@ -166,8 +166,8 @@ public class BillService(AppDbContext context, IMapper mapper, EntryService entr
                 new CreateEntryDetailDto
                 {
                     AccountPlanId = (int)AccountantPlanMap.IVADebito,
-                    Debit = tenPolcientoTotal,
-                    Credit = 0m
+                    Debit = 0m,
+                    Credit = tenPolcientoTotal
                 }
             };
 

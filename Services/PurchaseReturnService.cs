@@ -7,13 +7,16 @@ using BackEnd.Models;
 using BackEnd.Utils;
 using Npgsql;
 using Microsoft.EntityFrameworkCore;
+using BackEnd.Services.Accounting;
+using BackEnd.DTOs.Requests.Entry;
 
 namespace BackEnd.Services;
 
-public class PurchaseReturnService(AppDbContext context, StockService stockService)
+public class PurchaseReturnService(AppDbContext context, StockService stockService, EntryService entryService)
 {
     private readonly AppDbContext _context = context;
     private readonly StockService _stockService = stockService;
+    private readonly EntryService _entryService = entryService;
 
     public async Task<Result<ListPurchaseReturnReasonsWrapperDto>> GetReasonsAsync()
     {
@@ -174,10 +177,11 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
                 if (!reasonResult.IsSuccess)
                     return Result<PurchaseReturnWrapperDto>.Failure(reasonResult.ErrorMessage!, reasonResult.ErrorType);
 
+                Bill? bill = null;
                 if (request.BillId.HasValue)
                 {
-                    var billExists = await _context.Bills.AnyAsync(bill => bill.Id == request.BillId.Value && bill.PurchaseOrderForSupplierId == request.PurchaseOrderForSupplierId);
-                    if (!billExists)
+                    bill = await _context.Bills.FirstOrDefaultAsync(b => b.Id == request.BillId.Value && b.PurchaseOrderForSupplierId == request.PurchaseOrderForSupplierId);
+                    if (bill == null)
                         return Result<PurchaseReturnWrapperDto>.Failure(PurchaseReturnError.BillNotFound, ErrorType.NotFound);
                 }
 
@@ -297,6 +301,54 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
                     }
 
                     purchaseReturn.CreditNoteId = creditNote.Id;
+
+                    if (creditNote.Total > 0 && bill != null)
+                    {
+                        // Credit Account: Cajas (if Contado) or Cuentas (if Credito)
+                        var creditAccountMap = bill.BillType == BillTypeEnum.CONTADO 
+                            ? AccountantPlanMap.Cajas 
+                            : AccountantPlanMap.Cuentas;
+
+                        decimal tenPolcientoTotal = (creditNote.Total * 10) / 100;
+                        var entryDetails = new List<CreateEntryDetailDto>
+                        {
+                            new CreateEntryDetailDto
+                            {
+                                AccountPlanId = (int)AccountantPlanMap.ComprasAProveedores,
+                                Debit = creditNote.Total - tenPolcientoTotal,
+                                Credit = 0m
+                            },
+
+                            
+                            new CreateEntryDetailDto
+                            {
+                                AccountPlanId = (int)AccountantPlanMap.IVACredito,
+                                Debit = tenPolcientoTotal,
+                                Credit = 0m
+                            },
+
+                            new CreateEntryDetailDto
+                            {
+                                AccountPlanId = (int)creditAccountMap,
+                                Debit = 0m,
+                                Credit = creditNote.Total
+                            }
+
+                        };
+
+                        var entryResult = await _entryService.CreateAutomaticEntryAsync(
+                            creditNote.Date,
+                            $"Nota de Crédito Recibida Nro. {creditNote.Number ?? creditNote.Id.ToString()}",
+                            ModuleEnum.Purchases,
+                            entryDetails
+                        );
+
+                        if (!entryResult.IsSuccess)
+                        {
+                            await transaction.RollbackAsync();
+                            return Result<PurchaseReturnWrapperDto>.Failure($"Error al generar asiento automático: {entryResult.ErrorMessage}", entryResult.ErrorType);
+                        }
+                    }
                 }
                 purchaseReturn.Total = total;
                 purchaseReturn.TaxTotal = taxTotal;
@@ -613,6 +665,51 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
             }
 
             purchaseReturn.CreditNoteId = creditNote.Id;
+
+            if (creditNote.Total > 0)
+            {
+                // Credit Account: Cajas (if Contado) or Cuentas (if Credito)
+                var creditAccountMap = bill.BillType == BillTypeEnum.CONTADO 
+                    ? AccountantPlanMap.Cajas 
+                    : AccountantPlanMap.Cuentas;
+
+                decimal tenPolcientoTotal = (creditNote.Total * 10) / 100;
+                var entryDetails = new List<CreateEntryDetailDto>
+                {
+                    new CreateEntryDetailDto
+                    {
+                        AccountPlanId = (int)AccountantPlanMap.Ventas,
+                        Debit = creditNote.Total - tenPolcientoTotal,
+                        Credit = 0m
+                    },
+                    new CreateEntryDetailDto
+                    {
+                        AccountPlanId = (int)creditAccountMap,
+                        Debit = 0m,
+                        Credit = creditNote.Total
+                    },
+
+                    new CreateEntryDetailDto
+                    {
+                        AccountPlanId = (int)AccountantPlanMap.IVADebito,
+                        Debit = tenPolcientoTotal,
+                        Credit = 0m
+                    }
+                };
+
+                var entryResult = await _entryService.CreateAutomaticEntryAsync(
+                    creditNote.Date,
+                    $"Nota de Crédito Emitida Nro. {creditNote.Number ?? creditNote.Id.ToString()}",
+                    ModuleEnum.Sales,
+                    entryDetails
+                );
+
+                if (!entryResult.IsSuccess)
+                {
+                    await transaction.RollbackAsync();
+                    return Result<PurchaseReturnWrapperDto>.Failure($"Error al generar asiento automático: {entryResult.ErrorMessage}", entryResult.ErrorType);
+                }
+            }
             purchaseReturn.Total = total;
             purchaseReturn.TaxTotal = taxTotal;
             purchaseReturn.Number = string.IsNullOrWhiteSpace(retRequest.Number) ? $"PR-{purchaseReturn.Id:D6}" : retRequest.Number.Trim();
