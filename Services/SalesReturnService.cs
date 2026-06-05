@@ -125,7 +125,7 @@ public class SalesReturnService(AppDbContext context, StockService stockService,
             _context.SalesReturns.Add(salesReturn);
             await _context.SaveChangesAsync();
 
-            if (creditNote.Total > 0)
+            if (true)
             {
 
                 // Credit Account: Cajas (if Contado) or Cuentas (if Credito)

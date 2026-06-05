@@ -155,14 +155,14 @@ public class BillService(AppDbContext context, IMapper mapper, EntryService entr
                 new CreateEntryDetailDto
                 {
                     AccountPlanId = (int)debitAccountMap,
-                    Debit = bill.Total - tenPolcientoTotal,
+                    Debit = bill.Total,
                     Credit = 0m
                 },
                 new CreateEntryDetailDto
                 {
                     AccountPlanId = (int)AccountantPlanMap.Ventas,
                     Debit = 0m,
-                    Credit = bill.Total
+                    Credit = bill.Total - tenPolcientoTotal
                 },
                 new CreateEntryDetailDto
                 {
