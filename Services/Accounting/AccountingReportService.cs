@@ -454,8 +454,8 @@ public class AccountingReportService(AppDbContext context)
         // Calculamos el Resultado del Ejercicio (Ingresos - Egresos) de forma dinámica
         decimal totalRevenues = 0;
         decimal totalExpenses = 0;
-        string revenuePrefix = ((int)AccountantPlanMap.Ingresos).ToString();
-        string expensePrefix = ((int)AccountantPlanMap.Egresos).ToString();
+        string revenuePrefix = ((int)AccountantPlanMap.Activos).ToString();
+        string expensePrefix = ((int)AccountantPlanMap.Pasivos).ToString();
 
         foreach (var account in allAccounts.Where(a => a.IsAcceptor))
         {
@@ -478,7 +478,7 @@ public class AccountingReportService(AppDbContext context)
             }
         }
 
-        decimal netIncome = totalRevenues - totalExpenses;
+        decimal netIncome = (totalRevenues + totalExpenses) * (-1);
 
         // Inyectamos el Resultado del Ejercicio como cuenta virtual en el Patrimonio Neto (código 5.99)
         string netIncomeAccountName = netIncome >= 0 
