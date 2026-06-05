@@ -133,20 +133,31 @@ public class SalesReturnService(AppDbContext context, StockService stockService,
                     ? AccountantPlanMap.Cajas 
                     : AccountantPlanMap.Cuentas;
 
+                decimal tenPolcientoTotal = (creditNote.Total * 10) / 100;
                 var entryDetails = new List<CreateEntryDetailDto>
                 {
                     new CreateEntryDetailDto
                     {
                         AccountPlanId = (int)AccountantPlanMap.Ventas,
-                        Debit = creditNote.Total,
+                        Debit = creditNote.Total - tenPolcientoTotal,
                         Credit = 0m
                     },
+
+                    new CreateEntryDetailDto
+                    {
+                        AccountPlanId = (int)AccountantPlanMap.IVADebito,
+                        Debit = tenPolcientoTotal,
+                        Credit = 0m
+                    },
+
                     new CreateEntryDetailDto
                     {
                         AccountPlanId = (int)creditAccountMap,
                         Debit = 0m,
                         Credit = creditNote.Total
-                    }
+                    },
+
+  
                 };
 
                 var entryResult = await _entryService.CreateAutomaticEntryAsync(

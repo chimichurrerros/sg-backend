@@ -6,13 +6,16 @@ using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using BackEnd.Utils;
 using Microsoft.EntityFrameworkCore;
+using BackEnd.Services.Accounting;
+using BackEnd.DTOs.Requests.Entry;
 
 namespace BackEnd.Services;
 
-public class PaymentOrderService(AppDbContext context, BankMovementService bankMovementService)
+public class PaymentOrderService(AppDbContext context, BankMovementService bankMovementService, EntryService entryService)
 {
     private readonly AppDbContext _context = context;
     private readonly BankMovementService _bankMovementService = bankMovementService;
+    private readonly EntryService _entryService = entryService;
 
     // Crea una orden de pago con multiples metodos
     public async Task<Result<PaymentOrderWrapperDto>> CreateAsync(CreatePaymentOrderDto request)
@@ -120,6 +123,46 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
             });
 
             await _context.SaveChangesAsync();
+
+            var debitAccountMap = bill.BillType == BillTypeEnum.CONTADO
+                ? AccountantPlanMap.Cajas
+                : AccountantPlanMap.Cuentas;
+
+            decimal tenPolcientoTotal = (bill.Total * 10) / 100;
+            var entryDetails = new List<CreateEntryDetailDto>
+            {
+                new CreateEntryDetailDto
+                {
+                    AccountPlanId = (int)debitAccountMap,
+                    Debit = bill.Total - tenPolcientoTotal,
+                    Credit = 0m
+                },
+                new CreateEntryDetailDto
+                {
+                    AccountPlanId = (int)AccountantPlanMap.ComprasAProveedores,
+                    Debit = 0m,
+                    Credit = bill.Total
+                },
+                new CreateEntryDetailDto
+                {
+                    AccountPlanId = (int)AccountantPlanMap.IVACredito,
+                    Debit = 0m,
+                    Credit = tenPolcientoTotal
+                }
+            };
+
+            var entryResult = await _entryService.CreateAutomaticEntryAsync(
+                new DateTime(bill.Date.Year, bill.Date.Month, bill.Date.Day, 12, 0, 0, DateTimeKind.Utc),
+                $"Factura Recibida Nro. {bill.Number}",
+                ModuleEnum.Purchases,
+                entryDetails
+            );
+
+            if (!entryResult.IsSuccess)
+            {
+                await transaction.RollbackAsync();
+                return Result<PaymentOrderWrapperDto>.Failure($"Error al generar asiento automático: {entryResult.ErrorMessage}", entryResult.ErrorType);
+            }
 
             foreach (var (creditNote, amount) in appliedCreditNotes)
             {
