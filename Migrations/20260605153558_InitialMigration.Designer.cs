@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260605124152_AddBillNumberSequences")]
-    partial class AddBillNumberSequences
+    [Migration("20260605153558_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -30,7 +30,7 @@ namespace BackEnd.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "bill_type_enum", new[] { "contado", "credito" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "check_status_enum", new[] { "pending", "cashed", "voided" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "check_type_enum", new[] { "day", "deferred" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "module_enum", new[] { "sales", "purchases", "inventory", "salary" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "module_enum", new[] { "sales", "purchases", "inventory", "salary", "manual" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "purchase_request_state_enum", new[] { "pending", "approved", "rejected", "completed" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "sales_order_state_enum", new[] { "pending", "confirmed", "cancelled" });
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -527,6 +527,32 @@ namespace BackEnd.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("CreditNoteDetails");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.CreditNoteNumberSequence", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LastNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.HasKey("Id")
+                        .HasName("CreditNoteNumberSequences_pkey");
+
+                    b.HasIndex("BranchId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_CreditNoteNumberSequences_BranchId");
+
+                    b.ToTable("CreditNoteNumberSequences");
                 });
 
             modelBuilder.Entity("BackEnd.Models.Customer", b =>
@@ -2571,6 +2597,18 @@ namespace BackEnd.Migrations
                     b.Navigation("CreditNote");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("BackEnd.Models.CreditNoteNumberSequence", b =>
+                {
+                    b.HasOne("BackEnd.Models.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("CreditNoteNumberSequences_BranchId_fkey");
+
+                    b.Navigation("Branch");
                 });
 
             modelBuilder.Entity("BackEnd.Models.CustomerQuote", b =>
