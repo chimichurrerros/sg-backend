@@ -422,8 +422,8 @@ public class SalesOrderService(
         // Si el objeto no viene, o viene vacío, asignamos automáticamente el "Cliente Ocasional"
         if (customer == null || (string.IsNullOrWhiteSpace(customer.Ruc) && string.IsNullOrWhiteSpace(customer.Name)))
         {
-            var defaultCustomer = await _context.Customers
-                .FirstOrDefaultAsync(c => c.Ruc == "X" || c.Name == "Cliente Ocasional");
+var defaultCustomer = await _context.Customers
+    .FirstOrDefaultAsync(c => c.Ruc == null || c.Name == "Cliente Ocasional");
 
             if (defaultCustomer != null)
                 return Result<int>.Success(defaultCustomer.Id);
@@ -439,7 +439,7 @@ public class SalesOrderService(
         var ruc = customer.Ruc?.Trim();
         if (string.IsNullOrWhiteSpace(ruc))
         {
-            ruc = "X"; // Si mandan nombre pero no RUC, asume consumidor final sin datos
+            ruc = null; // Si mandan nombre pero no RUC, asume consumidor final sin datos
         }
 
         var existingCustomer = await _context.Customers
