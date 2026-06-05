@@ -8,14 +8,13 @@ using BackEnd.DTOs.Responses.Accounts;
 using BackEnd.Constants.Errors;
 using BackEnd.Utils;
 using BackEnd.Infrastructure.Context;
-using BackEnd.Constants.Errors;
 
 namespace BackEnd.Services;
 
 public class AccountService(AppDbContext context, IMapper mapper)
 {
-    private readonly AppDbContext _context;
-    private readonly IMapper _mapper;
+    private readonly AppDbContext _context = context;
+    private readonly IMapper _mapper = mapper;
 
     public async Task<Result<ListAccountsWrapperDto>> GetAllAsync()
     {
@@ -29,21 +28,29 @@ public class AccountService(AppDbContext context, IMapper mapper)
 
     public async Task<Result<ListAccountsWrapperDto>> GetListAsync(PaginationRequestDto pagination)
     {
-        // Usamos Include para traer los datos del banco si es que tiene uno asociado
-        var accounts = await _context.Accounts
-            .Include(a => a.Bank)
-            .Where(a => a.IsActive)
+        var query = _context.Accounts.AsNoTracking();
+
+        var totalElements = await query.CountAsync();
+
+        var accounts = await query
+            .OrderBy(v => v.Id)
+            .Skip((pagination.Page - 1) * pagination.PageSize)
+            .Take(pagination.PageSize)
+            .ProjectTo<AccountResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
-        var response = _mapper.Map<IEnumerable<AccountResponseDto>>(accounts);
-        return Result<IEnumerable<AccountResponseDto>>.Success(response);
+        var _pagination = new Pagination(pagination.Page, pagination.PageSize, totalElements);
+
+        return Result<ListAccountsWrapperDto>.Success(new ListAccountsWrapperDto { Accounts = accounts, Pagination = _pagination });
     }
 
     public async Task<Result<AccountWrapperDto>> GetByIdAsync(int id)
     {
         var account = await _context.Accounts
-            .Include(a => a.Bank)
-            .FirstOrDefaultAsync(a => a.Id == id && a.IsActive);
+            .AsNoTracking()
+            .Where(u => u.Id == id)
+            .ProjectTo<AccountResponseDto>(_mapper.ConfigurationProvider)
+            .FirstOrDefaultAsync();
 
         if (account == null)
             return Result<AccountWrapperDto>.Failure(ApplicationError.NotFound, ErrorType.NotFound);
@@ -63,7 +70,8 @@ public class AccountService(AppDbContext context, IMapper mapper)
 
     public async Task<Result<AccountWrapperDto>> UpdateAsync(int id, UpdateAccountRequestDto request)
     {
-        var account = await _context.Accounts.FirstOrDefaultAsync(a => a.Id == id && a.IsActive);
+        var account = await _context.Accounts.FindAsync(id);
+
         if (account == null)
             return Result<AccountWrapperDto>.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
@@ -94,17 +102,18 @@ public class AccountService(AppDbContext context, IMapper mapper)
     //     return Result.Success();
     // }
 
-    public async Task<Result<AccountResponseDto>> ToggleStatusAsync(int id)
-    {
-        var account = await _context.Accounts.FirstOrDefaultAsync(a => a.Id == id);
-        if (account == null)
-            return Result<AccountResponseDto>.Failure(AccountError.AccountNotFound, ErrorType.NotFound);
+    public async Task<Result> ToggleStatusAsync(int id)
+	{
+		var account = await _context.Accounts.FirstOrDefaultAsync(u => u.Id == id);
 
-        account.IsActive = !account.IsActive;
-        await _context.SaveChangesAsync();
+		if (account == null)
+			return Result.Failure(ApplicationError.NotFound, ErrorType.NotFound);
 
-        var response = _mapper.Map<AccountResponseDto>(account);
-        return Result<AccountResponseDto>.Success(response);
-    }
+		account.IsActive = !account.IsActive;
 
+		_context.Accounts.Update(account);
+		await _context.SaveChangesAsync();
+
+		return Result.Success();
+	}
 }
