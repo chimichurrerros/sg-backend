@@ -134,14 +134,14 @@ public class PaymentOrderService(AppDbContext context, BankMovementService bankM
                 new CreateEntryDetailDto
                 {
                     AccountPlanId = (int)debitAccountMap,
-                    Debit = bill.Total - tenPolcientoTotal,
+                    Debit = bill.Total,
                     Credit = 0m
                 },
                 new CreateEntryDetailDto
                 {
                     AccountPlanId = (int)AccountantPlanMap.ComprasAProveedores,
                     Debit = 0m,
-                    Credit = bill.Total
+                    Credit = bill.Total - tenPolcientoTotal
                 },
                 new CreateEntryDetailDto
                 {

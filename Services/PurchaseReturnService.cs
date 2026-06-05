@@ -302,7 +302,7 @@ public class PurchaseReturnService(AppDbContext context, StockService stockServi
 
                     purchaseReturn.CreditNoteId = creditNote.Id;
 
-                    if (creditNote.Total > 0 && bill != null)
+                    if (bill != null)
                     {
                         // Credit Account: Cajas (if Contado) or Cuentas (if Credito)
                         var creditAccountMap = bill.BillType == BillTypeEnum.CONTADO 
