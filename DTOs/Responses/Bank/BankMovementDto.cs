@@ -10,6 +10,5 @@ public class BankMovementDto
     public DateTime Date { get; set; }
     public string? Description { get; set; }
     public string? ReferenceNumber { get; set; }
-    public string? Description { get; set; }
     public BankMovementTypeEnum MovementType { get; set; }
 }
