@@ -17,6 +17,7 @@ public class ProductResponseDto
     public decimal Cost { get; set; }
     public decimal TaxRate { get; set; }
     public decimal MinimumStock { get; set; }
+    public bool? IsDeleted {get; set;}
 }
 
 public class ProductWrapperDto
