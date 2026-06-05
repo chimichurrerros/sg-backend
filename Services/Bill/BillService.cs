@@ -90,14 +90,21 @@ public class BillService(AppDbContext context, IMapper mapper, EntryService entr
     {
         var bill = await _context.Bills
             .AsNoTracking()
-            .Where(b => b.Id == id)
-            .ProjectTo<BillResponseDto>(_mapper.ConfigurationProvider)
-            .FirstOrDefaultAsync();
+            .Include(b => b.SalesOrder)
+                .ThenInclude(so => so!.SalesOrderDetails)
+            .FirstOrDefaultAsync(b => b.Id == id);
 
         if (bill == null)
             return Result<BillWrapperDto>.Failure(BillError.NotFound, ErrorType.NotFound);
 
-        return Result<BillWrapperDto>.Success(new BillWrapperDto { Bill = bill });
+        if (bill.SalesOrder != null)
+        {
+            bill.Total = bill.SalesOrder.SalesOrderDetails.Sum(sod => sod.QuantityInvoiced * sod.Price);
+        }
+
+        var billDto = _mapper.Map<BillResponseDto>(bill);
+
+        return Result<BillWrapperDto>.Success(new BillWrapperDto { Bill = billDto });
     }
 
     public async Task<Result<BillWrapperDto>> CreateAsync(CreateBillRequestDto request)
