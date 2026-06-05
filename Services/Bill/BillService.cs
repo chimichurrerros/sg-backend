@@ -74,16 +74,28 @@ public class BillService(AppDbContext context, IMapper mapper, EntryService entr
         var totalElements = await query.CountAsync();
 
         var bills = await query
+            .Include(b => b.SalesOrder)
+                .ThenInclude(so => so!.SalesOrderDetails)
             .OrderByDescending(b => b.Date)
             .ThenByDescending(b => b.Id)
             .Skip((queryDto.Page - 1) * queryDto.PageSize)
             .Take(queryDto.PageSize)
-            .ProjectTo<BillResponseDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
+
+        for (int i = 0; i < bills.Count; i++)
+        {
+            var salesOrder = bills[i].SalesOrder;
+            if (salesOrder != null)
+            {
+                bills[i].Total = salesOrder.SalesOrderDetails.Sum(sod => sod.QuantityInvoiced * sod.Price);
+            }
+        }
+
+        var billsDto = bills.Select(b => _mapper.Map<BillResponseDto>(b)).ToList();
 
         var _pagination = new Pagination(queryDto.Page, queryDto.PageSize, totalElements);
 
-        return Result<ListBillsWrapperDto>.Success(new ListBillsWrapperDto { Bills = bills, Pagination = _pagination });
+        return Result<ListBillsWrapperDto>.Success(new ListBillsWrapperDto { Bills = billsDto, Pagination = _pagination });
     }
 
     public async Task<Result<BillWrapperDto>> GetByIdAsync(int id)
