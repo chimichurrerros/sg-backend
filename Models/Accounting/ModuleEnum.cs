@@ -6,4 +6,5 @@ public enum ModuleEnum
     Purchases = 1,
     Inventory = 2,
     Salary = 3,
+    Manual = 4,
 }

@@ -131,6 +131,7 @@ public class AccountingReportService(AppDbContext context)
             ModuleEnum.Purchases => "Compras",
             ModuleEnum.Inventory => "Inventario",
             ModuleEnum.Salary => "Sueldos",
+            ModuleEnum.Manual => "Manual",
             _ => module.ToString()
         };
     }
