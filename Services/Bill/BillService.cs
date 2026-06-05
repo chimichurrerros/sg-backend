@@ -128,7 +128,7 @@ public class BillService(AppDbContext context, IMapper mapper, EntryService entr
             CustomerId = request.CustomerId,
             SalesOrderId = request.SalesOrderId,
             PurchaseOrderForSupplierId = request.PurchaseOrderForSupplierId,
-            Stamp = request.Stamp,
+            Stamp = "8567132",
             Number = request.Number,
             Date = request.Date,
             DueDate = request.DueDate,
@@ -198,7 +198,7 @@ public class BillService(AppDbContext context, IMapper mapper, EntryService entr
         bill.CustomerId = request.CustomerId;
         bill.SalesOrderId = request.SalesOrderId;
         bill.PurchaseOrderForSupplierId = request.PurchaseOrderForSupplierId;
-        bill.Stamp = request.Stamp;
+        bill.Stamp = "8567132";
         bill.Number = request.Number;
         bill.Date = request.Date;
         bill.DueDate = request.DueDate;
