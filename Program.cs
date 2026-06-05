@@ -47,6 +47,7 @@ builder.Services.AddScoped<SupplierCategoryService>();
 builder.Services.AddScoped<CheckService>();
 builder.Services.AddScoped<BillService>();
 builder.Services.AddScoped<BillDetailService>();
+builder.Services.AddScoped<BillNumberService>();
 builder.Services.AddScoped<StockService>();
 builder.Services.AddScoped<SalesOrderService>();
 builder.Services.AddScoped<StatesService>();

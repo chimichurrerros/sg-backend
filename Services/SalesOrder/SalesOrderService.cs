@@ -21,6 +21,7 @@ public class SalesOrderService(
     BranchService branchService,
     BillService billService,
     BillDetailService billDetailService,
+    BillNumberService billNumberService,
     IMapper mapper)
 {
     private readonly AppDbContext _context = context;
@@ -29,6 +30,7 @@ public class SalesOrderService(
     private readonly BranchService _branchService = branchService;
     private readonly BillService _billService = billService;
     private readonly BillDetailService _billDetailService = billDetailService;
+    private readonly BillNumberService _billNumberService = billNumberService;
     private readonly IMapper _mapper = mapper;
     private const int TaxRate = 10;
 
@@ -176,7 +178,7 @@ public class SalesOrderService(
                 BillType = request.BillType ?? BillTypeEnum.CONTADO,
                 CustomerId = request.CustomerId,
                 SalesOrderId = salesOrder.Id,
-                Number = GenerateBillNumber(salesOrder.Id),
+                Number = await _billNumberService.GetNextBillNumber(salesOrder.BranchId),
                 Date = DateOnly.FromDateTime(request.Date ?? DateTime.UtcNow),
                 Total = total,
                 TaxTotal = taxTotal,
@@ -493,8 +495,4 @@ var defaultCustomer = await _context.Customers
         return Result<int>.Success(productEntity.Id);
     }
 
-    private static string GenerateBillNumber(int salesOrderId)
-    {
-        return $"001-001-{salesOrderId:D6}";
-    }
 }

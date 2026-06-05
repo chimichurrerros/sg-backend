@@ -16,6 +16,7 @@ public class CreditNoteResponseDto
 {
     public int Id { get; set; }
     public int BillId { get; set; }
+    public string? Number { get; set; }
     public string BillNumber { get; set; } = string.Empty;
     public CreditNoteTypeEnum Type { get; set; }
     public int CustomerId { get; set; }

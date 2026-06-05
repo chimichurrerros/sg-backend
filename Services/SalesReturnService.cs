@@ -14,12 +14,13 @@ using BackEnd.DTOs.Requests.Entry;
 
 namespace BackEnd.Services;
 
-public class SalesReturnService(AppDbContext context, StockService stockService, IMapper mapper, EntryService entryService)
+public class SalesReturnService(AppDbContext context, StockService stockService, IMapper mapper, EntryService entryService, BillNumberService billNumberService)
 {
     private readonly AppDbContext _context = context;
     private readonly StockService _stockService = stockService;
     private readonly IMapper _mapper = mapper;
     private readonly EntryService _entryService = entryService;
+    private readonly BillNumberService _billNumberService = billNumberService;
 
     public async Task<Result<SalesReturnWrapperDto>> CreateAsync(CreateSalesReturnDto request)
     {
@@ -80,7 +81,10 @@ public class SalesReturnService(AppDbContext context, StockService stockService,
             _context.CreditNotes.Add(creditNote);
             await _context.SaveChangesAsync();
 
-            creditNote.Number = $"CN-{creditNote.Id:D6}";
+            if (string.IsNullOrWhiteSpace(request.Number))
+                creditNote.Number = await _billNumberService.GetNextCreditNoteNumber(salesOrder.BranchId);
+            else
+                creditNote.Number = request.Number;
 
             foreach (var detail in request.Details)
             {

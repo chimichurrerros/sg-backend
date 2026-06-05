@@ -10,6 +10,7 @@ public class CreateSalesReturnDetailDto
 public class CreateSalesReturnDto
 {
     public int BillId { get; set; }
+    public string? Number { get; set; }
     public DateTime Date { get; set; }
     public decimal Total { get; set; }
     public string Reason { get; set; } = string.Empty;

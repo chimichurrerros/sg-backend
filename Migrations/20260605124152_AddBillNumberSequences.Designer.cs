@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Context;
 using BackEnd.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260605124152_AddBillNumberSequences")]
+    partial class AddBillNumberSequences
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -524,32 +527,6 @@ namespace BackEnd.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("CreditNoteDetails");
-                });
-
-            modelBuilder.Entity("BackEnd.Models.CreditNoteNumberSequence", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("BranchId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("LastNumber")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.HasKey("Id")
-                        .HasName("CreditNoteNumberSequences_pkey");
-
-                    b.HasIndex("BranchId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_CreditNoteNumberSequences_BranchId");
-
-                    b.ToTable("CreditNoteNumberSequences");
                 });
 
             modelBuilder.Entity("BackEnd.Models.Customer", b =>
@@ -2594,18 +2571,6 @@ namespace BackEnd.Migrations
                     b.Navigation("CreditNote");
 
                     b.Navigation("Product");
-                });
-
-            modelBuilder.Entity("BackEnd.Models.CreditNoteNumberSequence", b =>
-                {
-                    b.HasOne("BackEnd.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("CreditNoteNumberSequences_BranchId_fkey");
-
-                    b.Navigation("Branch");
                 });
 
             modelBuilder.Entity("BackEnd.Models.CustomerQuote", b =>

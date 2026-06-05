@@ -9,6 +9,7 @@ public class CreditNoteMapper : Profile
     public CreditNoteMapper()
     {
         CreateMap<CreditNote, CreditNoteResponseDto>()
+            .ForMember(dest => dest.Number, opt => opt.MapFrom(src => src.Number))
             .ForMember(dest => dest.BillNumber, opt => opt.MapFrom(src => src.Bill.Number))
             .ForMember(dest => dest.CustomerId, opt => opt.MapFrom(src => src.Bill.CustomerId ?? 0))
             .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.Bill.Customer != null ? src.Bill.Customer.Name : string.Empty))

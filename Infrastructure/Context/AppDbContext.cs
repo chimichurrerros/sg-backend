@@ -33,6 +33,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<BillDetail> BillDetails { get; set; }
 
+    public virtual DbSet<BillNumberSequence> BillNumberSequences { get; set; }
+
     public virtual DbSet<Branch> Branches { get; set; }
 
     public virtual DbSet<BranchDepartment> BranchDepartments { get; set; }
@@ -40,6 +42,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Check> Checks { get; set; }
 
     public virtual DbSet<CreditNote> CreditNotes { get; set; }
+
+    public virtual DbSet<CreditNoteNumberSequence> CreditNoteNumberSequences { get; set; }
 
     public virtual DbSet<CreditNoteDetail> CreditNoteDetails { get; set; }
 
@@ -302,6 +306,32 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.SalesOrder).WithMany(p => p.Bills)
                 .HasForeignKey(d => d.SalesOrderId)
                 .HasConstraintName("Bills_SalesOrderId_fkey");
+        });
+
+        modelBuilder.Entity<BillNumberSequence>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("BillNumberSequences_pkey");
+
+            entity.HasIndex(e => e.BranchId).IsUnique().HasDatabaseName("IX_BillNumberSequences_BranchId");
+
+            entity.Property(e => e.LastNumber).HasDefaultValue(0);
+
+            entity.HasOne(e => e.Branch).WithMany()
+                .HasForeignKey(e => e.BranchId)
+                .HasConstraintName("BillNumberSequences_BranchId_fkey");
+        });
+
+        modelBuilder.Entity<CreditNoteNumberSequence>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("CreditNoteNumberSequences_pkey");
+
+            entity.HasIndex(e => e.BranchId).IsUnique().HasDatabaseName("IX_CreditNoteNumberSequences_BranchId");
+
+            entity.Property(e => e.LastNumber).HasDefaultValue(0);
+
+            entity.HasOne(e => e.Branch).WithMany()
+                .HasForeignKey(e => e.BranchId)
+                .HasConstraintName("CreditNoteNumberSequences_BranchId_fkey");
         });
 
         modelBuilder.Entity<BillDetail>(entity =>
