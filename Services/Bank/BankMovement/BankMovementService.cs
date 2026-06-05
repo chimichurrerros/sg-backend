@@ -134,6 +134,7 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
             Amount = request.Amount,
             Date = request.Date == default ? DateTime.UtcNow : request.Date,
             ReferenceNumber = request.ReferenceNumber,
+            Description = request.Description,
             MovementType = request.MovementType
         };
 
@@ -158,6 +159,7 @@ public class BankMovementService(AppDbContext context, IMapper mapper)
             Amount = movement.Amount,
             Date = movement.Date,
             ReferenceNumber = movement.ReferenceNumber,
+            Description = movement.Description,
             MovementType = movement.MovementType
         });
     }

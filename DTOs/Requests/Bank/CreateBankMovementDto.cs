@@ -8,5 +8,6 @@ public class CreateBankMovementDto
     public decimal Amount { get; set; }
     public DateTime Date { get; set; }
     public string? ReferenceNumber { get; set; }
+    public string? Description { get; set; }
     public BankMovementTypeEnum MovementType { get; set; } = BankMovementTypeEnum.Debit;
 }

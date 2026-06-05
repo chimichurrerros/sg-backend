@@ -197,6 +197,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CurrentBalance).HasPrecision(15, 2);
             entity.Property(e => e.Name).HasMaxLength(100);
 
+            entity.Property(e => e.IsActive)
+                  .HasDefaultValue(true);
+
             entity.HasOne(d => d.Bank).WithMany(p => p.Accounts)
                 .HasForeignKey(d => d.BankId)
                 .HasConstraintName("Accounts_BankId_fkey");
@@ -259,6 +262,7 @@ public partial class AppDbContext : DbContext
                 .HasColumnType("timestamp without time zone");
             entity.Property(e => e.MovementType).HasColumnType("bank_movement_type_enum");
             entity.Property(e => e.ReferenceNumber).HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(500);
 
             entity.HasOne(d => d.Account).WithMany(p => p.BankMovements)
                 .HasForeignKey(d => d.AccountId)
