@@ -18,6 +18,8 @@ public class PurchaseOrderDetailResponseDto
 public class PurchaseOrderResponseDto
 {
     public int Id { get; set; }
+    public int BranchId { get; set; }
+    public string BranchName { get; set; } = string.Empty;
     public int PurchaseRequestId { get; set; }
     public string Number { get; set; } = null!;
     public DateTime Date { get; set; }

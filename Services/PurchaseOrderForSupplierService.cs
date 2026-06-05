@@ -31,6 +31,9 @@ public class PurchaseOrderForSupplierService(AppDbContext context, IMapper mappe
     {
         var rQuery = LoadQuery();
 
+        if (query.BranchId.HasValue)
+            rQuery = rQuery.Where(o => o.PurchaseOrder.BranchId == query.BranchId.Value);
+
         if (query.PurchaseOrderId.HasValue)
             rQuery = rQuery.Where(o => o.PurchaseOrderId == query.PurchaseOrderId.Value);
 

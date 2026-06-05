@@ -33,6 +33,9 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
     {
         var rQuery = _context.PurchaseOrders.AsNoTracking();
 
+        if (query.BranchId.HasValue)
+            rQuery = rQuery.Where(o => o.BranchId == query.BranchId.Value);
+
         if (query.PurchaseRequestId.HasValue)
             rQuery = rQuery.Where(o => o.PurchaseRequestId == query.PurchaseRequestId.Value);
 
@@ -121,12 +124,18 @@ public class PurchaseOrderService(AppDbContext context, IMapper mapper)
         if (groupedBySupplier.Count == 0)
             return Result<PurchaseOrderWrapperDto>.Failure(PurchaseOrderError.DetailsRequired, ErrorType.Validation);
 
+        var branchId = await _context.PurchaseRequests
+            .Where(pr => pr.Id == request.PurchaseRequestId)
+            .Select(pr => pr.BranchId)
+            .FirstOrDefaultAsync();
+
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
         try
         {
             var mainOrder = new PurchaseOrder
             {
+                BranchId = branchId,
                 PurchaseRequestId = request.PurchaseRequestId,
                 Number = string.Empty,
                 Date = DateTime.UtcNow,

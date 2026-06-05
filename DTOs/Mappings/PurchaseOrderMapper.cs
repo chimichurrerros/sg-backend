@@ -9,6 +9,7 @@ public class PurchaseOrderMapper : AutoMapper.Profile
     public PurchaseOrderMapper()
     {
         CreateMap<PurchaseOrder, PurchaseOrderResponseDto>()
+            .ForMember(dest => dest.BranchName, opt => opt.MapFrom(src => src.Branch.Name))
             .ForMember(dest => dest.PurchaseOrdersForSupplier, opt => opt.MapFrom(src => src.PurchaseOrdersForSupplier));
 
         CreateMap<PurchaseOrder, PurchaseOrderWrapperDto>()

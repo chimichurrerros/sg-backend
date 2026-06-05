@@ -829,6 +829,11 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.State)
                 .HasConversion<int>();
 
+            entity.HasOne(d => d.Branch).WithMany()
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("PurchaseOrders_BranchId_fkey");
+
             entity.HasOne(d => d.PurchaseRequest).WithMany()
                 .HasForeignKey(d => d.PurchaseRequestId)
                 .OnDelete(DeleteBehavior.ClientSetNull)

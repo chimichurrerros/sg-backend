@@ -5,6 +5,7 @@ namespace BackEnd.DTOs.Requests.PurchaseOrder;
 
 public class PurchaseOrderQueryDto : PaginationRequestDto
 {
+    public int? BranchId { get; set; }
     public int? PurchaseRequestId { get; set; }
     public int? State { get; set; }
     public DateOnly? Date { get; set; }
