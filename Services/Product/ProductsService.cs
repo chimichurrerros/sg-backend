@@ -209,14 +209,20 @@ public class ProductsService(AppDbContext context, IMapper mapper)
         return Result<ListSuppliersWrapperDto>.Success(new ListSuppliersWrapperDto { Suppliers = result });
     }
 
-    public async Task<Result<ListProductsStockWrapperDto>> GetByBranchIdAsync(int branchId)
-    {
-        var products = await _context.Stocks
-            .AsNoTracking()
-            .Where(s => s.BranchId == branchId)
-            .ProjectTo<ProductStockResponseDto>(_mapper.ConfigurationProvider)
-            .ToListAsync();
-        return Result<ListProductsStockWrapperDto>.Success(
-            new ListProductsStockWrapperDto { ProductsStock = products });
-    }
+   public async Task<Result<ListProductsStockWrapperDto>> GetByBranchIdAsync(int branchId, bool excludeServices = false)
+{
+    var query = _context.Stocks
+        .AsNoTracking()
+        .Where(s => s.BranchId == branchId);
+
+    if (excludeServices)
+        query = query.Where(s => s.Product.IsService != true);
+
+    var products = await query
+        .ProjectTo<ProductStockResponseDto>(_mapper.ConfigurationProvider)
+        .ToListAsync();
+
+    return Result<ListProductsStockWrapperDto>.Success(
+        new ListProductsStockWrapperDto { ProductsStock = products });
+}
 }

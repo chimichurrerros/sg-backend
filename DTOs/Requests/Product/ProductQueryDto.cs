@@ -23,4 +23,5 @@ public class ProductQueryDto : PaginationRequestDto
     public decimal? TaxRate { get; set; }
     public decimal? MinMinimumStock { get; set; }
     public decimal? MaxMinimumStock { get; set; }
+    public bool? ExcludeServices { get; set; }
 }

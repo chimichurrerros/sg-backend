@@ -118,9 +118,10 @@ public class ProductsController(ProductsService productsService) : ControllerBas
 
     [HttpGet("by-branch/{branchId}")]
     [HasPermission("products.view")]
-    public async Task<ActionResult<ListProductsStockWrapperDto>> GetProductsByBranch(int branchId)
+    public async Task<ActionResult<ListProductsStockWrapperDto>> GetProductsByBranch(
+    int branchId, [FromQuery] bool excludeServices = false)
     {
-        var result = await _productsService.GetByBranchIdAsync(branchId);
+        var result = await _productsService.GetByBranchIdAsync(branchId, excludeServices);
         if (result.IsSuccess)
             return Ok(result.Value);
         return StatusCode(500);
