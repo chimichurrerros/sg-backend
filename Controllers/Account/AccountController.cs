@@ -91,11 +91,18 @@ public class AccountsController(AccountService accountService) : ControllerBase
     [HasPermission("accounts.delete")]
     public async Task<ActionResult> Delete(int id)
     {
-        var result = await _service.ToggleStatusAsync(id);
-        if (!result.IsSuccess)
-        {
-            return result.ErrorType == ErrorType.NotFound ? NotFound(result) : BadRequest(result);
-        }
-        return NoContent(); // 204 No Content es el estándar para un Delete exitoso
+        var result = await _accountService.ToggleStatusAsync(id);
+
+        if (result.IsSuccess)
+            return NoContent(); // 204 No Content
+
+        if (result.ErrorType == ErrorType.NotFound)
+            return this.HandleNotFoundProblem(result);
+
+        // Si falla por la validación de negocio (tiene movimientos), devuelve BadRequest o un Problem 400
+        if (result.ErrorType == ErrorType.Validation)
+            return BadRequest(result);
+
+        return StatusCode(500);
     }
 }

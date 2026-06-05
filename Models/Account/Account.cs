@@ -12,8 +12,6 @@ public partial class Account
     public int? BankId { get; set; }
 
     public string Name { get; set; } = null!;
-    
-    public string AccountNumber { get; set; } = null!;
 
     public string AccountNumber { get; set; } = null!;
 

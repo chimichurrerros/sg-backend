@@ -263,6 +263,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.MovementType).HasColumnType("bank_movement_type_enum");
             entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.ReferenceNumber).HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(500);
 
             entity.HasOne(d => d.Account).WithMany(p => p.BankMovements)
                 .HasForeignKey(d => d.AccountId)
