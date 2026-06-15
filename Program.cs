@@ -96,7 +96,8 @@ builder.Services.AddCors(options =>
                 || uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase)
                 || uri.Host.Equals("mbeju.xyz", StringComparison.OrdinalIgnoreCase)
                 || uri.Host.EndsWith(".mbeju.xyz", StringComparison.OrdinalIgnoreCase)
-                || uri.Host.EndsWith(".netlify.app", StringComparison.OrdinalIgnoreCase);
+                || uri.Host.EndsWith(".netlify.app", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.EndsWith(".pages.dev", StringComparison.OrdinalIgnoreCase);
         })
         .AllowAnyMethod()
         .AllowAnyHeader()
